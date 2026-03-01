@@ -23,6 +23,13 @@ Next.js automatically loads `.env.local` for local development and Vercel projec
 - `AUTH_SECRET`
 - `MAIL_PROVIDER_API_KEY`
 
+
+## Status page
+
+- Visit `/status` to view a simple system health page.
+- Use `/api/status` for JSON output suitable for uptime checks.
+- Database connectivity is checked via a TCP probe to the `DATABASE_URL` host/port.
+
 ## Local development
 
 ```bash
