@@ -11,6 +11,7 @@ const navItems = [
   { href: "/", label: "Dashboard" },
   { href: "/subscriptions", label: "Subscriptions" },
   { href: "/settings", label: "Settings" },
+  { href: "/status", label: "Status" },
   { href: "/auth/sign-in", label: "Sign In" },
   { href: "/auth/sign-up", label: "Sign Up" },
 ];
