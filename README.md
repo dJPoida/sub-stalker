@@ -23,6 +23,56 @@ Next.js automatically loads `.env.local` for local development and Vercel projec
 - `AUTH_SECRET`
 - `MAIL_PROVIDER_API_KEY`
 
+
+## Status page
+
+- Visit `/status` to view a simple system health page.
+- Use `/api/status` for JSON output suitable for uptime checks.
+- Database connectivity is checked via a TCP probe to the `DATABASE_URL` host/port.
+
+
+### Database URL troubleshooting
+
+If `/status` reports `Database URL is not a valid URL`:
+- Ensure the value in Vercel is a full `postgres://` or `postgresql://` connection string.
+- Remove wrapping quotes (for example, use `postgres://...` not `"postgres://..."`).
+- The app will read the first available value from: `DATABASE_URL`, `SUB_STALKER_STORAGE_POSTGRES_URL`, `SUB_STALKER_STORAGE_POSTGRES_PRISMA_URL`, or `POSTGRES_URL`.
+
+## GitHub PR automation (hands-off mode)
+
+This repo includes:
+- `.github/workflows/ci.yml` to run typecheck, lint, and build on PRs and `main`.
+- `.github/workflows/automerge.yml` to auto-enable squash merge for trusted PR authors or PRs labeled `automerge`.
+
+### One-time setup on your side
+
+1. **Connect git remote from this environment** (if not already connected):
+   ```bash
+   git remote add origin <your-github-repo-url>
+   git push -u origin work
+   ```
+2. **Enable GitHub auto-merge**:
+   - Repo **Settings → General → Pull Requests → Allow auto-merge**.
+3. **Set branch protection for `main`**:
+   - Repo **Settings → Branches → Add branch protection rule** for `main`.
+   - Require pull request before merging.
+   - Require status checks to pass before merging.
+   - Select required check: `CI / checks`.
+   - Keep “Require approval” disabled if you want zero manual review.
+4. **Update trusted bot usernames** in `.github/workflows/automerge.yml`:
+   - Edit `github.event.pull_request.user.login == 'copilot-swe-agent'` to match the PR author account your agent uses.
+   - Or rely on adding `automerge` label to PRs.
+5. **(Optional) Restrict automerge to labels only**:
+   - Remove username checks and keep only `contains(..., 'automerge')`.
+
+### Expected behavior
+
+- Agent opens PR.
+- CI runs (`typecheck`, `lint`, `build`).
+- `automerge.yml` enables auto-merge when trust condition matches.
+- PR is squash-merged automatically when required checks pass.
+- Vercel deploys from `main` automatically.
+
 ## Local development
 
 ```bash
