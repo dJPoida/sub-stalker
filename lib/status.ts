@@ -1,6 +1,18 @@
 import { Socket } from "node:net";
+import { readdir } from "node:fs/promises";
+import { join } from "node:path";
 
+import { db } from "./db";
 import { getDatabaseUrlSource, getServerEnv, normalizeEnvValue } from "./env";
+
+type DatabaseMetadata = {
+  serverVersion: string | null;
+  appliedMigrations: number | null;
+  latestMigration: string | null;
+  latestMigrationAppliedAt: string | null;
+  pendingMigrations: number | null;
+  error?: string;
+};
 
 export type DatabaseStatus = {
   connected: boolean;
@@ -9,6 +21,7 @@ export type DatabaseStatus = {
   port: number | null;
   checkedAt: string;
   envSource: string;
+  metadata: DatabaseMetadata;
   error?: string;
 };
 
@@ -61,6 +74,74 @@ function connectTcp(host: string, port: number, timeoutMs = 5000): Promise<numbe
   });
 }
 
+function emptyDatabaseMetadata(error?: string): DatabaseMetadata {
+  return {
+    serverVersion: null,
+    appliedMigrations: null,
+    latestMigration: null,
+    latestMigrationAppliedAt: null,
+    pendingMigrations: null,
+    ...(error ? { error } : {}),
+  };
+}
+
+async function getLocalMigrationCount(): Promise<number | null> {
+  try {
+    const migrationsDir = join(process.cwd(), "prisma", "migrations");
+    const entries = await readdir(migrationsDir, { withFileTypes: true });
+    return entries.filter((entry) => entry.isDirectory()).length;
+  } catch {
+    return null;
+  }
+}
+
+async function getDatabaseMetadata(): Promise<DatabaseMetadata> {
+  try {
+    const localMigrationCountPromise = getLocalMigrationCount();
+
+    const [versionRows, countRows, latestRows, localMigrationCount] = await Promise.all([
+      db.$queryRaw<Array<{ server_version: string }>>`
+        SELECT current_setting('server_version') AS server_version
+      `,
+      db.$queryRaw<Array<{ applied_count: number | string }>>`
+        SELECT COUNT(*)::int AS applied_count
+        FROM "_prisma_migrations"
+        WHERE finished_at IS NOT NULL
+      `,
+      db.$queryRaw<Array<{ migration_name: string; finished_at: Date }>>`
+        SELECT migration_name, finished_at
+        FROM "_prisma_migrations"
+        WHERE finished_at IS NOT NULL
+        ORDER BY finished_at DESC
+        LIMIT 1
+      `,
+      localMigrationCountPromise,
+    ]);
+
+    const serverVersion = versionRows[0]?.server_version ?? null;
+    const appliedMigrations = Number(countRows[0]?.applied_count ?? 0);
+    const latestMigration = latestRows[0]?.migration_name ?? null;
+    const latestMigrationAppliedAt = latestRows[0]?.finished_at?.toISOString() ?? null;
+    const pendingMigrations =
+      localMigrationCount === null ? null : Math.max(localMigrationCount - appliedMigrations, 0);
+
+    return {
+      serverVersion,
+      appliedMigrations,
+      latestMigration,
+      latestMigrationAppliedAt,
+      pendingMigrations,
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to read database metadata (version/migrations).";
+
+    return emptyDatabaseMetadata(message);
+  }
+}
+
 export async function getDatabaseStatus(): Promise<DatabaseStatus> {
   const checkedAt = new Date().toISOString();
   const envSource = (() => {
@@ -75,6 +156,7 @@ export async function getDatabaseStatus(): Promise<DatabaseStatus> {
     const { DATABASE_URL } = getServerEnv();
     const { host, port } = parseConnectionTarget(DATABASE_URL);
     const latencyMs = await connectTcp(host, port);
+    const metadata = await getDatabaseMetadata();
 
     return {
       connected: true,
@@ -83,6 +165,7 @@ export async function getDatabaseStatus(): Promise<DatabaseStatus> {
       port,
       checkedAt,
       envSource,
+      metadata,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown database check error.";
@@ -94,6 +177,7 @@ export async function getDatabaseStatus(): Promise<DatabaseStatus> {
       port: null,
       checkedAt,
       envSource,
+      metadata: emptyDatabaseMetadata(),
       error: message,
     };
   }

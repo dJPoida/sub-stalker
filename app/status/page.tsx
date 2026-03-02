@@ -8,6 +8,14 @@ function formatLatency(latencyMs: number | null): string {
   return `${latencyMs} ms`;
 }
 
+function formatDate(value: string | null): string {
+  if (!value) {
+    return "n/a";
+  }
+
+  return value;
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function StatusPage() {
@@ -30,8 +38,14 @@ export default async function StatusPage() {
             <li>Port: {database.port ?? "n/a"}</li>
             <li>Latency: {formatLatency(database.latencyMs)}</li>
             <li>Env source: {database.envSource}</li>
+            <li>DB version: {database.metadata.serverVersion ?? "n/a"}</li>
+            <li>Applied migrations: {database.metadata.appliedMigrations ?? "n/a"}</li>
+            <li>Pending migrations: {database.metadata.pendingMigrations ?? "n/a"}</li>
+            <li>Latest migration: {database.metadata.latestMigration ?? "n/a"}</li>
+            <li>Latest applied at: {formatDate(database.metadata.latestMigrationAppliedAt)}</li>
           </ul>
           {database.error ? <p className="status-error">Error: {database.error}</p> : null}
+          {database.metadata.error ? <p className="status-error">Metadata error: {database.metadata.error}</p> : null}
           {!database.connected ? (
             <p className="status-help">Tip: set a clean unquoted DB URL in Vercel. Example source should be DATABASE_URL or SUB_STALKER_STORAGE_POSTGRES_URL.</p>
           ) : null}

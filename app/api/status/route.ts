@@ -8,11 +8,12 @@ export const revalidate = 0;
 
 export async function GET() {
   const database = await getDatabaseStatus();
+  const status = database.connected && !database.metadata.error ? "ok" : "degraded";
 
   return NextResponse.json(
     {
       app: "Subscription Stalker",
-      status: database.connected ? "ok" : "degraded",
+      status,
       database,
       metrics: {
         users: null,
@@ -21,7 +22,7 @@ export async function GET() {
       },
     },
     {
-      status: database.connected ? 200 : 503,
+      status: status === "ok" ? 200 : 503,
     },
   );
 }

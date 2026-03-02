@@ -90,6 +90,7 @@ Useful commands:
 - Visit `/status` to view a simple system health page.
 - Use `/api/status` for JSON output suitable for uptime checks.
 - Database connectivity is checked via a TCP probe to the `DATABASE_URL` host/port.
+- Status output also includes database version and Prisma migration currency (applied/pending + latest migration).
 
 ### Database URL troubleshooting
 
@@ -154,6 +155,13 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+## Basic auth (MVP)
+
+- Sign up at `/auth/sign-up` (email + password, minimum 8 chars).
+- Sign in at `/auth/sign-in`.
+- Session is stored in an HTTP-only cookie signed with `AUTH_SECRET`.
+- `/subscriptions` and `/settings` require authentication.
 
 ## Production build locally
 
