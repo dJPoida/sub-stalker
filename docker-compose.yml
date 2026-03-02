@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sub-stalker-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sub_stalker
+      POSTGRES_USER: sub_stalker
+      POSTGRES_PASSWORD: sub_stalker
+    ports:
+      - "5433:5432"
+    volumes:
+      - sub_stalker_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sub_stalker -d sub_stalker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  sub_stalker_db_data:
