@@ -53,6 +53,7 @@ Next.js automatically loads `.env.local` for local development and Vercel projec
 2. Fill in required keys:
 
 - `DATABASE_URL`
+- `DIRECT_URL`
 - `AUTH_SECRET`
 - `MAIL_PROVIDER_API_KEY`
 
@@ -64,6 +65,7 @@ Default local connection:
 
 ```env
 DATABASE_URL="postgresql://sub_stalker:sub_stalker@localhost:5433/sub_stalker?schema=public"
+DIRECT_URL="postgresql://sub_stalker:sub_stalker@localhost:5433/sub_stalker?schema=public"
 ```
 
 Common local workflow:
@@ -97,6 +99,7 @@ If `/status` reports `Database URL is not a valid URL`:
 - Remove wrapping quotes (use `postgres://...` not `"postgres://..."`).
 - Avoid smart/curly quotes copied from docs or chat tools (`"..."` and `'...'` only).
 - URL-encode special characters in DB username/password (`@`, `#`, `%`, `:`) before placing them in the URL.
+- For Supabase: use pooled URL for `DATABASE_URL` and direct connection URL for `DIRECT_URL` so migrations do not stall.
 - The app will read the first available value from:
   - `DATABASE_URL`
   - `SUB_STALKER_STORAGE_POSTGRES_URL`
@@ -165,9 +168,12 @@ npm run start
 2. Import the project in Vercel.
 3. In Project Settings -> Environment Variables, set:
    - `DATABASE_URL`
+   - `DIRECT_URL`
    - `AUTH_SECRET`
    - `MAIL_PROVIDER_API_KEY`
-4. Ensure your Vercel Production environment has a valid `DATABASE_URL` for your production Postgres.
+4. Ensure your Vercel Production environment has:
+   - `DATABASE_URL` for runtime app traffic (pooler URL is acceptable)
+   - `DIRECT_URL` for Prisma migrations (must be a direct Postgres connection, not the pooler)
 5. Deploy.
 
 Vercel will run `npm install` and then `npm run build:vercel` (configured in `vercel.json`), which performs:
