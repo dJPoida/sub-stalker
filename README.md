@@ -186,5 +186,6 @@ npm run start
 
 Vercel will run `npm install` and then `npm run build:vercel` (configured in `vercel.json`), which performs:
 
-1. `prisma migrate deploy` (production only)
-2. `next build`
+1. `prisma generate`
+2. `prisma migrate deploy` (production only)
+3. `next build`

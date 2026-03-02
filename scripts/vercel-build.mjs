@@ -15,6 +15,9 @@ function looksLikeSupabasePooler(url) {
 const vercelEnv = process.env.VERCEL_ENV;
 const shouldRunMigrations = vercelEnv === "production";
 
+console.log("Generating Prisma Client...");
+run("npx prisma generate");
+
 if (shouldRunMigrations) {
   const databaseUrl = process.env.DATABASE_URL ?? "";
   const directUrl = process.env.DIRECT_URL ?? "";
