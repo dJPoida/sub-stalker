@@ -2,6 +2,38 @@
 
 Next.js (App Router + TypeScript) starter for a subscription tracking app.
 
+## Project mission and original requirements (for future AI agents)
+
+This section documents the core task this project is pursuing so future agents can continue work with the same intent.
+
+### Product intent
+
+Subscription Stalker is a web app that helps users keep track of recurring subscriptions, understand upcoming charges, and reduce wasted spend.
+
+### Original requirements summary
+
+1. Build a **subscription tracking application** where users can manage their subscriptions from a single dashboard.
+2. Support core user journeys for:
+   - authentication (sign in/sign up),
+   - viewing subscriptions,
+   - updating account/settings preferences.
+3. Provide a **status/health surface** for operational checks:
+   - human-readable status page at `/status`,
+   - machine-readable status endpoint at `/api/status`.
+4. Ensure the app is deployable to Vercel with environment-driven configuration.
+5. Maintain a clean, incremental foundation so future work can add:
+   - concrete subscription CRUD,
+   - billing/renewal visibility,
+   - notifications/reminders,
+   - richer product metrics.
+
+### Working guidance for future agents
+
+- Treat this repository as an evolving MVP: prefer small, testable steps.
+- Preserve and improve operational visibility (`/status`, `/api/status`) as features expand.
+- Keep environment variables and deployment docs up to date when adding integrations.
+- When implementing new features, align changes to the mission above (help users track, understand, and act on subscription costs).
+
 ## Prerequisites
 
 - Node.js 18.17+ (Node.js 20 recommended)
