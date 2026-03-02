@@ -43,3 +43,46 @@ a {
   border-radius: 12px;
   padding: 1.25rem;
 }
+
+.status-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-top: 1rem;
+}
+
+.status-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.status-item h2 {
+  margin-top: 0;
+}
+
+.status-item ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.status-ok {
+  color: #166534;
+  font-weight: 600;
+}
+
+.status-fail {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.status-error {
+  margin-top: 0.75rem;
+  color: #b91c1c;
+}
+
+.status-help {
+  margin-top: 0.75rem;
+  color: #374151;
+  font-size: 0.95rem;
+}
