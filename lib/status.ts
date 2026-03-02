@@ -1,6 +1,6 @@
 import { Socket } from "node:net";
 
-import { getDatabaseUrlSource, getServerEnv } from "./env";
+import { getDatabaseUrlSource, getServerEnv, normalizeEnvValue } from "./env";
 
 export type DatabaseStatus = {
   connected: boolean;
@@ -14,12 +14,13 @@ export type DatabaseStatus = {
 
 function parseConnectionTarget(databaseUrl: string): { host: string; port: number } {
   let parsed: URL;
+  const normalizedUrl = normalizeEnvValue(databaseUrl);
 
   try {
-    parsed = new URL(databaseUrl);
+    parsed = new URL(normalizedUrl);
   } catch {
     throw new Error(
-      "Database URL is not a valid URL. Ensure no extra quotes/spaces and use a postgres:// or postgresql:// URL.",
+      "Database URL is not a valid URL. Ensure no extra quotes/spaces, use postgres:// or postgresql://, and URL-encode special characters in credentials.",
     );
   }
 

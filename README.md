@@ -68,6 +68,8 @@ Next.js automatically loads `.env.local` for local development and Vercel projec
 If `/status` reports `Database URL is not a valid URL`:
 - Ensure the value in Vercel is a full `postgres://` or `postgresql://` connection string.
 - Remove wrapping quotes (for example, use `postgres://...` not `"postgres://..."`).
+- Avoid smart/curly quotes copied from docs or chat tools (`“...”` or `‘...’`).
+- URL-encode special characters in DB username/password (`@`, `#`, `%`, `:`) before placing them in the URL.
 - The app will read the first available value from: `DATABASE_URL`, `SUB_STALKER_STORAGE_POSTGRES_URL`, `SUB_STALKER_STORAGE_POSTGRES_PRISMA_URL`, or `POSTGRES_URL`.
 
 ## GitHub PR automation (hands-off mode)

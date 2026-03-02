@@ -5,6 +5,14 @@ const DATABASE_URL_CANDIDATES = [
   "POSTGRES_URL",
 ] as const;
 
+const WRAPPING_QUOTES: ReadonlyArray<{ open: string; close: string }> = [
+  { open: "\"", close: "\"" },
+  { open: "'", close: "'" },
+  { open: "`", close: "`" },
+  { open: "\u201C", close: "\u201D" },
+  { open: "\u2018", close: "\u2019" },
+];
+
 type DatabaseUrlResolution = {
   value: string;
   source: (typeof DATABASE_URL_CANDIDATES)[number];
@@ -16,8 +24,29 @@ export type ServerEnv = {
   MAIL_PROVIDER_API_KEY: string;
 };
 
+function stripWrappingQuotes(value: string): string {
+  let result = value.trim();
+  let changed = true;
+
+  while (changed && result.length > 1) {
+    changed = false;
+
+    for (const { open, close } of WRAPPING_QUOTES) {
+      if (result.startsWith(open) && result.endsWith(close)) {
+        result = result.slice(open.length, result.length - close.length).trim();
+        changed = true;
+      }
+    }
+  }
+
+  return result;
+}
+
 export function normalizeEnvValue(raw: string): string {
-  return raw.trim().replace(/^['\"]|['\"]$/g, "");
+  return stripWrappingQuotes(raw)
+    .replace(/\uFEFF/g, "")
+    .replace(/[\u200B-\u200D\u2060]/g, "")
+    .trim();
 }
 
 export function resolveDatabaseUrl(
