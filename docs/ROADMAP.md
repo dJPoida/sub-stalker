@@ -48,3 +48,15 @@ Acceptance criteria:
 - Define reminder query job.
 - Integrate mail provider wrapper.
 - Add delivery attempt logging model.
+
+## P4: Form submit UX feedback
+
+Goal:
+
+- Improve perceived responsiveness and prevent duplicate submits while server actions are in flight.
+
+Acceptance criteria:
+
+- Primary submit buttons show a loading/in-progress state during request execution.
+- Relevant form inputs/buttons are temporarily disabled while pending.
+- Users receive clear completion/error feedback after submit.

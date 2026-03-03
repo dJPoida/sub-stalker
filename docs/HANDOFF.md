@@ -36,7 +36,7 @@ Implemented:
 Not implemented yet:
 
 - Dashboard metrics.
-- Settings persistence UI.
+- Improved form submission UX (loading/disabled states during in-flight requests).
 - Email/notification workflows.
 - Automated tests.
 
@@ -50,10 +50,10 @@ Not implemented yet:
 
 ## Immediate next tasks
 
-1. Add basic settings persistence from `UserSettings`.
-2. Add dashboard summary metrics (upcoming renewal, active count, monthly estimate).
-3. Add minimal e2e smoke tests for auth + status + subscriptions CRUD.
-4. Add optional "sign out all sessions" account control.
+1. Add dashboard summary metrics (upcoming renewal, active count, monthly estimate).
+2. Add minimal e2e smoke tests for auth + status + subscriptions CRUD.
+3. Add optional "sign out all sessions" account control.
+4. Add loading/lock-out UI states for form submissions (e.g., disable submit + show in-progress text).
 
 ## Files to understand first
 
