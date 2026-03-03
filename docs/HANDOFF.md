@@ -40,7 +40,7 @@ Not implemented yet:
 - Keep `DATABASE_URL` and `DIRECT_URL` separate in Vercel:
   - `DATABASE_URL`: runtime app traffic (pooler acceptable).
   - `DIRECT_URL`: migration connection for Prisma (must be migration-safe).
-- Set `CRON_SECRET` for `/api/internal/session-cleanup`.
+- Set `CRON_SECRET` for `/api/internal/daily-maintenance`.
 - If Prisma errors on Vercel about stale client, verify `scripts/vercel-build.mjs` still runs `npx prisma generate` first.
 
 ## Immediate next tasks

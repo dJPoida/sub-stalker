@@ -96,8 +96,9 @@ Date: 2026-03-03
 
 Decision:
 
-- Add hourly cron endpoint to prune expired sessions and stale sign-in attempt records.
+- Add a once-daily cron endpoint to run batched maintenance jobs.
 
 Rationale:
 
+- Matches platform cron limits while keeping routine maintenance automated.
 - Keeps auth tables bounded even when sign-ins are infrequent.
