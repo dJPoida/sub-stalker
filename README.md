@@ -101,6 +101,7 @@ If `/status` reports `Database URL is not a valid URL`:
 - Avoid smart/curly quotes copied from docs or chat tools (`"..."` and `'...'` only).
 - URL-encode special characters in DB username/password (`@`, `#`, `%`, `:`) before placing them in the URL.
 - For Supabase: use pooled URL for `DATABASE_URL` and direct connection URL for `DIRECT_URL` so migrations do not stall.
+- If runtime logs show `prepared statement "s0" already exists`, ensure runtime uses a pooler-compatible URL. This app auto-applies `pgbouncer=true` and `connection_limit=1` for Supabase pooler hosts at runtime.
 - The app will read the first available value from:
   - `DATABASE_URL`
   - `SUB_STALKER_STORAGE_POSTGRES_URL`
