@@ -160,7 +160,7 @@ Open http://localhost:3000.
 
 - Sign up at `/auth/sign-up` (email + password, minimum 8 chars).
 - Sign in at `/auth/sign-in`.
-- Session is stored in an HTTP-only cookie signed with `AUTH_SECRET`.
+- Session is stored as an HTTP-only cookie with an opaque token backed by the `Session` database table.
 - `/subscriptions` and `/settings` require authentication.
 
 ## Production build locally

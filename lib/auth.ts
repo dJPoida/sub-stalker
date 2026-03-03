@@ -1,5 +1,5 @@
 import {
-  createHmac,
+  createHash,
   randomBytes,
   scryptSync,
   timingSafeEqual,
@@ -8,13 +8,7 @@ import {
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { normalizeEnvValue } from "./env";
-
-type SessionPayload = {
-  sub: string;
-  email: string;
-  exp: number;
-};
+import { db } from "./db";
 
 export type AuthUser = {
   id: string;
@@ -23,20 +17,6 @@ export type AuthUser = {
 
 const SESSION_COOKIE_NAME = "sub_stalker_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
-
-function getAuthSecret(): string {
-  const secret = normalizeEnvValue(process.env.AUTH_SECRET ?? "");
-
-  if (!secret) {
-    throw new Error("Missing AUTH_SECRET.");
-  }
-
-  return secret;
-}
-
-function sign(value: string, secret: string): string {
-  return createHmac("sha256", secret).update(value).digest("base64url");
-}
 
 function safeEqual(a: string, b: string): boolean {
   const aBuffer = Buffer.from(a);
@@ -49,16 +29,8 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(aBuffer, bBuffer);
 }
 
-function encodePayload(payload: SessionPayload): string {
-  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
-}
-
-function decodePayload(value: string): SessionPayload | null {
-  try {
-    return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as SessionPayload;
-  } catch {
-    return null;
-  }
+function hashSessionToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 export function hashPassword(password: string): string {
@@ -78,53 +50,19 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   return safeEqual(existingHash, hash);
 }
 
-export function createSessionToken(user: AuthUser): string {
-  const payload: SessionPayload = {
-    sub: user.id,
-    email: user.email,
-    exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
-  };
-  const encodedPayload = encodePayload(payload);
-  const signature = sign(encodedPayload, getAuthSecret());
-  return `${encodedPayload}.${signature}`;
-}
-
-export function verifySessionToken(token: string): AuthUser | null {
-  const [encodedPayload, signature] = token.split(".");
-
-  if (!encodedPayload || !signature) {
-    return null;
-  }
-
-  const expectedSignature = sign(encodedPayload, getAuthSecret());
-
-  if (!safeEqual(signature, expectedSignature)) {
-    return null;
-  }
-
-  const payload = decodePayload(encodedPayload);
-
-  if (!payload) {
-    return null;
-  }
-
-  if (!payload.sub || !payload.email || !payload.exp) {
-    return null;
-  }
-
-  if (payload.exp <= Math.floor(Date.now() / 1000)) {
-    return null;
-  }
-
-  return {
-    id: payload.sub,
-    email: payload.email,
-  };
-}
-
 export async function setAuthSession(user: AuthUser): Promise<void> {
   const cookieStore = await cookies();
-  const token = createSessionToken(user);
+  const token = randomBytes(32).toString("base64url");
+  const tokenHash = hashSessionToken(token);
+  const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
+
+  await db.session.create({
+    data: {
+      userId: user.id,
+      tokenHash,
+      expiresAt,
+    },
+  });
 
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
@@ -137,6 +75,16 @@ export async function setAuthSession(user: AuthUser): Promise<void> {
 
 export async function clearAuthSession(): Promise<void> {
   const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+
+  if (token) {
+    await db.session.deleteMany({
+      where: {
+        tokenHash: hashSessionToken(token),
+      },
+    });
+  }
+
   cookieStore.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -154,7 +102,45 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     return null;
   }
 
-  return verifySessionToken(token);
+  const tokenHash = hashSessionToken(token);
+  const session = await db.session.findUnique({
+    where: {
+      tokenHash,
+    },
+    select: {
+      expiresAt: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!session) {
+    return null;
+  }
+
+  if (session.expiresAt.getTime() <= Date.now()) {
+    await db.session.deleteMany({
+      where: {
+        tokenHash,
+      },
+    });
+
+    cookieStore.set(SESSION_COOKIE_NAME, "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
+
+    return null;
+  }
+
+  return session.user;
 }
 
 export async function requireAuthenticatedUser(): Promise<AuthUser> {
