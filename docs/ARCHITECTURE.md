@@ -19,6 +19,7 @@ Main concerns:
 - `/settings` (authenticated).
 - `/status` (human-readable operational status).
 - `/api/status` (machine-readable operational status).
+- `/api/internal/session-cleanup` (cron-only maintenance endpoint).
 
 ## Data model
 
@@ -28,6 +29,7 @@ Defined in `prisma/schema.prisma`:
 - `UserSettings` (1:1 with user)
 - `Subscription` (many per user)
 - `Session` (many per user; opaque token hashes)
+- `SignInAttempt` (rate-limit tracking by hashed email+IP key)
 
 ## Auth flow
 
@@ -35,10 +37,13 @@ Defined in `prisma/schema.prisma`:
 2. Passwords are stored as `scrypt` hashes.
 3. On success:
    - generate random session token.
-   - store SHA-256 hash in `Session` table with `expiresAt`.
+   - store HMAC-SHA256 token hash in `Session` table with `expiresAt` and `lastSeenAt`.
    - set HTTP-only cookie with raw token.
-4. Requests read cookie, hash token, look up session, enforce expiry.
-5. Sign-out deletes matching session row and clears cookie.
+4. Requests read cookie, hash token, look up session, enforce absolute and idle expiry.
+5. Session touch updates `lastSeenAt` at a fixed interval.
+6. Sign-in enforces rate limiting (email+IP), prunes stale attempts, and prunes expired sessions.
+7. Sign-out deletes matching session row and clears cookie.
+8. Auth actions require same-origin request validation.
 
 ## Status flow
 
@@ -66,3 +71,6 @@ Production build command is defined by `vercel.json`:
 2. if `VERCEL_ENV=production`: `prisma migrate deploy`
 3. `next build`
 
+Additional scheduled operation:
+
+- Hourly Vercel cron calls `/api/internal/session-cleanup` (guarded by `CRON_SECRET`).

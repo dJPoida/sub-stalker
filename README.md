@@ -55,6 +55,7 @@ Next.js automatically loads `.env.local` for local development and Vercel projec
 - `DATABASE_URL`
 - `DIRECT_URL`
 - `AUTH_SECRET`
+- `CRON_SECRET`
 - `MAIL_PROVIDER_API_KEY`
 
 ## Local database and Prisma migrations
@@ -66,6 +67,9 @@ Default local connection:
 ```env
 DATABASE_URL="postgresql://sub_stalker:sub_stalker@localhost:5433/sub_stalker?schema=public"
 DIRECT_URL="postgresql://sub_stalker:sub_stalker@localhost:5433/sub_stalker?schema=public"
+AUTH_SECRET="replace-with-a-random-secret"
+CRON_SECRET="replace-with-a-random-secret"
+MAIL_PROVIDER_API_KEY="replace-with-provider-key"
 ```
 
 Common local workflow:
@@ -115,6 +119,7 @@ This repo includes:
 - `.github/workflows/ci.yml` to run typecheck, lint, and build on PRs and `main`
 - `.github/workflows/automerge.yml` to auto-enable squash merge for trusted PR authors or PRs labeled `automerge`
 - `vercel.json` + `scripts/vercel-build.mjs` to run production DB migrations during Vercel production builds
+- Vercel cron config to run `/api/internal/session-cleanup` hourly
 
 ### One-time setup on your side
 
@@ -147,6 +152,7 @@ This repo includes:
 - PR is squash-merged automatically when required checks pass.
 - Vercel deploys from `main` automatically.
 - During production deploys (`VERCEL_ENV=production`), Prisma migrations are applied via `prisma migrate deploy` before `next build`.
+- Vercel cron prunes expired sessions and stale sign-in attempts hourly.
 
 ## Local development
 
@@ -162,7 +168,15 @@ Open http://localhost:3000.
 - Sign up at `/auth/sign-up` (email + password, minimum 8 chars).
 - Sign in at `/auth/sign-in`.
 - Session is stored as an HTTP-only cookie with an opaque token backed by the `Session` database table.
-- Expired sessions are pruned on each successful sign-in.
+- Session token hashes are keyed with `AUTH_SECRET`.
+- Session policy:
+  - absolute TTL: 7 days
+  - idle TTL: 3 days
+  - max concurrent sessions per user: 5
+  - sign-out revokes current session only
+- Sign-in is rate limited by email + IP (5 attempts per 15 minutes, then 30-minute block).
+- Auth server actions enforce same-origin request checks.
+- Expired sessions are pruned on sign-in and by hourly cron.
 - `/subscriptions` and `/settings` require authentication.
 
 ## Additional docs
@@ -190,6 +204,7 @@ npm run start
    - `DATABASE_URL`
    - `DIRECT_URL`
    - `AUTH_SECRET`
+   - `CRON_SECRET`
    - `MAIL_PROVIDER_API_KEY`
 4. Ensure your Vercel Production environment has:
    - `DATABASE_URL` for runtime app traffic (pooler URL is acceptable)
@@ -201,3 +216,8 @@ Vercel will run `npm install` and then `npm run build:vercel` (configured in `ve
 1. `prisma generate`
 2. `prisma migrate deploy` (production only)
 3. `next build`
+
+Vercel cron:
+
+- Calls `GET /api/internal/session-cleanup` every hour.
+- Uses `CRON_SECRET` via `Authorization: Bearer <CRON_SECRET>`.

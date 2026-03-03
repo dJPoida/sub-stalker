@@ -17,6 +17,7 @@ Vercel production:
 - `DATABASE_URL`
 - `DIRECT_URL`
 - `AUTH_SECRET`
+- `CRON_SECRET`
 - `MAIL_PROVIDER_API_KEY`
 
 Supabase guidance:
@@ -31,6 +32,11 @@ Supabase guidance:
 1. `npx prisma generate`
 2. `prisma migrate deploy` (production only)
 3. `next build`
+
+Scheduled cleanup:
+
+- Vercel cron runs hourly at `/api/internal/session-cleanup`.
+- Endpoint requires `Authorization: Bearer <CRON_SECRET>`.
 
 ## Common runbook
 
@@ -51,6 +57,8 @@ Supabase guidance:
 3. Check:
    - `/status`
    - `/api/status`
+4. Verify session cleanup endpoint health:
+   - ensure cron requests succeed in Vercel logs.
 
 ### If deployment fails
 
@@ -69,3 +77,7 @@ Migration hangs:
 - check if migration is pointed at an unsupported pooled URL.
 - switch `DIRECT_URL` to a migration-safe connection endpoint.
 
+Auth rejects with `invalid_request`:
+
+- verify app hostname and origin match expected host/protocol.
+- check proxy headers (`x-forwarded-host`, `x-forwarded-proto`) in deployment path.

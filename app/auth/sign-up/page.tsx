@@ -22,8 +22,12 @@ function getErrorMessage(errorCode?: string): string | null {
     return "Password must be at least 8 characters.";
   }
 
-  if (errorCode === "email_exists") {
-    return "That email is already in use.";
+  if (errorCode === "invalid_request") {
+    return "Invalid sign-up request. Please try again.";
+  }
+
+  if (errorCode === "unable_to_create") {
+    return "Unable to create account with the provided details.";
   }
 
   return "Unable to create account.";

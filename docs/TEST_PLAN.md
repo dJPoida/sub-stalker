@@ -22,6 +22,8 @@ Auth:
 3. Sign in with same user.
 4. Confirm `/subscriptions` loads when signed in.
 5. Confirm `/subscriptions` redirects to sign-in when signed out.
+6. Submit repeated bad credentials and confirm rate-limit response appears.
+7. Confirm sign-in rejects cross-origin requests (invalid request path).
 
 Status:
 
@@ -35,10 +37,10 @@ Deploy:
 1. Merge to `main`.
 2. Confirm Vercel build includes Prisma generate + migrate + build.
 3. Confirm deployed `/status` and `/api/status`.
+4. Confirm cron cleanup endpoint is invoked by Vercel and returns success.
 
 ## Known gaps
 
 - No automated integration tests yet.
 - No e2e browser tests yet.
 - No load testing yet.
-

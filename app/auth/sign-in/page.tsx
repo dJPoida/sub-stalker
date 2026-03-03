@@ -6,10 +6,11 @@ import { getCurrentUser } from "@/lib/auth";
 type SignInPageProps = {
   searchParams?: {
     error?: string;
+    retry_after?: string;
   };
 };
 
-function getErrorMessage(errorCode?: string): string | null {
+function getErrorMessage(errorCode?: string, retryAfter?: string): string | null {
   if (!errorCode) {
     return null;
   }
@@ -22,6 +23,20 @@ function getErrorMessage(errorCode?: string): string | null {
     return "Invalid email or password.";
   }
 
+  if (errorCode === "invalid_request") {
+    return "Invalid sign-in request. Please try again.";
+  }
+
+  if (errorCode === "rate_limited") {
+    const seconds = Number(retryAfter ?? "0");
+
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+      return "Too many sign-in attempts. Please wait and try again.";
+    }
+
+    return `Too many sign-in attempts. Try again in ${seconds} seconds.`;
+  }
+
   return "Unable to sign in.";
 }
 
@@ -32,7 +47,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
     redirect("/");
   }
 
-  const errorMessage = getErrorMessage(searchParams?.error);
+  const errorMessage = getErrorMessage(searchParams?.error, searchParams?.retry_after);
 
   return (
     <section className="card">

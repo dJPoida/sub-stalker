@@ -20,7 +20,10 @@ Implemented:
   - sign-up/sign-in/sign-out via server actions.
   - password hashing with `scrypt`.
   - DB-backed sessions in `Session` table.
-  - expired sessions pruned on successful sign-in.
+  - session lifecycle policy (absolute + idle expiry, max concurrent sessions).
+  - sign-in rate limiting by email + IP.
+  - same-origin validation on auth actions.
+  - expired sessions/stale attempts pruned on sign-in and hourly cron.
   - `/subscriptions` and `/settings` protected.
 
 Not implemented yet:
@@ -35,6 +38,7 @@ Not implemented yet:
 - Keep `DATABASE_URL` and `DIRECT_URL` separate in Vercel:
   - `DATABASE_URL`: runtime app traffic (pooler acceptable).
   - `DIRECT_URL`: migration connection for Prisma (must be migration-safe).
+- Set `CRON_SECRET` for `/api/internal/session-cleanup`.
 - If Prisma errors on Vercel about stale client, verify `scripts/vercel-build.mjs` still runs `npx prisma generate` first.
 
 ## Immediate next tasks
@@ -42,7 +46,7 @@ Not implemented yet:
 1. Build authenticated subscription CRUD (server actions + Prisma queries + UI forms).
 2. Add basic settings persistence from `UserSettings`.
 3. Add minimal e2e smoke tests for auth + status.
-4. Add scheduled cleanup job for old sessions (pruning currently runs on sign-in only).
+4. Add optional "sign out all sessions" account control.
 
 ## Files to understand first
 
@@ -52,4 +56,3 @@ Not implemented yet:
 4. `lib/status.ts`
 5. `scripts/vercel-build.mjs`
 6. `app/auth/actions.ts`
-

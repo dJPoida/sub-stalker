@@ -58,3 +58,46 @@ Rationale:
 
 - Avoids stale Prisma Client from cached dependencies in Vercel builds.
 
+## D-005: Session security controls in-app
+
+Date: 2026-03-03
+
+Decision:
+
+- Add same-origin checks for auth actions.
+- Add sign-in rate limiting by email+IP.
+- Use keyed token hashing (`AUTH_SECRET`) for session token lookup.
+
+Rationale:
+
+- Reduces CSRF risk on auth actions.
+- Slows brute-force attempts.
+- Protects against unhashed token lookup reuse across environments.
+
+## D-006: Session lifecycle enforcement policy
+
+Date: 2026-03-03
+
+Decision:
+
+- Absolute session TTL: 7 days.
+- Idle TTL: 3 days.
+- Max concurrent sessions per user: 5.
+- Current-session revocation on sign-out.
+
+Rationale:
+
+- Balanced usability and security for MVP.
+- Prevents unlimited session accumulation.
+
+## D-007: Scheduled auth maintenance cleanup
+
+Date: 2026-03-03
+
+Decision:
+
+- Add hourly cron endpoint to prune expired sessions and stale sign-in attempt records.
+
+Rationale:
+
+- Keeps auth tables bounded even when sign-ins are infrequent.
