@@ -1,6 +1,6 @@
 # Roadmap
 
-## P0: Subscription CRUD (next)
+## P0: Subscription CRUD (completed)
 
 Goal:
 
@@ -48,4 +48,3 @@ Acceptance criteria:
 - Define reminder query job.
 - Integrate mail provider wrapper.
 - Add delivery attempt logging model.
-

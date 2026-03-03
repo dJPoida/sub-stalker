@@ -27,10 +27,15 @@ Implemented:
   - stale sign-in attempts pruned by daily cron batch.
   - manual maintenance actions available in `/tools`.
   - `/subscriptions` and `/settings` protected.
+- Subscription CRUD:
+  - authenticated users can create, list, update, and deactivate subscriptions from `/subscriptions`.
+  - subscriptions are persisted in the `Subscription` table.
+  - server actions validate amount, currency, billing interval, and optional next billing date.
+  - update/deactivate operations are scoped to the authenticated user.
 
 Not implemented yet:
 
-- Subscription CRUD and dashboard metrics.
+- Dashboard metrics.
 - Settings persistence UI.
 - Email/notification workflows.
 - Automated tests.
@@ -45,9 +50,9 @@ Not implemented yet:
 
 ## Immediate next tasks
 
-1. Build authenticated subscription CRUD (server actions + Prisma queries + UI forms).
-2. Add basic settings persistence from `UserSettings`.
-3. Add minimal e2e smoke tests for auth + status.
+1. Add basic settings persistence from `UserSettings`.
+2. Add dashboard summary metrics (upcoming renewal, active count, monthly estimate).
+3. Add minimal e2e smoke tests for auth + status + subscriptions CRUD.
 4. Add optional "sign out all sessions" account control.
 
 ## Files to understand first
