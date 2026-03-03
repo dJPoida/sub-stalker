@@ -137,6 +137,13 @@ a {
   background: #fff;
 }
 
+.form-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+}
+
 .form button {
   width: fit-content;
   border: 1px solid #111827;
