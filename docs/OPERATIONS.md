@@ -35,8 +35,9 @@ Supabase guidance:
 
 Scheduled cleanup:
 
-- Vercel cron runs hourly at `/api/internal/session-cleanup`.
+- Vercel cron runs once daily at `/api/internal/daily-maintenance`.
 - Endpoint requires `Authorization: Bearer <CRON_SECRET>`.
+- For ad-hoc testing, use `/tools` manual actions instead of increasing cron frequency.
 
 ## Common runbook
 

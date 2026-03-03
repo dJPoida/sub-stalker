@@ -119,7 +119,7 @@ This repo includes:
 - `.github/workflows/ci.yml` to run typecheck, lint, and build on PRs and `main`
 - `.github/workflows/automerge.yml` to auto-enable squash merge for trusted PR authors or PRs labeled `automerge`
 - `vercel.json` + `scripts/vercel-build.mjs` to run production DB migrations during Vercel production builds
-- Vercel cron config to run `/api/internal/session-cleanup` hourly
+- Vercel cron config to run `/api/internal/daily-maintenance` once per day
 
 ### One-time setup on your side
 
@@ -152,7 +152,7 @@ This repo includes:
 - PR is squash-merged automatically when required checks pass.
 - Vercel deploys from `main` automatically.
 - During production deploys (`VERCEL_ENV=production`), Prisma migrations are applied via `prisma migrate deploy` before `next build`.
-- Vercel cron prunes expired sessions and stale sign-in attempts hourly.
+- Vercel cron runs daily maintenance once per day.
 
 ## Local development
 
@@ -176,7 +176,8 @@ Open http://localhost:3000.
   - sign-out revokes current session only
 - Sign-in is rate limited by email + IP (5 attempts per 15 minutes, then 30-minute block).
 - Auth server actions enforce same-origin request checks.
-- Expired sessions are pruned on sign-in and by hourly cron.
+- Expired sessions are pruned on sign-in.
+- Manual maintenance actions are available at `/tools` for test runs.
 - `/subscriptions` and `/settings` require authentication.
 
 ## Additional docs
@@ -219,5 +220,5 @@ Vercel will run `npm install` and then `npm run build:vercel` (configured in `ve
 
 Vercel cron:
 
-- Calls `GET /api/internal/session-cleanup` every hour.
+- Calls `GET /api/internal/daily-maintenance` once per day.
 - Uses `CRON_SECRET` via `Authorization: Bearer <CRON_SECRET>`.

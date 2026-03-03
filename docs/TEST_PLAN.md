@@ -37,7 +37,8 @@ Deploy:
 1. Merge to `main`.
 2. Confirm Vercel build includes Prisma generate + migrate + build.
 3. Confirm deployed `/status` and `/api/status`.
-4. Confirm cron cleanup endpoint is invoked by Vercel and returns success.
+4. Confirm daily cron endpoint is invoked by Vercel and returns success.
+5. Confirm `/tools` manual maintenance actions run successfully for testing.
 
 ## Known gaps
 

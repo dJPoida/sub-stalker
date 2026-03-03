@@ -3,8 +3,8 @@
   "buildCommand": "npm run build:vercel",
   "crons": [
     {
-      "path": "/api/internal/session-cleanup",
-      "schedule": "0 * * * *"
+      "path": "/api/internal/daily-maintenance",
+      "schedule": "0 3 * * *"
     }
   ]
 }

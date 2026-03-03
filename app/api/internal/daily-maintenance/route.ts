@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { pruneExpiredSessions, pruneStaleSignInAttempts } from "@/lib/auth";
+import { runDailyMaintenanceJobs } from "@/lib/maintenance";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   if (!cronSecret) {
     return NextResponse.json(
-      { error: "Missing CRON_SECRET for session cleanup endpoint." },
+      { error: "Missing CRON_SECRET for daily maintenance endpoint." },
       { status: 500 },
     );
   }
@@ -26,15 +26,13 @@ export async function GET(request: NextRequest) {
     return unauthorizedResponse();
   }
 
-  const [sessionsDeleted, attemptsDeleted] = await Promise.all([
-    pruneExpiredSessions(),
-    pruneStaleSignInAttempts(),
-  ]);
+  const result = await runDailyMaintenanceJobs();
 
   return NextResponse.json({
     ok: true,
-    sessionsDeleted,
-    attemptsDeleted,
-    cleanedAt: new Date().toISOString(),
+    jobs: {
+      staleSignInAttemptsDeleted: result.staleSignInAttemptsDeleted,
+    },
+    ranAt: result.ranAt,
   });
 }

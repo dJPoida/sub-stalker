@@ -23,7 +23,9 @@ Implemented:
   - session lifecycle policy (absolute + idle expiry, max concurrent sessions).
   - sign-in rate limiting by email + IP.
   - same-origin validation on auth actions.
-  - expired sessions/stale attempts pruned on sign-in and hourly cron.
+  - expired sessions pruned on sign-in.
+  - stale sign-in attempts pruned by daily cron batch.
+  - manual maintenance actions available in `/tools`.
   - `/subscriptions` and `/settings` protected.
 
 Not implemented yet:

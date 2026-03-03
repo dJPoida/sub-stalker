@@ -17,9 +17,10 @@ Main concerns:
 - `/auth/sign-in`, `/auth/sign-up` (server-action forms).
 - `/subscriptions` (authenticated).
 - `/settings` (authenticated).
+- `/tools` (authenticated maintenance actions).
 - `/status` (human-readable operational status).
 - `/api/status` (machine-readable operational status).
-- `/api/internal/session-cleanup` (cron-only maintenance endpoint).
+- `/api/internal/daily-maintenance` (cron-only daily maintenance endpoint).
 
 ## Data model
 
@@ -73,4 +74,4 @@ Production build command is defined by `vercel.json`:
 
 Additional scheduled operation:
 
-- Hourly Vercel cron calls `/api/internal/session-cleanup` (guarded by `CRON_SECRET`).
+- Daily Vercel cron calls `/api/internal/daily-maintenance` (guarded by `CRON_SECRET`).

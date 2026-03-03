@@ -23,6 +23,7 @@ export default async function RootLayout({
         { href: "/", label: "Dashboard" },
         { href: "/subscriptions", label: "Subscriptions" },
         { href: "/settings", label: "Settings" },
+        { href: "/tools", label: "Tools" },
         { href: "/status", label: "Status" },
       ]
     : [
