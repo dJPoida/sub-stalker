@@ -161,7 +161,18 @@ Open http://localhost:3000.
 - Sign up at `/auth/sign-up` (email + password, minimum 8 chars).
 - Sign in at `/auth/sign-in`.
 - Session is stored as an HTTP-only cookie with an opaque token backed by the `Session` database table.
+- Expired sessions are pruned on each successful sign-in.
 - `/subscriptions` and `/settings` require authentication.
+
+## Additional docs
+
+- `docs/HANDOFF.md`
+- `docs/ARCHITECTURE.md`
+- `docs/OPERATIONS.md`
+- `docs/DECISIONS.md`
+- `docs/ROADMAP.md`
+- `docs/TEST_PLAN.md`
+- `docs/STATUS_CONTRACT.md`
 
 ## Production build locally
 

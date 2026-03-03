@@ -18,6 +18,19 @@ export type AuthUser = {
 const SESSION_COOKIE_NAME = "sub_stalker_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
+export async function pruneExpiredSessions(): Promise<number> {
+  const now = new Date();
+  const result = await db.session.deleteMany({
+    where: {
+      expiresAt: {
+        lte: now,
+      },
+    },
+  });
+
+  return result.count;
+}
+
 function safeEqual(a: string, b: string): boolean {
   const aBuffer = Buffer.from(a);
   const bBuffer = Buffer.from(b);

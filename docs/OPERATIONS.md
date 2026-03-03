@@ -1,0 +1,71 @@
+# Operations
+
+## Environments
+
+Local:
+
+- Postgres via `docker-compose.yml` on `localhost:5433`.
+- Next.js loads `.env.local`.
+
+Vercel production:
+
+- deploys from `main`.
+- runs `npm run build:vercel`.
+
+## Required environment variables
+
+- `DATABASE_URL`
+- `DIRECT_URL`
+- `AUTH_SECRET`
+- `MAIL_PROVIDER_API_KEY`
+
+Supabase guidance:
+
+- Use pooled URL for `DATABASE_URL` (runtime).
+- Use migration-safe URL for `DIRECT_URL`.
+
+## Build and migration pipeline
+
+`npm run build:vercel` performs:
+
+1. `npx prisma generate`
+2. `prisma migrate deploy` (production only)
+3. `next build`
+
+## Common runbook
+
+### Local setup
+
+1. `npm install`
+2. `npm run db:up`
+3. `npm run db:migrate -- --name <name>`
+4. `npm run dev`
+
+### Production deploy verification
+
+1. Confirm GitHub merge to `main`.
+2. Confirm Vercel build logs include:
+   - `Generating Prisma Client...`
+   - `Running Prisma migrations...`
+   - `No pending migrations to apply` or migration apply output.
+3. Check:
+   - `/status`
+   - `/api/status`
+
+### If deployment fails
+
+Prisma stale client:
+
+- Ensure build log includes `npx prisma generate`.
+- Verify `scripts/vercel-build.mjs` is used by `vercel.json`.
+
+Prisma cannot reach DB (`P1001`):
+
+- verify `DIRECT_URL`.
+- verify DB host/port allow Vercel network path.
+
+Migration hangs:
+
+- check if migration is pointed at an unsupported pooled URL.
+- switch `DIRECT_URL` to a migration-safe connection endpoint.
+

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import {
   clearAuthSession,
   hashPassword,
+  pruneExpiredSessions,
   setAuthSession,
   verifyPassword,
 } from "@/lib/auth";
@@ -80,6 +81,7 @@ export async function signInAction(formData: FormData): Promise<void> {
     redirect("/auth/sign-in?error=invalid_credentials");
   }
 
+  await pruneExpiredSessions();
   await setAuthSession({ id: user.id, email: user.email });
   redirect("/");
 }
