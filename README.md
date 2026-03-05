@@ -185,6 +185,12 @@ Open http://localhost:3000.
   - required `payment method` (free-text + learned suggestions)
   - optional `signed up by` (free-text + learned suggestions)
   - both fields are filterable in the subscriptions list
+- `/subscriptions` billing workflow metadata:
+  - optional `billing console / manage plan` URL
+  - optional `cancel subscription` URL
+  - optional `billing history` URL
+  - optional `notes and comments` markdown field edited with a WYSIWYG markdown editor
+  - URL fields accept `http://` and `https://` only
 - `/settings` uses action-first controls:
   - simple preferences auto-save inline on change (display mode, default currency, reminder toggle, reminder lead time)
   - account details are edited in a dedicated modal dialog

@@ -74,3 +74,16 @@ Acceptance criteria:
 - `signedUpBy` is available as an optional field.
 - Both fields suggest previously used values for the authenticated user.
 - Subscriptions list supports filtering by both fields.
+
+## P6: Subscription billing links + notes editor (completed)
+
+Goal:
+
+- Capture optional operational links and free-form notes for each subscription.
+
+Acceptance criteria:
+
+- Subscriptions support optional `billingConsoleUrl`, `cancelSubscriptionUrl`, and `billingHistoryUrl`.
+- Subscriptions support optional `notesMarkdown`.
+- Notes are edited via a WYSIWYG markdown editor in create/edit flows.
+- Server actions validate URL fields when provided (`http/https` only).

@@ -457,6 +457,30 @@ button:disabled,
   box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.15);
 }
 
+.notes-editor-shell {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.notes-editor .mdxeditor-toolbar {
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-soft);
+}
+
+.notes-editor .mdxeditor-root-contenteditable {
+  min-height: 180px;
+  padding: 0.6rem 0.68rem;
+}
+
+.subscription-link {
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .form-checkbox {
   display: inline-flex;
   align-items: center;

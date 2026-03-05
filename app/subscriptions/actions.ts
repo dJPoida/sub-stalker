@@ -19,6 +19,11 @@ function normalizeOptionalText(value: FormDataEntryValue | null): string | null 
   return normalized ? normalized : null;
 }
 
+function parseOptionalMarkdown(value: FormDataEntryValue | null): string | null {
+  const raw = String(value ?? "");
+  return raw.trim().length > 0 ? raw : null;
+}
+
 function parseAmountCents(value: FormDataEntryValue | null): number | null {
   const raw = normalizeText(value);
 
@@ -119,16 +124,45 @@ type ParsedSubscriptionInput = {
   name: string;
   paymentMethod: string;
   signedUpBy: string | null;
+  billingConsoleUrl: string | null;
+  cancelSubscriptionUrl: string | null;
+  billingHistoryUrl: string | null;
+  notesMarkdown: string | null;
   amountCents: number;
   currency: string;
   billingInterval: BillingInterval;
   nextBillingDate: Date | null;
 };
 
+function parseOptionalHttpUrl(value: FormDataEntryValue | null): string | null | "invalid" {
+  const normalized = normalizeText(value);
+
+  if (!normalized) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(normalized);
+    const protocol = parsed.protocol.toLowerCase();
+
+    if (protocol !== "http:" && protocol !== "https:") {
+      return "invalid";
+    }
+  } catch {
+    return "invalid";
+  }
+
+  return normalized;
+}
+
 function parseSubscriptionInput(formData: FormData): ParsedSubscriptionInput | null {
   const name = normalizeText(formData.get("name"));
   const paymentMethod = normalizeText(formData.get("paymentMethod"));
   const signedUpBy = normalizeOptionalText(formData.get("signedUpBy"));
+  const billingConsoleUrl = parseOptionalHttpUrl(formData.get("billingConsoleUrl"));
+  const cancelSubscriptionUrl = parseOptionalHttpUrl(formData.get("cancelSubscriptionUrl"));
+  const billingHistoryUrl = parseOptionalHttpUrl(formData.get("billingHistoryUrl"));
+  const notesMarkdown = parseOptionalMarkdown(formData.get("notesMarkdown"));
   const amountCents = parseAmountCents(formData.get("amount"));
   const currency = parseCurrency(formData.get("currency"));
   const billingInterval = parseBillingInterval(formData.get("billingInterval"));
@@ -137,6 +171,9 @@ function parseSubscriptionInput(formData: FormData): ParsedSubscriptionInput | n
   if (
     !name ||
     !paymentMethod ||
+    billingConsoleUrl === "invalid" ||
+    cancelSubscriptionUrl === "invalid" ||
+    billingHistoryUrl === "invalid" ||
     amountCents === null ||
     currency === null ||
     billingInterval === null ||
@@ -149,6 +186,10 @@ function parseSubscriptionInput(formData: FormData): ParsedSubscriptionInput | n
     name,
     paymentMethod,
     signedUpBy,
+    billingConsoleUrl,
+    cancelSubscriptionUrl,
+    billingHistoryUrl,
+    notesMarkdown,
     amountCents,
     currency,
     billingInterval,

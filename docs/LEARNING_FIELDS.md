@@ -25,6 +25,13 @@ Behavior:
 3. Subscriptions list supports direct filtering by both fields.
 4. Global search on `/subscriptions` also matches both fields.
 
+Non-learning subscription metadata (stored on the same entity, but not suggestion-backed):
+
+- `billingConsoleUrl` (optional)
+- `cancelSubscriptionUrl` (optional)
+- `billingHistoryUrl` (optional)
+- `notesMarkdown` (optional markdown content, edited via WYSIWYG markdown editor)
+
 ## Data model
 
 `Subscription` stores both learning fields directly:

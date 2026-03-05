@@ -33,7 +33,7 @@ function getResultMessage(searchParams?: SubscriptionsPageProps["searchParams"])
   if (searchParams.error === "invalid_fields") {
     return {
       type: "error",
-      text: "Invalid subscription details. Check payment method, amount, currency, and billing fields.",
+      text: "Invalid subscription details. Check amount, currency, billing fields, and any URLs.",
     };
   }
 
@@ -117,6 +117,10 @@ export default async function SubscriptionsPage({ searchParams }: SubscriptionsP
         name: subscription.name,
         paymentMethod: subscription.paymentMethod,
         signedUpBy: subscription.signedUpBy,
+        billingConsoleUrl: subscription.billingConsoleUrl,
+        cancelSubscriptionUrl: subscription.cancelSubscriptionUrl,
+        billingHistoryUrl: subscription.billingHistoryUrl,
+        notesMarkdown: subscription.notesMarkdown,
         amountCents: subscription.amountCents,
         currency: subscription.currency,
         billingInterval: subscription.billingInterval,

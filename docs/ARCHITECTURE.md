@@ -30,7 +30,7 @@ Defined in `prisma/schema.prisma`:
 - `User`
 - `UserSettings` (1:1 with user; `defaultCurrency`, `remindersEnabled`, `reminderDaysBefore`, `displayMode`)
 - `DisplayMode` enum (`DEVICE`, `LIGHT`, `DARK`)
-- `Subscription` (many per user; includes learning fields `paymentMethod` required and `signedUpBy` optional)
+- `Subscription` (many per user; includes learning fields `paymentMethod` required and `signedUpBy` optional, plus optional billing links and markdown notes)
 - `Session` (many per user; opaque token hashes)
 - `SignInAttempt` (rate-limit tracking by hashed email+IP key)
 
@@ -47,6 +47,22 @@ Current implementation for subscriptions:
 5. DB indexes (`userId + paymentMethod`, `userId + signedUpBy`) support scoped filter queries.
 
 Detailed specification: `docs/LEARNING_FIELDS.md`.
+
+## Subscription metadata (non-learning)
+
+In addition to learning fields, each subscription can persist optional operational metadata:
+
+- `billingConsoleUrl`
+- `cancelSubscriptionUrl`
+- `billingHistoryUrl`
+- `notesMarkdown`
+
+UI behavior:
+
+1. Create/edit subscription modals expose all four fields.
+2. URL fields are validated server-side and must be `http` or `https` when provided.
+3. `notesMarkdown` is edited through a WYSIWYG markdown editor and saved as raw markdown text.
+4. Subscription card search includes these metadata fields.
 
 ## Auth flow
 

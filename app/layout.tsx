@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { DisplayMode } from "@prisma/client";
+import "@mdxeditor/editor/style.css";
 
 import { signOutAction } from "@/app/auth/actions";
 import { PendingSubmitButton } from "@/app/components/PendingFormControls";

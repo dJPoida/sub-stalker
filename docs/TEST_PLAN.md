@@ -37,6 +37,11 @@ Subscriptions UX:
 8. Switch status filter (`All`, `Active`, `Inactive`) and confirm card list changes correctly.
 9. Change sort mode and confirm card order updates.
 10. Trigger `Deactivate`, accept confirmation, and confirm status updates to inactive.
+11. In `Add Subscription`, provide valid optional URLs (`https://...`) for billing console, cancel subscription, and billing history; submit and confirm success.
+12. Open `Edit` and set one URL to an invalid value (for example `ftp://...` or plain text), submit, and confirm validation error response.
+13. Add markdown notes/comments in the WYSIWYG notes editor, save, reopen edit modal, and confirm markdown content round-trips.
+14. Confirm subscription cards render `Open` links for populated URL fields and show `Not set` when empty.
+15. Use global search with text that appears only in notes or URL fields and confirm matching subscriptions are returned.
 
 Settings UX:
 

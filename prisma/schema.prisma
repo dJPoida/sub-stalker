@@ -51,6 +51,10 @@ model Subscription {
   name            String
   paymentMethod   String
   signedUpBy      String?
+  billingConsoleUrl String?
+  cancelSubscriptionUrl String?
+  billingHistoryUrl String?
+  notesMarkdown   String?
   amountCents     Int
   currency        String          @default("USD")
   billingInterval BillingInterval @default(MONTHLY)

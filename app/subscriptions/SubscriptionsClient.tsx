@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
 
 type ActionResultMessage = {
@@ -13,6 +14,10 @@ type SubscriptionRecord = {
   name: string;
   paymentMethod: string;
   signedUpBy: string | null;
+  billingConsoleUrl: string | null;
+  cancelSubscriptionUrl: string | null;
+  billingHistoryUrl: string | null;
+  notesMarkdown: string | null;
   amountCents: number;
   currency: string;
   billingInterval: "WEEKLY" | "MONTHLY" | "YEARLY" | "CUSTOM";
@@ -43,6 +48,14 @@ const BILLING_INTERVAL_OPTIONS: BillingIntervalOption[] = [
   { value: "WEEKLY", label: "Weekly" },
   { value: "CUSTOM", label: "Custom" },
 ];
+
+const SubscriptionNotesEditor = dynamic(() => import("./SubscriptionNotesEditor"), {
+  ssr: false,
+});
+
+function normalizeOptionalValue(value: string | null): string {
+  return value?.trim() ?? "";
+}
 
 function formatAmount(amountCents: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
@@ -160,6 +173,10 @@ export default function SubscriptionsClient({
         subscription.name,
         subscription.paymentMethod,
         subscription.signedUpBy ?? "",
+        subscription.billingConsoleUrl ?? "",
+        subscription.cancelSubscriptionUrl ?? "",
+        subscription.billingHistoryUrl ?? "",
+        subscription.notesMarkdown ?? "",
         subscription.currency,
         subscription.billingInterval,
       ];
@@ -334,6 +351,41 @@ export default function SubscriptionsClient({
               <p className="text-muted">
                 Signed up by: {subscription.signedUpBy?.trim() ? subscription.signedUpBy : "Not specified"}
               </p>
+              <p className="text-muted">
+                Billing console:{" "}
+                {subscription.billingConsoleUrl ? (
+                  <a className="subscription-link" href={subscription.billingConsoleUrl} rel="noreferrer noopener" target="_blank">
+                    Open
+                  </a>
+                ) : (
+                  "Not set"
+                )}
+              </p>
+              <p className="text-muted">
+                Cancel subscription:{" "}
+                {subscription.cancelSubscriptionUrl ? (
+                  <a className="subscription-link" href={subscription.cancelSubscriptionUrl} rel="noreferrer noopener" target="_blank">
+                    Open
+                  </a>
+                ) : (
+                  "Not set"
+                )}
+              </p>
+              <p className="text-muted">
+                Billing history:{" "}
+                {subscription.billingHistoryUrl ? (
+                  <a className="subscription-link" href={subscription.billingHistoryUrl} rel="noreferrer noopener" target="_blank">
+                    Open
+                  </a>
+                ) : (
+                  "Not set"
+                )}
+              </p>
+              {subscription.notesMarkdown ? (
+                <p className="text-muted">Notes saved ({subscription.notesMarkdown.length} chars)</p>
+              ) : (
+                <p className="text-muted">Notes: Not set</p>
+              )}
               <div className="inline-actions mt-md">
                 <button className="button button-secondary" onClick={() => setEditingSubscriptionId(subscription.id)} type="button">
                   Edit
@@ -407,6 +459,34 @@ export default function SubscriptionsClient({
                     type="text"
                   />
                 </label>
+                <label className="form-field">
+                  Billing console / manage plan URL (optional)
+                  <input
+                    inputMode="url"
+                    name="billingConsoleUrl"
+                    placeholder="https://..."
+                    type="url"
+                  />
+                </label>
+                <label className="form-field">
+                  Cancel subscription URL (optional)
+                  <input
+                    inputMode="url"
+                    name="cancelSubscriptionUrl"
+                    placeholder="https://..."
+                    type="url"
+                  />
+                </label>
+                <label className="form-field">
+                  Billing history URL (optional)
+                  <input
+                    inputMode="url"
+                    name="billingHistoryUrl"
+                    placeholder="https://..."
+                    type="url"
+                  />
+                </label>
+                <SubscriptionNotesEditor label="Notes and comments (markdown)" name="notesMarkdown" />
                 <div className="split-grid">
                   <label className="form-field">
                     Amount
@@ -490,6 +570,41 @@ export default function SubscriptionsClient({
                     type="text"
                   />
                 </label>
+                <label className="form-field">
+                  Billing console / manage plan URL (optional)
+                  <input
+                    defaultValue={normalizeOptionalValue(editingSubscription.billingConsoleUrl)}
+                    inputMode="url"
+                    name="billingConsoleUrl"
+                    placeholder="https://..."
+                    type="url"
+                  />
+                </label>
+                <label className="form-field">
+                  Cancel subscription URL (optional)
+                  <input
+                    defaultValue={normalizeOptionalValue(editingSubscription.cancelSubscriptionUrl)}
+                    inputMode="url"
+                    name="cancelSubscriptionUrl"
+                    placeholder="https://..."
+                    type="url"
+                  />
+                </label>
+                <label className="form-field">
+                  Billing history URL (optional)
+                  <input
+                    defaultValue={normalizeOptionalValue(editingSubscription.billingHistoryUrl)}
+                    inputMode="url"
+                    name="billingHistoryUrl"
+                    placeholder="https://..."
+                    type="url"
+                  />
+                </label>
+                <SubscriptionNotesEditor
+                  initialValue={editingSubscription.notesMarkdown}
+                  label="Notes and comments (markdown)"
+                  name="notesMarkdown"
+                />
                 <div className="split-grid">
                   <label className="form-field">
                     Amount
