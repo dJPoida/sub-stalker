@@ -40,6 +40,14 @@ Subscription Stalker is a web app that helps users keep track of recurring subsc
 - Node.js 18.17+ (Node.js 20 recommended)
 - npm 9+
 - Docker Desktop (for local Postgres + migration testing)
+- GitHub MCP configured if you use AI agents for backlog/TODO handling
+
+## Backlog and TODO workflow
+
+- GitHub Issues is the source of truth for backlog tasks, TODO follow-ups, and defects.
+- For AI-assisted development, contributors should use the GitHub MCP server to create/update issues while working.
+- Avoid leaving untracked TODOs without a linked issue.
+- See `AGENTS.md` for AI-specific workflow requirements.
 
 ## Environment variables
 
