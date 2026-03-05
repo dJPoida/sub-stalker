@@ -179,6 +179,7 @@ Open http://localhost:3000.
 - Expired sessions are pruned on sign-in.
 - Manual maintenance actions are available at `/tools` for test runs.
 - `/subscriptions` and `/settings` require authentication.
+- `/subscriptions` provides modal add/edit flows with client-side search, status filtering, and sort controls.
 
 ## Additional docs
 

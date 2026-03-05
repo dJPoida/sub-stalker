@@ -1,10 +1,10 @@
 # Handoff
 
-Last updated: 2026-03-03
+Last updated: 2026-03-05
 
 ## Current status
 
-The repository is an MVP scaffold with working operational checks, local/production migrations, and basic auth.
+The repository is an MVP with working operational checks, local/production migrations, basic auth, and a refreshed Figma-inspired UI.
 
 Implemented:
 
@@ -29,13 +29,15 @@ Implemented:
   - `/subscriptions` and `/settings` protected.
 - Subscription CRUD:
   - authenticated users can create, list, update, and deactivate subscriptions from `/subscriptions`.
+  - subscriptions page now supports modal add/edit flows plus client-side search, status filtering, and sorting.
   - subscriptions are persisted in the `Subscription` table.
   - server actions validate amount, currency, billing interval, and optional next billing date.
   - update/deactivate operations are scoped to the authenticated user.
+- Dashboard:
+  - shows active subscription count, estimated monthly spend, next charge summary, and quick actions.
 
 Not implemented yet:
 
-- Dashboard metrics.
 - Improved form submission UX (loading/disabled states during in-flight requests).
 - Email/notification workflows.
 - Automated tests.
@@ -50,10 +52,10 @@ Not implemented yet:
 
 ## Immediate next tasks
 
-1. Add dashboard summary metrics (upcoming renewal, active count, monthly estimate).
-2. Add minimal e2e smoke tests for auth + status + subscriptions CRUD.
-3. Add optional "sign out all sessions" account control.
-4. Add loading/lock-out UI states for form submissions (e.g., disable submit + show in-progress text).
+1. Add minimal e2e smoke tests for auth + status + subscriptions CRUD.
+2. Add optional "sign out all sessions" account control.
+3. Add loading/lock-out UI states for form submissions (e.g., disable submit + show in-progress text).
+4. Add notifications/reminders workflow from settings preferences.
 
 ## Files to understand first
 

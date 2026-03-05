@@ -353,6 +353,23 @@ button:hover,
   gap: 0.85rem;
 }
 
+.control-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.subscription-cards {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.subscription-card {
+  display: grid;
+  gap: 0.45rem;
+}
+
 .subscription-header {
   display: flex;
   justify-content: space-between;
@@ -461,6 +478,40 @@ button:hover,
   font-weight: 700;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(9, 15, 29, 0.48);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.modal-panel {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  box-shadow: 0 20px 45px rgba(3, 12, 28, 0.3);
+  padding: 1rem 1rem 1.1rem;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.modal-header h2 {
+  margin: 0.15rem 0 0;
+}
+
 ul {
   margin: 0;
   padding-left: 1.1rem;
@@ -487,6 +538,10 @@ ul {
   }
 
   .split-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .control-grid {
     grid-template-columns: 1fr;
   }
 }

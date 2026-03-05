@@ -25,6 +25,16 @@ Auth:
 6. Submit repeated bad credentials and confirm rate-limit response appears.
 7. Confirm sign-in rejects cross-origin requests (invalid request path).
 
+Subscriptions UX:
+
+1. Open `/subscriptions` and confirm subscription cards render.
+2. Open `Add Subscription` modal, submit a new subscription, and confirm success message.
+3. Open `Edit` modal on an existing subscription, update a field, submit, and confirm success message.
+4. Use search to filter the list by subscription name/provider.
+5. Switch status filter (`All`, `Active`, `Inactive`) and confirm card list changes correctly.
+6. Change sort mode and confirm card order updates.
+7. Trigger `Deactivate`, accept confirmation, and confirm status updates to inactive.
+
 Status:
 
 1. Open `/status`.

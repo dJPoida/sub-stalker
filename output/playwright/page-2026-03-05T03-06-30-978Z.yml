@@ -1,0 +1,114 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Sub Stalker Subscription intelligence" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - strong [ref=e8]: Sub Stalker
+            - generic [ref=e9]: Subscription intelligence
+        - navigation "Primary" [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: /
+          - link "Subscriptions" [ref=e30] [cursor=pointer]:
+            - /url: /subscriptions
+          - link "Settings" [ref=e31] [cursor=pointer]:
+            - /url: /settings
+          - link "Tools" [ref=e32] [cursor=pointer]:
+            - /url: /tools
+          - link "Status" [ref=e12] [cursor=pointer]:
+            - /url: /status
+        - generic [ref=e33]:
+          - generic [ref=e34]: ui.verify.20260305@example.com
+          - button "Sign Out" [ref=e36] [cursor=pointer]
+    - main [ref=e15]:
+      - generic [ref=e82]:
+        - generic [ref=e83]:
+          - generic [ref=e84]:
+            - paragraph [ref=e85]: Subscriptions
+            - heading "Recurring billing management" [level=1] [ref=e86]
+            - paragraph [ref=e87]: Signed in as ui.verify.20260305@example.com. Add, update, and deactivate plans from one workspace.
+          - button "Add Subscription" [active] [ref=e89] [cursor=pointer]
+        - generic [ref=e90]:
+          - article [ref=e91]:
+            - generic [ref=e92]: Total
+            - strong [ref=e93]: "1"
+            - generic [ref=e94]: All subscriptions
+          - article [ref=e95]:
+            - generic [ref=e96]: Active
+            - strong [ref=e97]: "1"
+            - generic [ref=e98]: Currently billing
+          - article [ref=e99]:
+            - generic [ref=e100]: Inactive
+            - strong [ref=e101]: "0"
+            - generic [ref=e102]: Archived plans
+        - article [ref=e103]:
+          - generic [ref=e104]:
+            - generic [ref=e105]:
+              - text: Search
+              - textbox "Search" [ref=e106]:
+                - /placeholder: Name, provider, currency...
+            - generic [ref=e107]:
+              - text: Status
+              - combobox "Status" [ref=e108]:
+                - option "All" [selected]
+                - option "Active"
+                - option "Inactive"
+            - generic [ref=e109]:
+              - text: Sort by
+              - combobox "Sort by" [ref=e110]:
+                - option "Next billing date" [selected]
+                - option "Amount (high to low)"
+                - option "Amount (low to high)"
+                - option "Name"
+            - generic [ref=e111]:
+              - text: View
+              - textbox "View" [ref=e112]: 1 shown
+        - article [ref=e114]:
+          - generic [ref=e115]:
+            - heading "Spotify" [level=2] [ref=e116]
+            - generic [ref=e117]: ACTIVE
+          - paragraph [ref=e118]: $12.99
+          - paragraph [ref=e119]: "Interval: monthly - Next billing: Mar 20, 2026"
+          - paragraph [ref=e120]: "Provider: Not specified"
+          - generic [ref=e121]:
+            - button "Edit" [ref=e122] [cursor=pointer]
+            - button "Deactivate" [ref=e124] [cursor=pointer]
+        - dialog [ref=e125]:
+          - article [ref=e126]:
+            - generic [ref=e127]:
+              - generic [ref=e128]:
+                - paragraph [ref=e129]: New Subscription
+                - heading "Add Subscription" [level=2] [ref=e130]
+              - button "Close" [ref=e131] [cursor=pointer]
+            - generic [ref=e132]:
+              - generic [ref=e133]:
+                - text: Name
+                - textbox "Name" [ref=e134]:
+                  - /placeholder: Netflix
+              - generic [ref=e135]:
+                - text: Provider (optional)
+                - textbox "Provider (optional)" [ref=e136]:
+                  - /placeholder: Netflix, Inc.
+              - generic [ref=e137]:
+                - generic [ref=e138]:
+                  - text: Amount
+                  - spinbutton "Amount" [ref=e139]
+                - generic [ref=e140]:
+                  - text: Currency
+                  - textbox "Currency" [ref=e141]: USD
+              - generic [ref=e142]:
+                - generic [ref=e143]:
+                  - text: Billing interval
+                  - combobox "Billing interval" [ref=e144]:
+                    - option "Monthly" [selected]
+                    - option "Yearly"
+                    - option "Weekly"
+                    - option "Custom"
+                - generic [ref=e145]:
+                  - text: Next billing date (optional)
+                  - textbox "Next billing date (optional)" [ref=e146]
+              - generic [ref=e147]:
+                - button "Create Subscription" [ref=e148] [cursor=pointer]
+                - button "Cancel" [ref=e149] [cursor=pointer]
+  - alert [ref=e29]

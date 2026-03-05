@@ -7,19 +7,12 @@
   - Environments: .env.local
 
  ✓ Starting...
- ✓ Ready in 7.1s
+ ✓ Ready in 2.4s
  ○ Compiling /auth/sign-in ...
- ✓ Compiled /auth/sign-in in 12.9s (523 modules)
- GET /auth/sign-in 200 in 14648ms
- ✓ Compiled /auth/sign-up in 382ms (511 modules)
- ✓ Compiled / in 233ms (513 modules)
- POST /auth/sign-up 303 in 979ms
- ✓ Compiled /subscriptions in 270ms (519 modules)
- POST /subscriptions 303 in 61ms
- ✓ Compiled /settings in 353ms (523 modules)
- ✓ Compiled /tools in 298ms (528 modules)
- ○ Compiling /status ...
- ✓ Compiled /status in 1057ms (532 modules)
- ✓ Compiled in 173ms (292 modules)
- GET / 200 in 110ms
+ ✓ Compiled /auth/sign-in in 3.4s (523 modules)
+ GET /auth/sign-in 200 in 4079ms
+ ✓ Compiled / in 324ms (511 modules)
+ POST /auth/sign-in 303 in 707ms
+ ○ Compiling /subscriptions ...
+ ✓ Compiled /subscriptions in 2.1s (524 modules)
 [?25h
