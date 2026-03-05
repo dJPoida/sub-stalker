@@ -1,0 +1,83 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Sub Stalker Subscription intelligence" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - strong [ref=e8]: Sub Stalker
+            - generic [ref=e9]: Subscription intelligence
+        - navigation "Primary" [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: /
+          - link "Subscriptions" [ref=e29] [cursor=pointer]:
+            - /url: /subscriptions
+          - link "Settings" [ref=e30] [cursor=pointer]:
+            - /url: /settings
+          - link "Tools" [ref=e31] [cursor=pointer]:
+            - /url: /tools
+          - link "Status" [ref=e12] [cursor=pointer]:
+            - /url: /status
+        - generic [ref=e32]:
+          - generic [ref=e33]: ui.verify.20260305@example.com
+          - button "Sign Out" [ref=e35] [cursor=pointer]
+    - main [ref=e15]:
+      - generic [ref=e105]:
+        - generic [ref=e107]:
+          - paragraph [ref=e108]: Settings
+          - heading "Preferences and reminders" [level=1] [ref=e109]
+          - paragraph [ref=e110]: Tune account-level defaults and reminder behavior for ui.verify.20260305@example.com.
+        - paragraph [ref=e154]: Settings saved.
+        - generic [ref=e111]:
+          - article [ref=e112]:
+            - generic [ref=e113]: Default Currency
+            - strong [ref=e114]: USD
+            - generic [ref=e115]: Used for new subscriptions
+          - article [ref=e116]:
+            - generic [ref=e117]: Reminders
+            - strong [ref=e118]: Enabled
+            - generic [ref=e119]: 7 day lead
+          - article [ref=e120]:
+            - generic [ref=e121]: Subscriptions
+            - strong [ref=e122]: 1/1
+            - generic [ref=e123]: Active / total tracked
+        - generic [ref=e124]:
+          - article [ref=e125]:
+            - heading "Account" [level=2] [ref=e126]
+            - paragraph [ref=e127]: Email
+            - paragraph [ref=e128]: ui.verify.20260305@example.com
+            - paragraph [ref=e129]: This account controls subscription data, maintenance tools, and reminder preferences.
+          - article [ref=e130]:
+            - heading "Reminder profile" [level=2] [ref=e131]
+            - paragraph [ref=e132]: Email reminders are sent 7 day(s) before billing.
+            - paragraph [ref=e133]: "Current currency preference: USD."
+        - article [ref=e134]:
+          - heading "Update Preferences" [level=2] [ref=e135]
+          - generic [ref=e136]:
+            - generic [ref=e137]:
+              - generic [ref=e138]:
+                - text: Default currency
+                - combobox "Default currency" [ref=e139]:
+                  - option "USD" [selected]
+                  - option "EUR"
+                  - option "GBP"
+                  - option "JPY"
+                  - option "CAD"
+                  - option "AUD"
+              - generic [ref=e140]:
+                - text: Reminder lead time (days)
+                - spinbutton "Reminder lead time (days)" [ref=e141]: "7"
+            - generic [ref=e142]:
+              - checkbox "Enable reminder emails" [checked] [ref=e143]
+              - text: Enable reminder emails
+            - generic [ref=e144]:
+              - generic [ref=e145]:
+                - text: Reminder timing preview
+                - slider "Reminder timing preview" [ref=e146]: "7"
+              - generic [ref=e147]:
+                - button "1 day" [ref=e148] [cursor=pointer]
+                - button "3 days" [ref=e149] [cursor=pointer]
+                - button "7 days" [ref=e150] [cursor=pointer]
+                - button "14 days" [ref=e151] [cursor=pointer]
+            - button "Save Settings" [ref=e153] [cursor=pointer]
+  - alert [ref=e81]

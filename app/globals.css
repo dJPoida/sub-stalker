@@ -268,6 +268,13 @@ button:hover,
   transform: translateY(-1px);
 }
 
+button:disabled,
+.button:disabled {
+  opacity: 0.66;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .button-small {
   padding: 0.4rem 0.66rem;
   font-size: 0.82rem;
@@ -346,6 +353,25 @@ button:hover,
 .form-checkbox input {
   width: 1rem;
   height: 1rem;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-checkbox {
+  padding: 0.3rem 0.15rem;
+}
+
+.settings-range {
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-soft);
+  padding: 0.75rem;
 }
 
 .subscriptions-list {
@@ -542,6 +568,10 @@ ul {
   }
 
   .control-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-grid {
     grid-template-columns: 1fr;
   }
 }
