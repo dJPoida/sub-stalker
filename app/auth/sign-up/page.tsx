@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signUpAction } from "@/app/auth/actions";
+import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
 import { getCurrentUser } from "@/lib/auth";
 
 type SignUpPageProps = {
@@ -50,29 +51,29 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
         <h1>Create Account</h1>
         <p className="page-lead">Set up your account to begin tracking recurring charges.</p>
         {errorMessage ? <p className="status-error mt-md">{errorMessage}</p> : null}
-        <form className="form-grid mt-md" action={signUpAction}>
-          <label className="form-field">
-            Name (optional)
-            <input name="name" type="text" autoComplete="name" placeholder="Your name" />
-          </label>
-          <label className="form-field">
-            Email
-            <input name="email" type="email" autoComplete="email" placeholder="name@example.com" required />
-          </label>
-          <label className="form-field">
-            Password
-            <input
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              placeholder="At least 8 characters"
-              required
-            />
-          </label>
-          <button className="button" type="submit">
-            Create Account
-          </button>
+        <form className="mt-md" action={signUpAction}>
+          <PendingFieldset className="form-grid form-pending-group">
+            <label className="form-field">
+              Name (optional)
+              <input name="name" type="text" autoComplete="name" placeholder="Your name" />
+            </label>
+            <label className="form-field">
+              Email
+              <input name="email" type="email" autoComplete="email" placeholder="name@example.com" required />
+            </label>
+            <label className="form-field">
+              Password
+              <input
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                placeholder="At least 8 characters"
+                required
+              />
+            </label>
+            <PendingSubmitButton className="button" idleLabel="Create Account" pendingLabel="Creating Account..." />
+          </PendingFieldset>
         </form>
         <p className="auth-switch">
           Already have an account? <Link href="/auth/sign-in">Sign in</Link>

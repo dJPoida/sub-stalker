@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
 
 type ResultMessage = {
   type: "error" | "success";
@@ -21,16 +21,6 @@ type SettingsClientProps = {
 
 const CURRENCY_OPTIONS = ["USD", "EUR", "GBP", "JPY", "CAD", "AUD"];
 const REMINDER_DAY_PRESETS = [1, 3, 7, 14];
-
-function SubmitButton(): JSX.Element {
-  const { pending } = useFormStatus();
-
-  return (
-    <button disabled={pending} type="submit">
-      {pending ? "Saving..." : "Save Settings"}
-    </button>
-  );
-}
 
 export default function SettingsClient({
   userEmail,
@@ -132,75 +122,77 @@ export default function SettingsClient({
       <article className="surface">
         <h2>Update Preferences</h2>
         <form action={saveAction} className="form-grid">
-          <div className="settings-grid">
-            <label className="form-field">
-              Default currency
-              <select
-                name="defaultCurrency"
-                onChange={(event) => setDefaultCurrency(event.target.value)}
-                value={defaultCurrency}
-              >
-                {currencyOptions.map((currency) => (
-                  <option key={currency} value={currency}>
-                    {currency}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="form-field">
-              Reminder lead time (days)
-              <input
-                max={30}
-                min={0}
-                name="reminderDaysBefore"
-                onChange={(event) => setReminderDays(event.target.value)}
-                step={1}
-                type="number"
-                value={reminderDaysBefore}
-              />
-            </label>
-          </div>
-
-          <label className="form-checkbox settings-checkbox">
-            <input
-              checked={remindersEnabled}
-              name="remindersEnabled"
-              onChange={(event) => setRemindersEnabled(event.target.checked)}
-              type="checkbox"
-            />
-            Enable reminder emails
-          </label>
-
-          <div className="settings-range">
-            <label className="form-field">
-              Reminder timing preview
-              <input
-                max={30}
-                min={0}
-                onChange={(event) => setReminderDays(event.target.value)}
-                step={1}
-                type="range"
-                value={reminderDaysBefore}
-              />
-            </label>
-            <div className="inline-actions">
-              {REMINDER_DAY_PRESETS.map((preset) => (
-                <button
-                  className="button button-secondary button-small"
-                  key={preset}
-                  onClick={() => setReminderDays(preset)}
-                  type="button"
+          <PendingFieldset className="form-grid form-pending-group">
+            <div className="settings-grid">
+              <label className="form-field">
+                Default currency
+                <select
+                  name="defaultCurrency"
+                  onChange={(event) => setDefaultCurrency(event.target.value)}
+                  value={defaultCurrency}
                 >
-                  {preset} day{preset === 1 ? "" : "s"}
-                </button>
-              ))}
-            </div>
-          </div>
+                  {currencyOptions.map((currency) => (
+                    <option key={currency} value={currency}>
+                      {currency}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          <div className="inline-actions">
-            <SubmitButton />
-          </div>
+              <label className="form-field">
+                Reminder lead time (days)
+                <input
+                  max={30}
+                  min={0}
+                  name="reminderDaysBefore"
+                  onChange={(event) => setReminderDays(event.target.value)}
+                  step={1}
+                  type="number"
+                  value={reminderDaysBefore}
+                />
+              </label>
+            </div>
+
+            <label className="form-checkbox settings-checkbox">
+              <input
+                checked={remindersEnabled}
+                name="remindersEnabled"
+                onChange={(event) => setRemindersEnabled(event.target.checked)}
+                type="checkbox"
+              />
+              Enable reminder emails
+            </label>
+
+            <div className="settings-range">
+              <label className="form-field">
+                Reminder timing preview
+                <input
+                  max={30}
+                  min={0}
+                  onChange={(event) => setReminderDays(event.target.value)}
+                  step={1}
+                  type="range"
+                  value={reminderDaysBefore}
+                />
+              </label>
+              <div className="inline-actions">
+                {REMINDER_DAY_PRESETS.map((preset) => (
+                  <button
+                    className="button button-secondary button-small"
+                    key={preset}
+                    onClick={() => setReminderDays(preset)}
+                    type="button"
+                  >
+                    {preset} day{preset === 1 ? "" : "s"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="inline-actions">
+              <PendingSubmitButton idleLabel="Save Settings" pendingLabel="Saving..." />
+            </div>
+          </PendingFieldset>
         </form>
       </article>
     </section>

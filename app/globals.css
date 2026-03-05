@@ -310,6 +310,17 @@ button:disabled,
   gap: 0.75rem;
 }
 
+.form-pending-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.form-pending-group:disabled {
+  opacity: 0.86;
+}
+
 .form-field,
 .field {
   display: grid;

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { signOutAction } from "@/app/auth/actions";
+import { PendingSubmitButton } from "@/app/components/PendingFormControls";
 import { getCurrentUser } from "@/lib/auth";
 
 import "./globals.css";
@@ -57,9 +58,11 @@ export default async function RootLayout({
                 <div className="nav-auth">
                   <span className="nav-user">{user.email}</span>
                   <form action={signOutAction}>
-                    <button className="button button-secondary button-small" type="submit">
-                      Sign Out
-                    </button>
+                    <PendingSubmitButton
+                      className="button button-secondary button-small"
+                      idleLabel="Sign Out"
+                      pendingLabel="Signing Out..."
+                    />
                   </form>
                 </div>
               ) : null}

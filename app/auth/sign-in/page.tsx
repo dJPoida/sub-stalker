@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signInAction } from "@/app/auth/actions";
+import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
 import { getCurrentUser } from "@/lib/auth";
 
 type SignInPageProps = {
@@ -57,18 +58,24 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         <h1>Sign In</h1>
         <p className="page-lead">Access your subscription command center.</p>
         {errorMessage ? <p className="status-error mt-md">{errorMessage}</p> : null}
-        <form className="form-grid mt-md" action={signInAction}>
-          <label className="form-field">
-            Email
-            <input name="email" type="email" autoComplete="email" placeholder="name@example.com" required />
-          </label>
-          <label className="form-field">
-            Password
-            <input name="password" type="password" autoComplete="current-password" placeholder="Enter your password" required />
-          </label>
-          <button className="button" type="submit">
-            Sign In
-          </button>
+        <form className="mt-md" action={signInAction}>
+          <PendingFieldset className="form-grid form-pending-group">
+            <label className="form-field">
+              Email
+              <input name="email" type="email" autoComplete="email" placeholder="name@example.com" required />
+            </label>
+            <label className="form-field">
+              Password
+              <input
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                required
+              />
+            </label>
+            <PendingSubmitButton className="button" idleLabel="Sign In" pendingLabel="Signing In..." />
+          </PendingFieldset>
         </form>
         <p className="auth-switch">
           New here? <Link href="/auth/sign-up">Create an account</Link>

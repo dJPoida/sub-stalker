@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
 
 type ActionResultMessage = {
   type: "error" | "success";
@@ -274,9 +275,11 @@ export default function SubscriptionsClient({
                     }}
                   >
                     <input name="subscriptionId" type="hidden" value={subscription.id} />
-                    <button className="button-danger" type="submit">
-                      Deactivate
-                    </button>
+                    <PendingSubmitButton
+                      className="button-danger"
+                      idleLabel="Deactivate"
+                      pendingLabel="Deactivating..."
+                    />
                   </form>
                 ) : null}
               </div>
@@ -303,46 +306,48 @@ export default function SubscriptionsClient({
               </button>
             </header>
             <form action={createAction} className="form-grid">
-              <label className="form-field">
-                Name
-                <input maxLength={120} name="name" placeholder="Netflix" required type="text" />
-              </label>
-              <label className="form-field">
-                Provider (optional)
-                <input maxLength={120} name="provider" placeholder="Netflix, Inc." type="text" />
-              </label>
-              <div className="split-grid">
+              <PendingFieldset className="form-grid form-pending-group">
                 <label className="form-field">
-                  Amount
-                  <input inputMode="decimal" min="0.01" name="amount" required step="0.01" type="number" />
+                  Name
+                  <input maxLength={120} name="name" placeholder="Netflix" required type="text" />
                 </label>
                 <label className="form-field">
-                  Currency
-                  <input defaultValue="USD" maxLength={3} minLength={3} name="currency" required type="text" />
+                  Provider (optional)
+                  <input maxLength={120} name="provider" placeholder="Netflix, Inc." type="text" />
                 </label>
-              </div>
-              <div className="split-grid">
-                <label className="form-field">
-                  Billing interval
-                  <select defaultValue="MONTHLY" name="billingInterval" required>
-                    {BILLING_INTERVAL_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="form-field">
-                  Next billing date (optional)
-                  <input name="nextBillingDate" type="date" />
-                </label>
-              </div>
-              <div className="inline-actions">
-                <button type="submit">Create Subscription</button>
-                <button className="button button-secondary" onClick={() => setIsAddModalOpen(false)} type="button">
-                  Cancel
-                </button>
-              </div>
+                <div className="split-grid">
+                  <label className="form-field">
+                    Amount
+                    <input inputMode="decimal" min="0.01" name="amount" required step="0.01" type="number" />
+                  </label>
+                  <label className="form-field">
+                    Currency
+                    <input defaultValue="USD" maxLength={3} minLength={3} name="currency" required type="text" />
+                  </label>
+                </div>
+                <div className="split-grid">
+                  <label className="form-field">
+                    Billing interval
+                    <select defaultValue="MONTHLY" name="billingInterval" required>
+                      {BILLING_INTERVAL_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="form-field">
+                    Next billing date (optional)
+                    <input name="nextBillingDate" type="date" />
+                  </label>
+                </div>
+                <div className="inline-actions">
+                  <PendingSubmitButton idleLabel="Create Subscription" pendingLabel="Creating Subscription..." />
+                  <button className="button button-secondary" onClick={() => setIsAddModalOpen(false)} type="button">
+                    Cancel
+                  </button>
+                </div>
+              </PendingFieldset>
             </form>
           </article>
         </div>
@@ -367,61 +372,67 @@ export default function SubscriptionsClient({
             </header>
             <form action={updateAction} className="form-grid">
               <input name="subscriptionId" type="hidden" value={editingSubscription.id} />
-              <label className="form-field">
-                Name
-                <input defaultValue={editingSubscription.name} maxLength={120} name="name" required type="text" />
-              </label>
-              <label className="form-field">
-                Provider (optional)
-                <input defaultValue={editingSubscription.provider ?? ""} maxLength={120} name="provider" type="text" />
-              </label>
-              <div className="split-grid">
+              <PendingFieldset className="form-grid form-pending-group">
                 <label className="form-field">
-                  Amount
-                  <input
-                    defaultValue={(editingSubscription.amountCents / 100).toFixed(2)}
-                    inputMode="decimal"
-                    min="0.01"
-                    name="amount"
-                    required
-                    step="0.01"
-                    type="number"
-                  />
+                  Name
+                  <input defaultValue={editingSubscription.name} maxLength={120} name="name" required type="text" />
                 </label>
                 <label className="form-field">
-                  Currency
-                  <input
-                    defaultValue={editingSubscription.currency}
-                    maxLength={3}
-                    minLength={3}
-                    name="currency"
-                    required
-                    type="text"
-                  />
+                  Provider (optional)
+                  <input defaultValue={editingSubscription.provider ?? ""} maxLength={120} name="provider" type="text" />
                 </label>
-              </div>
-              <div className="split-grid">
-                <label className="form-field">
-                  Billing interval
-                  <select defaultValue={editingSubscription.billingInterval} name="billingInterval" required>
-                    {BILLING_INTERVAL_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="form-field">
-                  Next billing date (optional)
-                  <input defaultValue={toDateInputValue(editingSubscription.nextBillingDate)} name="nextBillingDate" type="date" />
-                </label>
-              </div>
-              <div className="inline-actions">
-                <button type="submit">Save Changes</button>
-                <button className="button button-secondary" onClick={() => setEditingSubscriptionId(null)} type="button">
-                  Cancel
-                </button>
-              </div>
+                <div className="split-grid">
+                  <label className="form-field">
+                    Amount
+                    <input
+                      defaultValue={(editingSubscription.amountCents / 100).toFixed(2)}
+                      inputMode="decimal"
+                      min="0.01"
+                      name="amount"
+                      required
+                      step="0.01"
+                      type="number"
+                    />
+                  </label>
+                  <label className="form-field">
+                    Currency
+                    <input
+                      defaultValue={editingSubscription.currency}
+                      maxLength={3}
+                      minLength={3}
+                      name="currency"
+                      required
+                      type="text"
+                    />
+                  </label>
+                </div>
+                <div className="split-grid">
+                  <label className="form-field">
+                    Billing interval
+                    <select defaultValue={editingSubscription.billingInterval} name="billingInterval" required>
+                      {BILLING_INTERVAL_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="form-field">
+                    Next billing date (optional)
+                    <input
+                      defaultValue={toDateInputValue(editingSubscription.nextBillingDate)}
+                      name="nextBillingDate"
+                      type="date"
+                    />
+                  </label>
+                </div>
+                <div className="inline-actions">
+                  <PendingSubmitButton idleLabel="Save Changes" pendingLabel="Saving Changes..." />
+                  <button className="button button-secondary" onClick={() => setEditingSubscriptionId(null)} type="button">
+                    Cancel
+                  </button>
+                </div>
+              </PendingFieldset>
             </form>
           </article>
         </div>

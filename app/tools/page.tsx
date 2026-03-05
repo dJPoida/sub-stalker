@@ -1,4 +1,5 @@
 import { requireAuthenticatedUser } from "@/lib/auth";
+import { PendingSubmitButton } from "@/app/components/PendingFormControls";
 
 import { runDailyMaintenanceAction, runSessionCleanupAction } from "./actions";
 
@@ -69,7 +70,7 @@ export default async function ToolsPage({ searchParams }: ToolsPageProps) {
           <h2>Session Cleanup</h2>
           <p className="text-muted">Prunes expired sessions and stale sign-in attempts immediately.</p>
           <form className="mt-md" action={runSessionCleanupAction}>
-            <button type="submit">Run Session Cleanup</button>
+            <PendingSubmitButton idleLabel="Run Session Cleanup" pendingLabel="Running Cleanup..." />
           </form>
         </article>
 
@@ -77,7 +78,7 @@ export default async function ToolsPage({ searchParams }: ToolsPageProps) {
           <h2>Daily Maintenance Batch</h2>
           <p className="text-muted">Runs the same batch used by the scheduled once-per-day maintenance job.</p>
           <form className="mt-md" action={runDailyMaintenanceAction}>
-            <button type="submit">Run Daily Batch</button>
+            <PendingSubmitButton idleLabel="Run Daily Batch" pendingLabel="Running Daily Batch..." />
           </form>
         </article>
       </div>
