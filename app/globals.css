@@ -489,6 +489,43 @@ button:disabled,
   padding: 0.75rem;
 }
 
+.settings-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.setting-main {
+  display: grid;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 220px;
+}
+
+.setting-main h2 {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.setting-main p {
+  margin: 0;
+}
+
+.setting-control-form {
+  margin: 0;
+}
+
+.setting-field {
+  min-width: 210px;
+}
+
 .subscriptions-list {
   display: grid;
   gap: 0.85rem;
@@ -688,5 +725,17 @@ ul {
 
   .settings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .setting-item {
+    align-items: stretch;
+  }
+
+  .setting-control-form {
+    width: 100%;
+  }
+
+  .setting-field {
+    min-width: 0;
   }
 }

@@ -47,6 +47,20 @@ function parseDisplayMode(value: FormDataEntryValue | null): DisplayMode | null 
   return null;
 }
 
+function parseDisplayName(value: FormDataEntryValue | null): string | null | "invalid" {
+  const normalized = normalizeText(value);
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.length > 120) {
+    return "invalid";
+  }
+
+  return normalized;
+}
+
 async function isSameOriginRequest(): Promise<boolean> {
   const headerStore = await headers();
   const origin = headerStore.get("origin");
@@ -72,20 +86,50 @@ async function isSameOriginRequest(): Promise<boolean> {
   }
 }
 
-export async function saveUserSettingsAction(formData: FormData): Promise<void> {
-  const user = await requireAuthenticatedUser();
-
+async function requireValidRequest(): Promise<void> {
   if (!(await isSameOriginRequest())) {
     redirect("/settings?error=invalid_request");
   }
+}
 
-  const defaultCurrency = parseDefaultCurrency(formData.get("defaultCurrency"));
-  const remindersEnabled = formData.get("remindersEnabled") === "on";
-  const reminderDaysBefore = parseReminderDaysBefore(formData.get("reminderDaysBefore"));
+function redirectInvalidFields(): never {
+  redirect("/settings?error=invalid_fields");
+}
+
+export async function updateDisplayModeAction(formData: FormData): Promise<void> {
+  const user = await requireAuthenticatedUser();
+  await requireValidRequest();
+
   const displayMode = parseDisplayMode(formData.get("displayMode"));
 
-  if (!defaultCurrency || reminderDaysBefore === null || !displayMode) {
-    redirect("/settings?error=invalid_fields");
+  if (!displayMode) {
+    redirectInvalidFields();
+  }
+
+  await db.userSettings.upsert({
+    where: {
+      userId: user.id,
+    },
+    create: {
+      userId: user.id,
+      displayMode,
+    },
+    update: {
+      displayMode,
+    },
+  });
+
+  redirect("/settings?result=display_saved");
+}
+
+export async function updateDefaultCurrencyAction(formData: FormData): Promise<void> {
+  const user = await requireAuthenticatedUser();
+  await requireValidRequest();
+
+  const defaultCurrency = parseDefaultCurrency(formData.get("defaultCurrency"));
+
+  if (!defaultCurrency) {
+    redirectInvalidFields();
   }
 
   await db.userSettings.upsert({
@@ -95,17 +139,81 @@ export async function saveUserSettingsAction(formData: FormData): Promise<void> 
     create: {
       userId: user.id,
       defaultCurrency,
-      remindersEnabled,
-      reminderDaysBefore,
-      displayMode,
     },
     update: {
       defaultCurrency,
-      remindersEnabled,
-      reminderDaysBefore,
-      displayMode,
     },
   });
 
-  redirect("/settings?result=saved");
+  redirect("/settings?result=currency_saved");
+}
+
+export async function updateRemindersEnabledAction(formData: FormData): Promise<void> {
+  const user = await requireAuthenticatedUser();
+  await requireValidRequest();
+
+  const remindersEnabled = formData.get("remindersEnabled") === "on";
+
+  await db.userSettings.upsert({
+    where: {
+      userId: user.id,
+    },
+    create: {
+      userId: user.id,
+      remindersEnabled,
+    },
+    update: {
+      remindersEnabled,
+    },
+  });
+
+  redirect("/settings?result=reminders_saved");
+}
+
+export async function updateReminderLeadTimeAction(formData: FormData): Promise<void> {
+  const user = await requireAuthenticatedUser();
+  await requireValidRequest();
+
+  const reminderDaysBefore = parseReminderDaysBefore(formData.get("reminderDaysBefore"));
+
+  if (reminderDaysBefore === null) {
+    redirectInvalidFields();
+  }
+
+  await db.userSettings.upsert({
+    where: {
+      userId: user.id,
+    },
+    create: {
+      userId: user.id,
+      reminderDaysBefore,
+    },
+    update: {
+      reminderDaysBefore,
+    },
+  });
+
+  redirect("/settings?result=lead_time_saved");
+}
+
+export async function updateAccountDetailsAction(formData: FormData): Promise<void> {
+  const user = await requireAuthenticatedUser();
+  await requireValidRequest();
+
+  const displayName = parseDisplayName(formData.get("displayName"));
+
+  if (displayName === "invalid") {
+    redirectInvalidFields();
+  }
+
+  await db.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      name: displayName,
+    },
+  });
+
+  redirect("/settings?result=account_saved");
 }

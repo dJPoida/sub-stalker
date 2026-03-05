@@ -37,12 +37,14 @@ Subscriptions UX:
 
 Settings UX:
 
-1. Open `/settings` while signed in and confirm current values are pre-filled from saved preferences.
-2. Change display mode to `Dark`, save settings, and confirm the app re-renders in dark theme.
+1. Open `/settings` while signed in and confirm current values are shown in inline controls.
+2. Change display mode to `Dark` and confirm it auto-saves and re-renders in dark theme.
 3. Navigate to another page (for example `/`) and confirm the dark theme remains applied.
-4. Change display mode to `Light`, save settings, and confirm the app re-renders in light theme.
-5. Change display mode to `Device`, save settings, then toggle OS/browser color scheme and confirm app theme follows system preference.
-6. Update reminder lead-time and currency together with display mode and confirm all values persist after page reload.
+4. Change display mode to `Light` and confirm it auto-saves and re-renders in light theme.
+5. Change display mode to `Device`, then toggle OS/browser color scheme and confirm app theme follows system preference.
+6. Change default currency and reminder lead-time and confirm each change persists after page reload.
+7. Toggle reminder emails off/on and confirm state persists after page reload.
+8. Open `Edit Account`, update display name, save, and confirm the updated name appears in settings.
 
 Status:
 

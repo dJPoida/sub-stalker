@@ -181,7 +181,10 @@ Open http://localhost:3000.
 - Manual maintenance actions are available at `/tools` for test runs.
 - `/subscriptions` and `/settings` require authentication.
 - `/subscriptions` provides modal add/edit flows with client-side search, status filtering, and sort controls.
-- `/settings` persists default currency, reminder controls, and display mode (`Device`, `Light`, `Dark`).
+- `/settings` uses action-first controls:
+  - simple preferences auto-save inline on change (display mode, default currency, reminder toggle, reminder lead time)
+  - account details are edited in a dedicated modal dialog
+- `/settings` persists default currency, reminder controls, display mode (`Device`, `Light`, `Dark`), and account display name.
 - Display mode behavior:
   - `Device` follows OS/browser `prefers-color-scheme`.
   - `Light` and `Dark` force an explicit app theme override.

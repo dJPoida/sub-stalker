@@ -11,6 +11,7 @@ type ResultMessage = {
 
 type SettingsClientProps = {
   userEmail: string;
+  initialDisplayName: string | null;
   initialDefaultCurrency: string;
   initialDisplayMode: DisplayMode;
   initialRemindersEnabled: boolean;
@@ -18,7 +19,11 @@ type SettingsClientProps = {
   totalSubscriptions: number;
   activeSubscriptions: number;
   resultMessage: ResultMessage | null;
-  saveAction: (formData: FormData) => Promise<void>;
+  updateDisplayModeAction: (formData: FormData) => Promise<void>;
+  updateDefaultCurrencyAction: (formData: FormData) => Promise<void>;
+  updateRemindersEnabledAction: (formData: FormData) => Promise<void>;
+  updateReminderLeadTimeAction: (formData: FormData) => Promise<void>;
+  updateAccountDetailsAction: (formData: FormData) => Promise<void>;
 };
 
 const CURRENCY_OPTIONS = ["USD", "EUR", "GBP", "JPY", "CAD", "AUD"];
@@ -27,10 +32,11 @@ const DISPLAY_MODE_OPTIONS: Array<{ value: DisplayMode; label: string }> = [
   { value: "LIGHT", label: "Light" },
   { value: "DARK", label: "Dark" },
 ];
-const REMINDER_DAY_PRESETS = [1, 3, 7, 14];
+const REMINDER_DAY_OPTIONS = Array.from({ length: 31 }, (_, index) => index);
 
 export default function SettingsClient({
   userEmail,
+  initialDisplayName,
   initialDefaultCurrency,
   initialDisplayMode,
   initialRemindersEnabled,
@@ -38,12 +44,18 @@ export default function SettingsClient({
   totalSubscriptions,
   activeSubscriptions,
   resultMessage,
-  saveAction,
+  updateDisplayModeAction,
+  updateDefaultCurrencyAction,
+  updateRemindersEnabledAction,
+  updateReminderLeadTimeAction,
+  updateAccountDetailsAction,
 }: SettingsClientProps) {
+  const [displayName, setDisplayName] = useState(initialDisplayName ?? "");
   const [defaultCurrency, setDefaultCurrency] = useState(initialDefaultCurrency);
   const [displayMode, setDisplayMode] = useState<DisplayMode>(initialDisplayMode);
   const [remindersEnabled, setRemindersEnabled] = useState(initialRemindersEnabled);
   const [reminderDaysBefore, setReminderDaysBefore] = useState(initialReminderDaysBefore);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const currencyOptions = useMemo(() => {
     if (CURRENCY_OPTIONS.includes(initialDefaultCurrency)) {
       return CURRENCY_OPTIONS;
@@ -100,6 +112,23 @@ export default function SettingsClient({
     root.dataset.theme = displayMode.toLowerCase();
   }, [displayMode]);
 
+  useEffect(() => {
+    if (!isAccountModalOpen) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent): void => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      setIsAccountModalOpen(false);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isAccountModalOpen]);
+
   return (
     <section className="page-stack">
       <header className="page-header">
@@ -139,34 +168,22 @@ export default function SettingsClient({
         </article>
       </section>
 
-      <div className="split-grid">
-        <article className="surface surface-soft">
-          <h2>Account</h2>
-          <p className="text-muted">Email</p>
-          <p>{userEmail}</p>
-          <p className="text-muted mt-md">
-            This account controls subscription data, maintenance tools, and reminder preferences.
-          </p>
-        </article>
-
-        <article className="surface">
-          <h2>Reminder profile</h2>
-          <p className="text-muted">{reminderSummary}</p>
-          <p className="text-muted mt-md">Current currency preference: {defaultCurrency}.</p>
-          <p className="text-muted">Display mode: {displayModeSummary}</p>
-        </article>
-      </div>
-
-      <article className="surface">
-        <h2>Update Preferences</h2>
-        <form action={saveAction} className="form-grid">
-          <PendingFieldset className="form-grid form-pending-group">
-            <div className="settings-grid">
-              <label className="form-field">
-                Display mode
+      <section className="settings-list">
+        <article className="surface setting-item">
+          <div className="setting-main">
+            <h2>Display mode</h2>
+            <p className="text-muted">{displayModeSummary}</p>
+          </div>
+          <form action={updateDisplayModeAction} className="setting-control-form">
+            <PendingFieldset className="form-pending-group">
+              <label className="form-field setting-field">
+                Theme
                 <select
                   name="displayMode"
-                  onChange={(event) => setDisplayMode(event.target.value as DisplayMode)}
+                  onChange={(event) => {
+                    setDisplayMode(event.target.value as DisplayMode);
+                    event.currentTarget.form?.requestSubmit();
+                  }}
                   value={displayMode}
                 >
                   {DISPLAY_MODE_OPTIONS.map((option) => (
@@ -176,12 +193,25 @@ export default function SettingsClient({
                   ))}
                 </select>
               </label>
+            </PendingFieldset>
+          </form>
+        </article>
 
-              <label className="form-field">
-                Default currency
+        <article className="surface setting-item">
+          <div className="setting-main">
+            <h2>Default currency</h2>
+            <p className="text-muted">Used for newly created subscriptions.</p>
+          </div>
+          <form action={updateDefaultCurrencyAction} className="setting-control-form">
+            <PendingFieldset className="form-pending-group">
+              <label className="form-field setting-field">
+                Currency
                 <select
                   name="defaultCurrency"
-                  onChange={(event) => setDefaultCurrency(event.target.value)}
+                  onChange={(event) => {
+                    setDefaultCurrency(event.target.value);
+                    event.currentTarget.form?.requestSubmit();
+                  }}
                   value={defaultCurrency}
                 >
                   {currencyOptions.map((currency) => (
@@ -191,63 +221,129 @@ export default function SettingsClient({
                   ))}
                 </select>
               </label>
+            </PendingFieldset>
+          </form>
+        </article>
 
-              <label className="form-field">
-                Reminder lead time (days)
+        <article className="surface setting-item">
+          <div className="setting-main">
+            <h2>Reminder notifications</h2>
+            <p className="text-muted">{reminderSummary}</p>
+          </div>
+          <form action={updateRemindersEnabledAction} className="setting-control-form">
+            <PendingFieldset className="form-pending-group">
+              <label className="form-checkbox">
                 <input
-                  max={30}
-                  min={0}
+                  checked={remindersEnabled}
+                  name="remindersEnabled"
+                  onChange={(event) => {
+                    setRemindersEnabled(event.target.checked);
+                    event.currentTarget.form?.requestSubmit();
+                  }}
+                  type="checkbox"
+                />
+                Enable reminder emails
+              </label>
+            </PendingFieldset>
+          </form>
+        </article>
+
+        <article className="surface setting-item">
+          <div className="setting-main">
+            <h2>Reminder lead time</h2>
+            <p className="text-muted">Choose when reminders are sent before billing day.</p>
+          </div>
+          <form action={updateReminderLeadTimeAction} className="setting-control-form">
+            <PendingFieldset className="form-pending-group">
+              <label className="form-field setting-field">
+                Days before billing
+                <select
+                  disabled={!remindersEnabled}
                   name="reminderDaysBefore"
-                  onChange={(event) => setReminderDays(event.target.value)}
-                  step={1}
-                  type="number"
+                  onChange={(event) => {
+                    setReminderDays(event.target.value);
+                    event.currentTarget.form?.requestSubmit();
+                  }}
                   value={reminderDaysBefore}
-                />
+                >
+                  {REMINDER_DAY_OPTIONS.map((dayCount) => (
+                    <option key={dayCount} value={dayCount}>
+                      {dayCount} day{dayCount === 1 ? "" : "s"}
+                    </option>
+                  ))}
+                </select>
               </label>
-            </div>
+            </PendingFieldset>
+          </form>
+        </article>
 
-            <label className="form-checkbox settings-checkbox">
-              <input
-                checked={remindersEnabled}
-                name="remindersEnabled"
-                onChange={(event) => setRemindersEnabled(event.target.checked)}
-                type="checkbox"
-              />
-              Enable reminder emails
-            </label>
+        <article className="surface setting-item">
+          <div className="setting-main">
+            <h2>Account details</h2>
+            <p className="text-muted">
+              Name: {displayName.trim() || "Not set"}.
+              <br />
+              Email: {userEmail}
+            </p>
+          </div>
+          <div className="inline-actions">
+            <button className="button button-secondary" onClick={() => setIsAccountModalOpen(true)} type="button">
+              Edit Account
+            </button>
+          </div>
+        </article>
+      </section>
 
-            <div className="settings-range">
-              <label className="form-field">
-                Reminder timing preview
-                <input
-                  max={30}
-                  min={0}
-                  onChange={(event) => setReminderDays(event.target.value)}
-                  step={1}
-                  type="range"
-                  value={reminderDaysBefore}
-                />
-              </label>
-              <div className="inline-actions">
-                {REMINDER_DAY_PRESETS.map((preset) => (
-                  <button
-                    className="button button-secondary button-small"
-                    key={preset}
-                    onClick={() => setReminderDays(preset)}
-                    type="button"
-                  >
-                    {preset} day{preset === 1 ? "" : "s"}
-                  </button>
-                ))}
+      {isAccountModalOpen ? (
+        <div
+          aria-modal="true"
+          className="modal-backdrop"
+          onClick={() => setIsAccountModalOpen(false)}
+          role="dialog"
+        >
+          <article className="modal-panel" onClick={(event) => event.stopPropagation()}>
+            <header className="modal-header">
+              <div>
+                <p className="eyebrow">Account</p>
+                <h2>Update account details</h2>
               </div>
-            </div>
-
-            <div className="inline-actions">
-              <PendingSubmitButton idleLabel="Save Settings" pendingLabel="Saving..." />
-            </div>
-          </PendingFieldset>
-        </form>
-      </article>
+              <button
+                className="button button-secondary button-small"
+                onClick={() => setIsAccountModalOpen(false)}
+                type="button"
+              >
+                Close
+              </button>
+            </header>
+            <form action={updateAccountDetailsAction} className="form-grid">
+              <PendingFieldset className="form-grid form-pending-group">
+                <label className="form-field">
+                  Display name
+                  <input
+                    maxLength={120}
+                    name="displayName"
+                    onChange={(event) => setDisplayName(event.target.value)}
+                    placeholder="Your name"
+                    type="text"
+                    value={displayName}
+                  />
+                </label>
+                <label className="form-field">
+                  Email
+                  <input readOnly type="email" value={userEmail} />
+                </label>
+                <p className="text-muted">More account fields can be added here without changing page-level settings UX.</p>
+                <div className="inline-actions">
+                  <PendingSubmitButton idleLabel="Save Account Details" pendingLabel="Saving..." />
+                  <button className="button button-secondary" onClick={() => setIsAccountModalOpen(false)} type="button">
+                    Cancel
+                  </button>
+                </div>
+              </PendingFieldset>
+            </form>
+          </article>
+        </div>
+      ) : null}
     </section>
   );
 }

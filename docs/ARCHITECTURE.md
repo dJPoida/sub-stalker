@@ -17,7 +17,7 @@ Main concerns:
 - `/` dashboard (auth-aware message).
 - `/auth/sign-in`, `/auth/sign-up` (server-action forms).
 - `/subscriptions` (authenticated).
-- `/settings` (authenticated; persists currency, reminders, and display mode preferences).
+- `/settings` (authenticated; action-first settings UI with inline auto-save for simple preferences and modal edit flow for account details).
 - `/tools` (authenticated maintenance actions).
 - `/status` (human-readable operational status).
 - `/api/status` (machine-readable operational status).
@@ -47,6 +47,19 @@ Defined in `prisma/schema.prisma`:
 6. Sign-in enforces rate limiting (email+IP), prunes stale attempts, and prunes expired sessions.
 7. Sign-out deletes matching session row and clears cookie.
 8. Auth actions require same-origin request validation.
+
+## Settings flow
+
+`/settings` is implemented as independent server actions rather than one monolithic form submit:
+
+1. Simple preferences auto-save inline on change:
+   - display mode
+   - default currency
+   - reminder enabled/disabled
+   - reminder lead time
+2. Complex profile updates use a modal form:
+   - account display name
+3. Each action validates input and same-origin request headers before persistence.
 
 ## Status flow
 

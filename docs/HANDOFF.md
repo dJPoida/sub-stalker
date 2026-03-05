@@ -34,7 +34,9 @@ Implemented:
   - server actions validate amount, currency, billing interval, and optional next billing date.
   - update/deactivate operations are scoped to the authenticated user.
 - Settings persistence:
-  - `/settings` reads/writes `UserSettings` defaults (currency + reminders).
+  - `/settings` reads/writes `UserSettings` defaults (currency + reminders + display mode).
+  - simple settings are edited inline and auto-saved per control.
+  - account details are edited in a dedicated modal; display name persists to `User.name`.
   - display mode preference is persisted as `DEVICE | LIGHT | DARK`.
   - app theme follows system preference in `DEVICE` mode and uses explicit override for `LIGHT`/`DARK`.
 - Form submit UX feedback:
