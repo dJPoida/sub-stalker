@@ -538,9 +538,6 @@ export default function SubscriptionsClient({
                 <p className="eyebrow">Edit Subscription</p>
                 <h2>{editingSubscription.name}</h2>
               </div>
-              <button className="button button-secondary button-small" onClick={() => setEditingSubscriptionId(null)} type="button">
-                Close
-              </button>
             </header>
             <form action={updateAction} className="form-grid">
               <input name="subscriptionId" type="hidden" value={editingSubscription.id} />
