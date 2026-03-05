@@ -82,7 +82,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   const user = await requireAuthenticatedUser();
   const resultMessage = getResultMessage(searchParams);
 
-  const [settings, userProfile, totalSubscriptions, activeSubscriptions] = await Promise.all([
+  const [settings, userProfile] = await Promise.all([
     db.userSettings.findUnique({
       where: {
         userId: user.id,
@@ -102,22 +102,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         name: true,
       },
     }),
-    db.subscription.count({
-      where: {
-        userId: user.id,
-      },
-    }),
-    db.subscription.count({
-      where: {
-        userId: user.id,
-        isActive: true,
-      },
-    }),
   ]);
 
   return (
     <SettingsClient
-      activeSubscriptions={activeSubscriptions}
       initialDisplayName={userProfile?.name ?? null}
       initialDefaultCurrency={settings?.defaultCurrency ?? "USD"}
       initialDisplayMode={(settings?.displayMode ?? "DEVICE") as DisplayMode}
@@ -129,7 +117,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
       updateDisplayModeAction={updateDisplayModeAction}
       updateReminderLeadTimeAction={updateReminderLeadTimeAction}
       updateRemindersEnabledAction={updateRemindersEnabledAction}
-      totalSubscriptions={totalSubscriptions}
       userEmail={user.email}
     />
   );

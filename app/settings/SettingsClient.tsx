@@ -16,8 +16,6 @@ type SettingsClientProps = {
   initialDisplayMode: DisplayMode;
   initialRemindersEnabled: boolean;
   initialReminderDaysBefore: number;
-  totalSubscriptions: number;
-  activeSubscriptions: number;
   resultMessage: ResultMessage | null;
   updateDisplayModeAction: (formData: FormData) => Promise<void>;
   updateDefaultCurrencyAction: (formData: FormData) => Promise<void>;
@@ -41,8 +39,6 @@ export default function SettingsClient({
   initialDisplayMode,
   initialRemindersEnabled,
   initialReminderDaysBefore,
-  totalSubscriptions,
-  activeSubscriptions,
   resultMessage,
   updateDisplayModeAction,
   updateDefaultCurrencyAction,
@@ -142,31 +138,6 @@ export default function SettingsClient({
       {resultMessage ? (
         <p className={resultMessage.type === "error" ? "status-error" : "status-help"}>{resultMessage.text}</p>
       ) : null}
-
-      <section className="metric-grid">
-        <article className="metric-card">
-          <span className="metric-label">Default Currency</span>
-          <strong className="metric-value">{defaultCurrency}</strong>
-          <span className="metric-note">Used for new subscriptions</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Reminders</span>
-          <strong className="metric-value">{remindersEnabled ? "Enabled" : "Disabled"}</strong>
-          <span className="metric-note">{remindersEnabled ? `${reminderDaysBefore} day lead` : "No email reminders"}</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Subscriptions</span>
-          <strong className="metric-value">
-            {activeSubscriptions}/{totalSubscriptions}
-          </strong>
-          <span className="metric-note">Active / total tracked</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Display</span>
-          <strong className="metric-value">{displayMode}</strong>
-          <span className="metric-note">{displayModeSummary}</span>
-        </article>
-      </section>
 
       <section className="settings-list">
         <article className="surface setting-item">
