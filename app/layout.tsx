@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import type { DisplayMode } from "@prisma/client";
 import "@mdxeditor/editor/style.css";
@@ -74,7 +75,14 @@ export default async function RootLayout({
           <header className="app-header">
             <div className="header-inner">
               <Link className="brand" href="/">
-                <span className="brand-mark" />
+                <Image
+                  alt=""
+                  aria-hidden
+                  className="brand-mark"
+                  height={32}
+                  src="/android-chrome-192x192.png"
+                  width={32}
+                />
                 <span className="brand-copy">
                   <strong>Sub Stalker</strong>
                   <span>Subscription intelligence</span>
