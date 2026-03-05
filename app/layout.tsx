@@ -36,26 +36,37 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
-        <nav className="nav">
-          <ul>
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href}>{item.label}</Link>
-              </li>
-            ))}
-            {user ? (
-              <li className="nav-auth">
-                <span className="nav-user">{user.email}</span>
-                <form action={signOutAction}>
-                  <button type="submit" className="nav-button">
-                    Sign Out
-                  </button>
-                </form>
-              </li>
-            ) : null}
-          </ul>
-        </nav>
-        <main className="container">{children}</main>
+        <div className="app-shell">
+          <header className="app-header">
+            <div className="header-inner">
+              <Link className="brand" href="/">
+                <span className="brand-mark" />
+                <span className="brand-copy">
+                  <strong>Sub Stalker</strong>
+                  <span>Subscription intelligence</span>
+                </span>
+              </Link>
+              <nav className="main-nav" aria-label="Primary">
+                {navItems.map((item) => (
+                  <Link className="nav-link" key={item.href} href={item.href}>
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+              {user ? (
+                <div className="nav-auth">
+                  <span className="nav-user">{user.email}</span>
+                  <form action={signOutAction}>
+                    <button className="button button-secondary button-small" type="submit">
+                      Sign Out
+                    </button>
+                  </form>
+                </div>
+              ) : null}
+            </div>
+          </header>
+          <main className="container">{children}</main>
+        </div>
       </body>
     </html>
   );

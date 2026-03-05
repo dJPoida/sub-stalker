@@ -1,0 +1,62 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Sub Stalker Subscription intelligence" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - strong [ref=e8]: Sub Stalker
+            - generic [ref=e9]: Subscription intelligence
+        - navigation "Primary" [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: /
+          - link "Subscriptions" [ref=e45] [cursor=pointer]:
+            - /url: /subscriptions
+          - link "Settings" [ref=e46] [cursor=pointer]:
+            - /url: /settings
+          - link "Tools" [ref=e47] [cursor=pointer]:
+            - /url: /tools
+          - link "Status" [active] [ref=e12] [cursor=pointer]:
+            - /url: /status
+        - generic [ref=e48]:
+          - generic [ref=e49]: ui.verify.20260305@example.com
+          - button "Sign Out" [ref=e51] [cursor=pointer]
+    - main [ref=e15]:
+      - generic [ref=e204]:
+        - generic [ref=e205]:
+          - generic [ref=e206]:
+            - paragraph [ref=e207]: Status
+            - heading "System health" [level=1] [ref=e208]
+            - paragraph [ref=e209]: Operational diagnostics for core dependencies and data migration visibility.
+          - generic [ref=e210]: OPERATIONAL
+        - generic [ref=e211]:
+          - article [ref=e212]:
+            - generic [ref=e213]: Database
+            - strong [ref=e214]: Connected
+            - generic [ref=e215]: Checked at 2026-03-05T02:52:12.422Z
+          - article [ref=e216]:
+            - generic [ref=e217]: Latency
+            - strong [ref=e218]: 10 ms
+            - generic [ref=e219]: Roundtrip timing
+          - article [ref=e220]:
+            - generic [ref=e221]: Migrations
+            - strong [ref=e222]: "3"
+            - generic [ref=e223]: Applied entries
+        - article [ref=e224]:
+          - heading "Database connectivity" [level=2] [ref=e225]
+          - list [ref=e226]:
+            - listitem [ref=e227]: "Host: localhost"
+            - listitem [ref=e228]: "Port: 5433"
+            - listitem [ref=e229]: "Env source: DATABASE_URL"
+            - listitem [ref=e230]: "DB version: 16.9"
+            - listitem [ref=e231]: "Applied migrations: 3"
+            - listitem [ref=e232]: "Pending migrations: 0"
+            - listitem [ref=e233]: "Latest migration: 20260303034004_session_security_hardening"
+            - listitem [ref=e234]: "Latest applied at: 2026-03-03T03:40:04.383Z"
+        - article [ref=e235]:
+          - heading "Future metrics" [level=2] [ref=e236]
+          - list [ref=e237]:
+            - listitem [ref=e238]: "Total users: pending"
+            - listitem [ref=e239]: "Total subscriptions: pending"
+            - listitem [ref=e240]: "Monthly spend tracked: pending"
+  - alert [ref=e29]

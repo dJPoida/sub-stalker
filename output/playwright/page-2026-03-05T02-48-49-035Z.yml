@@ -1,0 +1,42 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Sub Stalker Subscription intelligence" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - strong [ref=e8]: Sub Stalker
+            - generic [ref=e9]: Subscription intelligence
+        - navigation "Primary" [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: /
+          - link "Status" [ref=e12] [cursor=pointer]:
+            - /url: /status
+          - link "Sign In" [ref=e13] [cursor=pointer]:
+            - /url: /auth/sign-in
+          - link "Sign Up" [active] [ref=e14] [cursor=pointer]:
+            - /url: /auth/sign-up
+    - main [ref=e15]:
+      - article [ref=e31]:
+        - paragraph [ref=e32]: Get Started
+        - heading "Create Account" [level=1] [ref=e33]
+        - paragraph [ref=e34]: Set up your account to begin tracking recurring charges.
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - text: Name (optional)
+            - textbox "Name (optional)" [ref=e37]:
+              - /placeholder: Your name
+          - generic [ref=e38]:
+            - text: Email
+            - textbox "Email" [ref=e39]:
+              - /placeholder: name@example.com
+          - generic [ref=e40]:
+            - text: Password
+            - textbox "Password" [ref=e41]:
+              - /placeholder: At least 8 characters
+          - button "Create Account" [ref=e42] [cursor=pointer]
+        - paragraph [ref=e43]:
+          - text: Already have an account?
+          - link "Sign in" [ref=e44] [cursor=pointer]:
+            - /url: /auth/sign-in
+  - alert [ref=e29]

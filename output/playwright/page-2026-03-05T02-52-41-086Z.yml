@@ -1,0 +1,73 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Sub Stalker Subscription intelligence" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - strong [ref=e8]: Sub Stalker
+            - generic [ref=e9]: Subscription intelligence
+        - navigation "Primary" [ref=e10]:
+          - link "Dashboard" [active] [ref=e11] [cursor=pointer]:
+            - /url: /
+          - link "Subscriptions" [ref=e45] [cursor=pointer]:
+            - /url: /subscriptions
+          - link "Settings" [ref=e46] [cursor=pointer]:
+            - /url: /settings
+          - link "Tools" [ref=e47] [cursor=pointer]:
+            - /url: /tools
+          - link "Status" [ref=e12] [cursor=pointer]:
+            - /url: /status
+        - generic [ref=e48]:
+          - generic [ref=e49]: ui.verify.20260305@example.com
+          - button "Sign Out" [ref=e51] [cursor=pointer]
+    - main [ref=e15]:
+      - generic [ref=e241]:
+        - generic [ref=e242]:
+          - generic [ref=e243]:
+            - paragraph [ref=e244]: Dashboard
+            - heading "Subscription overview" [level=1] [ref=e245]
+            - paragraph [ref=e246]: Signed in as ui.verify.20260305@example.com. Review upcoming charges and recent account activity.
+          - generic [ref=e247]:
+            - link "Manage Subscriptions" [ref=e248] [cursor=pointer]:
+              - /url: /subscriptions
+            - link "Preferences" [ref=e249] [cursor=pointer]:
+              - /url: /settings
+        - generic [ref=e250]:
+          - article [ref=e251]:
+            - generic [ref=e252]: Active Subscriptions
+            - strong [ref=e253]: "1"
+            - generic [ref=e254]: Currently billing
+          - article [ref=e255]:
+            - generic [ref=e256]: Estimated Monthly Spend
+            - strong [ref=e257]: $12.99
+            - generic [ref=e258]: Normalized from all active plans
+          - article [ref=e259]:
+            - generic [ref=e260]: Next Charge
+            - strong [ref=e261]: $12.99
+            - generic [ref=e262]: Spotify on Mar 20, 2026
+        - generic [ref=e263]:
+          - article [ref=e264]:
+            - heading "Upcoming Charges" [level=2] [ref=e265]
+            - generic [ref=e267]:
+              - generic [ref=e268]:
+                - heading "Spotify" [level=2] [ref=e269]
+                - generic [ref=e270]: ACTIVE
+              - paragraph [ref=e271]: $12.99 · Mar 20, 2026
+          - article [ref=e272]:
+            - heading "Recent Activity" [level=2] [ref=e273]
+            - generic [ref=e275]:
+              - generic [ref=e276]:
+                - heading "Spotify" [level=2] [ref=e277]
+                - generic [ref=e278]: ACTIVE
+              - paragraph [ref=e279]: Added Mar 5, 2026 · $12.99
+        - article [ref=e280]:
+          - heading "Quick Actions" [level=2] [ref=e281]
+          - generic [ref=e282]:
+            - link "Add or Update Subscriptions" [ref=e283] [cursor=pointer]:
+              - /url: /subscriptions
+            - link "Run Maintenance Tools" [ref=e284] [cursor=pointer]:
+              - /url: /tools
+            - link "View System Status" [ref=e285] [cursor=pointer]:
+              - /url: /status
+  - alert [ref=e29]

@@ -22,44 +22,69 @@ export default async function StatusPage() {
   const database = await getDatabaseStatus();
 
   return (
-    <section className="card">
-      <h1>System Status</h1>
-      <p>Simple operational status page for core services. This can be expanded with product metrics later.</p>
-
-      <div className="status-grid">
-        <article className="status-item">
-          <h2>Database connectivity</h2>
-          <p className={database.connected ? "status-ok" : "status-fail"}>
-            {database.connected ? "Connected" : "Not connected"}
+    <section className="page-stack">
+      <header className="page-header">
+        <div className="stack">
+          <p className="eyebrow">Status</p>
+          <h1>System health</h1>
+          <p className="page-lead">
+            Operational diagnostics for core dependencies and data migration visibility.
           </p>
-          <ul>
-            <li>Checked at: {database.checkedAt}</li>
-            <li>Host: {database.host ?? "n/a"}</li>
-            <li>Port: {database.port ?? "n/a"}</li>
-            <li>Latency: {formatLatency(database.latencyMs)}</li>
-            <li>Env source: {database.envSource}</li>
-            <li>DB version: {database.metadata.serverVersion ?? "n/a"}</li>
-            <li>Applied migrations: {database.metadata.appliedMigrations ?? "n/a"}</li>
-            <li>Pending migrations: {database.metadata.pendingMigrations ?? "n/a"}</li>
-            <li>Latest migration: {database.metadata.latestMigration ?? "n/a"}</li>
-            <li>Latest applied at: {formatDate(database.metadata.latestMigrationAppliedAt)}</li>
-          </ul>
-          {database.error ? <p className="status-error">Error: {database.error}</p> : null}
-          {database.metadata.error ? <p className="status-error">Metadata error: {database.metadata.error}</p> : null}
-          {!database.connected ? (
-            <p className="status-help">Tip: set a clean unquoted DB URL in Vercel. Example source should be DATABASE_URL or SUB_STALKER_STORAGE_POSTGRES_URL.</p>
-          ) : null}
-        </article>
+        </div>
+        <span className={database.connected ? "pill pill-ok" : "pill pill-fail"}>
+          {database.connected ? "OPERATIONAL" : "ISSUES DETECTED"}
+        </span>
+      </header>
 
-        <article className="status-item">
-          <h2>Future metrics</h2>
-          <ul>
-            <li>Total users: pending</li>
-            <li>Total subscriptions: pending</li>
-            <li>Monthly spend tracked: pending</li>
-          </ul>
+      <div className="metric-grid">
+        <article className="metric-card">
+          <span className="metric-label">Database</span>
+          <strong className="metric-value">{database.connected ? "Connected" : "Disconnected"}</strong>
+          <span className="metric-note">Checked at {database.checkedAt}</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Latency</span>
+          <strong className="metric-value">{formatLatency(database.latencyMs)}</strong>
+          <span className="metric-note">Roundtrip timing</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Migrations</span>
+          <strong className="metric-value">{database.metadata.appliedMigrations ?? "n/a"}</strong>
+          <span className="metric-note">Applied entries</span>
         </article>
       </div>
+
+      <article className="surface">
+        <h2>Database connectivity</h2>
+        <ul className="stack text-muted">
+          <li>Host: {database.host ?? "n/a"}</li>
+          <li>Port: {database.port ?? "n/a"}</li>
+          <li>Env source: {database.envSource}</li>
+          <li>DB version: {database.metadata.serverVersion ?? "n/a"}</li>
+          <li>Applied migrations: {database.metadata.appliedMigrations ?? "n/a"}</li>
+          <li>Pending migrations: {database.metadata.pendingMigrations ?? "n/a"}</li>
+          <li>Latest migration: {database.metadata.latestMigration ?? "n/a"}</li>
+          <li>Latest applied at: {formatDate(database.metadata.latestMigrationAppliedAt)}</li>
+        </ul>
+      </article>
+
+      {database.error ? <p className="status-error">Error: {database.error}</p> : null}
+      {database.metadata.error ? <p className="status-error">Metadata error: {database.metadata.error}</p> : null}
+      {!database.connected ? (
+        <p className="status-help">
+          Tip: set a clean unquoted DB URL in Vercel. Example source should be DATABASE_URL or
+          SUB_STALKER_STORAGE_POSTGRES_URL.
+        </p>
+      ) : null}
+
+      <article className="surface surface-soft">
+        <h2>Future metrics</h2>
+        <ul className="stack text-muted">
+          <li>Total users: pending</li>
+          <li>Total subscriptions: pending</li>
+          <li>Monthly spend tracked: pending</li>
+        </ul>
+      </article>
     </section>
   );
 }

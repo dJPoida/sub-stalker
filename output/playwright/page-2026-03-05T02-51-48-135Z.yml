@@ -1,0 +1,45 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Sub Stalker Subscription intelligence" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - strong [ref=e8]: Sub Stalker
+            - generic [ref=e9]: Subscription intelligence
+        - navigation "Primary" [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: /
+          - link "Subscriptions" [ref=e45] [cursor=pointer]:
+            - /url: /subscriptions
+          - link "Settings" [ref=e46] [cursor=pointer]:
+            - /url: /settings
+          - link "Tools" [active] [ref=e47] [cursor=pointer]:
+            - /url: /tools
+          - link "Status" [ref=e12] [cursor=pointer]:
+            - /url: /status
+        - generic [ref=e48]:
+          - generic [ref=e49]: ui.verify.20260305@example.com
+          - button "Sign Out" [ref=e51] [cursor=pointer]
+    - main [ref=e15]:
+      - generic [ref=e181]:
+        - generic [ref=e183]:
+          - paragraph [ref=e184]: Tools
+          - heading "Operational maintenance" [level=1] [ref=e185]
+          - paragraph [ref=e186]: Run operational jobs manually for verification and support workflows.
+        - generic [ref=e187]:
+          - article [ref=e188]:
+            - heading "Session Cleanup" [level=2] [ref=e189]
+            - paragraph [ref=e190]: Prunes expired sessions and stale sign-in attempts immediately.
+            - button "Run Session Cleanup" [ref=e192] [cursor=pointer]
+          - article [ref=e193]:
+            - heading "Daily Maintenance Batch" [level=2] [ref=e194]
+            - paragraph [ref=e195]: Runs the same batch used by the scheduled once-per-day maintenance job.
+            - button "Run Daily Batch" [ref=e197] [cursor=pointer]
+        - article [ref=e198]:
+          - heading "When to use this page" [level=2] [ref=e199]
+          - list [ref=e200]:
+            - listitem [ref=e201]: After infrastructure changes to verify cleanup flows still execute.
+            - listitem [ref=e202]: During support incidents where stale auth artifacts need immediate pruning.
+            - listitem [ref=e203]: Before shipping operational updates that depend on maintenance jobs.
+  - alert [ref=e29]

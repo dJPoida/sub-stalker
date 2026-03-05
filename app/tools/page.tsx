@@ -53,28 +53,43 @@ export default async function ToolsPage({ searchParams }: ToolsPageProps) {
   const message = getResultMessage(searchParams);
 
   return (
-    <section className="card">
-      <h1>Tools</h1>
-      <p>Run maintenance tasks manually for testing and operations checks.</p>
+    <section className="page-stack">
+      <header className="page-header">
+        <div className="stack">
+          <p className="eyebrow">Tools</p>
+          <h1>Operational maintenance</h1>
+          <p className="page-lead">Run operational jobs manually for verification and support workflows.</p>
+        </div>
+      </header>
+
       {message ? <p className="status-help">{message}</p> : null}
 
-      <div className="status-grid">
-        <article className="status-item">
+      <div className="split-grid">
+        <article className="surface">
           <h2>Session Cleanup</h2>
-          <p>Prunes expired sessions and stale sign-in attempt records immediately.</p>
-          <form action={runSessionCleanupAction}>
+          <p className="text-muted">Prunes expired sessions and stale sign-in attempts immediately.</p>
+          <form className="mt-md" action={runSessionCleanupAction}>
             <button type="submit">Run Session Cleanup</button>
           </form>
         </article>
 
-        <article className="status-item">
+        <article className="surface surface-soft">
           <h2>Daily Maintenance Batch</h2>
-          <p>Runs the same batch as the once-per-day Vercel cron schedule.</p>
-          <form action={runDailyMaintenanceAction}>
+          <p className="text-muted">Runs the same batch used by the scheduled once-per-day maintenance job.</p>
+          <form className="mt-md" action={runDailyMaintenanceAction}>
             <button type="submit">Run Daily Batch</button>
           </form>
         </article>
       </div>
+
+      <article className="surface">
+        <h2>When to use this page</h2>
+        <ul className="stack text-muted">
+          <li>After infrastructure changes to verify cleanup flows still execute.</li>
+          <li>During support incidents where stale auth artifacts need immediate pruning.</li>
+          <li>Before shipping operational updates that depend on maintenance jobs.</li>
+        </ul>
+      </article>
     </section>
   );
 }

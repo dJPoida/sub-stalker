@@ -1,0 +1,65 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Sub Stalker Subscription intelligence" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - strong [ref=e8]: Sub Stalker
+            - generic [ref=e9]: Subscription intelligence
+        - navigation "Primary" [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: /
+          - link "Subscriptions" [ref=e45] [cursor=pointer]:
+            - /url: /subscriptions
+          - link "Settings" [ref=e46] [cursor=pointer]:
+            - /url: /settings
+          - link "Tools" [ref=e47] [cursor=pointer]:
+            - /url: /tools
+          - link "Status" [ref=e12] [cursor=pointer]:
+            - /url: /status
+        - generic [ref=e48]:
+          - generic [ref=e49]: ui.verify.20260305@example.com
+          - button "Sign Out" [ref=e51] [cursor=pointer]
+    - main [ref=e15]:
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - paragraph [ref=e55]: Dashboard
+            - heading "Subscription overview" [level=1] [ref=e56]
+            - paragraph [ref=e57]: Signed in as ui.verify.20260305@example.com. Review upcoming charges and recent account activity.
+          - generic [ref=e58]:
+            - link "Manage Subscriptions" [ref=e59] [cursor=pointer]:
+              - /url: /subscriptions
+            - link "Preferences" [ref=e60] [cursor=pointer]:
+              - /url: /settings
+        - generic [ref=e61]:
+          - article [ref=e62]:
+            - generic [ref=e63]: Active Subscriptions
+            - strong [ref=e64]: "0"
+            - generic [ref=e65]: Currently billing
+          - article [ref=e66]:
+            - generic [ref=e67]: Estimated Monthly Spend
+            - strong [ref=e68]: Mixed currencies
+            - generic [ref=e69]: Normalized from all active plans
+          - article [ref=e70]:
+            - generic [ref=e71]: Next Charge
+            - strong [ref=e72]: n/a
+            - generic [ref=e73]: No date set
+        - generic [ref=e74]:
+          - article [ref=e75]:
+            - heading "Upcoming Charges" [level=2] [ref=e76]
+            - paragraph [ref=e77]: No upcoming charges with billing dates yet.
+          - article [ref=e78]:
+            - heading "Recent Activity" [level=2] [ref=e79]
+            - paragraph [ref=e80]: No subscriptions added yet.
+        - article [ref=e81]:
+          - heading "Quick Actions" [level=2] [ref=e82]
+          - generic [ref=e83]:
+            - link "Add or Update Subscriptions" [ref=e84] [cursor=pointer]:
+              - /url: /subscriptions
+            - link "Run Maintenance Tools" [ref=e85] [cursor=pointer]:
+              - /url: /tools
+            - link "View System Status" [ref=e86] [cursor=pointer]:
+              - /url: /status
+  - alert [ref=e29]
