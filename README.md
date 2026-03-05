@@ -49,6 +49,26 @@ Subscription Stalker is a web app that helps users keep track of recurring subsc
 - Avoid leaving untracked TODOs without a linked issue.
 - See `AGENTS.md` for AI-specific workflow requirements.
 
+## Favicon and app icons
+
+- Source design brief and prompt live at `docs/branding/favicon.md`.
+- Canonical source image is `docs/branding/favicon-source.png`.
+- This app expects these committed icon outputs in `public/`:
+  - `favicon.ico`
+  - `favicon-16x16.png`
+  - `favicon-32x32.png`
+  - `apple-touch-icon.png`
+  - `android-chrome-192x192.png`
+  - `android-chrome-512x512.png`
+  - `android-chrome-maskable-192x192.png`
+  - `android-chrome-maskable-512x512.png`
+  - `safari-pinned-tab.svg`
+  - `site.webmanifest`
+- Regeneration workflow:
+  1. Create/update a 1024x1024 source icon using the prompt in `docs/branding/favicon.md`.
+  2. Run the source through a favicon generator workflow (for example, RealFaviconGenerator).
+  3. Keep the exact filenames above so Next.js metadata links remain valid.
+
 ## Environment variables
 
 Next.js automatically loads `.env.local` for local development and Vercel project environment variables in deployed environments.
