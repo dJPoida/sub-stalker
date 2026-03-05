@@ -123,3 +123,25 @@ Rationale:
 - Prevents drift between implementation and written guidance.
 - Improves reliability for future AI/agent contributions and human handoffs.
 - Keeps operational/testing expectations aligned with actual shipped behavior.
+
+## D-009: Learning fields use user-scoped historical values
+
+Date: 2026-03-05
+
+Decision:
+
+- Introduce application-level learning fields as free-text inputs with suggestions sourced from each user’s historical values.
+- For subscriptions:
+  - replace `provider` with required `paymentMethod`
+  - add optional `signedUpBy`
+  - add user-scoped filters for both fields on `/subscriptions`.
+
+Rationale:
+
+- Matches real user intent (track payment source and who initiated a subscription).
+- Keeps input flexible while still reducing repeated typing.
+- Establishes a reusable pattern for future filterable metadata dimensions and dashboard rollups.
+
+Tradeoff:
+
+- Suggestions currently come from existing subscription rows; if future domains need cross-entity reuse or retention after deletions, a dedicated shared learning-value table will be needed.

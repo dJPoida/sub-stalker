@@ -117,7 +117,8 @@ async function isSameOriginRequest(): Promise<boolean> {
 
 type ParsedSubscriptionInput = {
   name: string;
-  provider: string | null;
+  paymentMethod: string;
+  signedUpBy: string | null;
   amountCents: number;
   currency: string;
   billingInterval: BillingInterval;
@@ -126,7 +127,8 @@ type ParsedSubscriptionInput = {
 
 function parseSubscriptionInput(formData: FormData): ParsedSubscriptionInput | null {
   const name = normalizeText(formData.get("name"));
-  const provider = normalizeOptionalText(formData.get("provider"));
+  const paymentMethod = normalizeText(formData.get("paymentMethod"));
+  const signedUpBy = normalizeOptionalText(formData.get("signedUpBy"));
   const amountCents = parseAmountCents(formData.get("amount"));
   const currency = parseCurrency(formData.get("currency"));
   const billingInterval = parseBillingInterval(formData.get("billingInterval"));
@@ -134,6 +136,7 @@ function parseSubscriptionInput(formData: FormData): ParsedSubscriptionInput | n
 
   if (
     !name ||
+    !paymentMethod ||
     amountCents === null ||
     currency === null ||
     billingInterval === null ||
@@ -144,7 +147,8 @@ function parseSubscriptionInput(formData: FormData): ParsedSubscriptionInput | n
 
   return {
     name,
-    provider,
+    paymentMethod,
+    signedUpBy,
     amountCents,
     currency,
     billingInterval,

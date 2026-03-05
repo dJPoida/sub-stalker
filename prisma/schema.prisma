@@ -49,7 +49,8 @@ model Subscription {
   id              String          @id @default(cuid())
   userId          String
   name            String
-  provider        String?
+  paymentMethod   String
+  signedUpBy      String?
   amountCents     Int
   currency        String          @default("USD")
   billingInterval BillingInterval @default(MONTHLY)
@@ -60,6 +61,8 @@ model Subscription {
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, nextBillingDate])
+  @@index([userId, paymentMethod])
+  @@index([userId, signedUpBy])
 }
 
 model Session {

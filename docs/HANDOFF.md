@@ -30,8 +30,11 @@ Implemented:
 - Subscription CRUD:
   - authenticated users can create, list, update, and deactivate subscriptions from `/subscriptions`.
   - subscriptions page now supports modal add/edit flows plus client-side search, status filtering, and sorting.
+  - `paymentMethod` is now required and acts as a learning field (suggests prior values entered by the same user).
+  - `signedUpBy` is optional and also acts as a learning field (suggests prior user-entered values).
+  - subscriptions list includes direct filters for payment method and signed-up-by values.
   - subscriptions are persisted in the `Subscription` table.
-  - server actions validate amount, currency, billing interval, and optional next billing date.
+  - server actions validate payment method, amount, currency, billing interval, and optional next billing date.
   - update/deactivate operations are scoped to the authenticated user.
 - Settings persistence:
   - `/settings` reads/writes `UserSettings` defaults (currency + reminders + display mode).

@@ -61,3 +61,16 @@ Acceptance criteria:
 - Primary submit buttons show a loading/in-progress state during request execution.
 - Relevant form inputs/buttons are temporarily disabled while pending.
 - Users receive clear completion/error feedback after submit.
+
+## P5: Subscription learning fields (completed)
+
+Goal:
+
+- Capture reusable payment-source metadata and signup-attribution metadata for subscriptions.
+
+Acceptance criteria:
+
+- `paymentMethod` is required when creating/editing subscriptions.
+- `signedUpBy` is available as an optional field.
+- Both fields suggest previously used values for the authenticated user.
+- Subscriptions list supports filtering by both fields.

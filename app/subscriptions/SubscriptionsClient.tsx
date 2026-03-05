@@ -11,7 +11,8 @@ type ActionResultMessage = {
 type SubscriptionRecord = {
   id: string;
   name: string;
-  provider: string | null;
+  paymentMethod: string;
+  signedUpBy: string | null;
   amountCents: number;
   currency: string;
   billingInterval: "WEEKLY" | "MONTHLY" | "YEARLY" | "CUSTOM";
@@ -28,6 +29,8 @@ type BillingIntervalOption = {
 type SubscriptionsClientProps = {
   userEmail: string;
   subscriptions: SubscriptionRecord[];
+  paymentMethodSuggestions: string[];
+  signedUpBySuggestions: string[];
   resultMessage: ActionResultMessage | null;
   createAction: (formData: FormData) => Promise<void>;
   updateAction: (formData: FormData) => Promise<void>;
@@ -76,9 +79,17 @@ function compareByNextBillingDate(first: SubscriptionRecord, second: Subscriptio
   return firstTime - secondTime;
 }
 
+function buildOptionSet(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+}
+
 export default function SubscriptionsClient({
   userEmail,
   subscriptions,
+  paymentMethodSuggestions,
+  signedUpBySuggestions,
   resultMessage,
   createAction,
   updateAction,
@@ -87,8 +98,27 @@ export default function SubscriptionsClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [sortBy, setSortBy] = useState<"next" | "amount_desc" | "amount_asc" | "name">("next");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
+  const [signedUpByFilter, setSignedUpByFilter] = useState("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingSubscriptionId, setEditingSubscriptionId] = useState<string | null>(null);
+
+  const paymentMethodOptions = useMemo(
+    () =>
+      buildOptionSet([
+        ...paymentMethodSuggestions,
+        ...subscriptions.map((subscription) => subscription.paymentMethod),
+      ]),
+    [paymentMethodSuggestions, subscriptions],
+  );
+  const signedUpByOptions = useMemo(
+    () =>
+      buildOptionSet([
+        ...signedUpBySuggestions,
+        ...subscriptions.map((subscription) => subscription.signedUpBy ?? ""),
+      ]),
+    [signedUpBySuggestions, subscriptions],
+  );
 
   const activeCount = subscriptions.filter((subscription) => subscription.isActive).length;
   const inactiveCount = subscriptions.length - activeCount;
@@ -113,13 +143,23 @@ export default function SubscriptionsClient({
         return false;
       }
 
+      if (paymentMethodFilter !== "all" && subscription.paymentMethod !== paymentMethodFilter) {
+        return false;
+      }
+
+      const normalizedSignedUpBy = subscription.signedUpBy?.trim() ?? "";
+      if (signedUpByFilter !== "all" && normalizedSignedUpBy !== signedUpByFilter) {
+        return false;
+      }
+
       if (!normalizedQuery) {
         return true;
       }
 
       const searchableParts = [
         subscription.name,
-        subscription.provider ?? "",
+        subscription.paymentMethod,
+        subscription.signedUpBy ?? "",
         subscription.currency,
         subscription.billingInterval,
       ];
@@ -140,7 +180,7 @@ export default function SubscriptionsClient({
     }
 
     return filtered.sort(compareByNextBillingDate);
-  }, [searchQuery, statusFilter, sortBy, subscriptions]);
+  }, [searchQuery, statusFilter, sortBy, paymentMethodFilter, signedUpByFilter, subscriptions]);
 
   useEffect(() => {
     if (!isAddModalOpen && !editingSubscriptionId) {
@@ -196,6 +236,16 @@ export default function SubscriptionsClient({
       {resultMessage ? (
         <p className={resultMessage.type === "error" ? "status-error" : "status-help"}>{resultMessage.text}</p>
       ) : null}
+      <datalist id="payment-method-options">
+        {paymentMethodOptions.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
+      <datalist id="signed-up-by-options">
+        {signedUpByOptions.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
 
       <article className="surface">
         <div className="control-grid">
@@ -203,10 +253,32 @@ export default function SubscriptionsClient({
             Search
             <input
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Name, provider, currency..."
+              placeholder="Name, payment method, signed up by..."
               type="text"
               value={searchQuery}
             />
+          </label>
+          <label className="form-field">
+            Payment method
+            <select onChange={(event) => setPaymentMethodFilter(event.target.value)} value={paymentMethodFilter}>
+              <option value="all">All</option>
+              {paymentMethodOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="form-field">
+            Signed up by
+            <select onChange={(event) => setSignedUpByFilter(event.target.value)} value={signedUpByFilter}>
+              <option value="all">All</option>
+              {signedUpByOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="form-field">
             Status
@@ -257,7 +329,10 @@ export default function SubscriptionsClient({
                 Interval: {subscription.billingInterval.toLowerCase()} - Next billing: {formatDate(subscription.nextBillingDate)}
               </p>
               <p className="text-muted">
-                Provider: {subscription.provider?.trim() ? subscription.provider : "Not specified"}
+                Payment method: {subscription.paymentMethod}
+              </p>
+              <p className="text-muted">
+                Signed up by: {subscription.signedUpBy?.trim() ? subscription.signedUpBy : "Not specified"}
               </p>
               <div className="inline-actions mt-md">
                 <button className="button button-secondary" onClick={() => setEditingSubscriptionId(subscription.id)} type="button">
@@ -312,8 +387,25 @@ export default function SubscriptionsClient({
                   <input maxLength={120} name="name" placeholder="Netflix" required type="text" />
                 </label>
                 <label className="form-field">
-                  Provider (optional)
-                  <input maxLength={120} name="provider" placeholder="Netflix, Inc." type="text" />
+                  Payment method
+                  <input
+                    list="payment-method-options"
+                    maxLength={120}
+                    name="paymentMethod"
+                    placeholder="Family Credit Card"
+                    required
+                    type="text"
+                  />
+                </label>
+                <label className="form-field">
+                  Signed up by (optional)
+                  <input
+                    list="signed-up-by-options"
+                    maxLength={120}
+                    name="signedUpBy"
+                    placeholder="Me"
+                    type="text"
+                  />
                 </label>
                 <div className="split-grid">
                   <label className="form-field">
@@ -378,8 +470,25 @@ export default function SubscriptionsClient({
                   <input defaultValue={editingSubscription.name} maxLength={120} name="name" required type="text" />
                 </label>
                 <label className="form-field">
-                  Provider (optional)
-                  <input defaultValue={editingSubscription.provider ?? ""} maxLength={120} name="provider" type="text" />
+                  Payment method
+                  <input
+                    defaultValue={editingSubscription.paymentMethod}
+                    list="payment-method-options"
+                    maxLength={120}
+                    name="paymentMethod"
+                    required
+                    type="text"
+                  />
+                </label>
+                <label className="form-field">
+                  Signed up by (optional)
+                  <input
+                    defaultValue={editingSubscription.signedUpBy ?? ""}
+                    list="signed-up-by-options"
+                    maxLength={120}
+                    name="signedUpBy"
+                    type="text"
+                  />
                 </label>
                 <div className="split-grid">
                   <label className="form-field">

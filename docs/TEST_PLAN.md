@@ -28,12 +28,15 @@ Auth:
 Subscriptions UX:
 
 1. Open `/subscriptions` and confirm subscription cards render.
-2. Open `Add Subscription` modal, submit a new subscription, and confirm success message.
-3. Open `Edit` modal on an existing subscription, update a field, submit, and confirm success message.
-4. Use search to filter the list by subscription name/provider.
-5. Switch status filter (`All`, `Active`, `Inactive`) and confirm card list changes correctly.
-6. Change sort mode and confirm card order updates.
-7. Trigger `Deactivate`, accept confirmation, and confirm status updates to inactive.
+2. Open `Add Subscription` modal and confirm `Payment method` is required.
+3. Submit a new subscription with `Payment method` and optional `Signed up by`, then confirm success message.
+4. Open `Edit` modal on an existing subscription, update `Payment method` and/or `Signed up by`, submit, and confirm success message.
+5. Open `Add Subscription` again and confirm prior `Payment method` and `Signed up by` values are suggested.
+6. Use search to filter the list by subscription name, payment method, and signed-up-by text.
+7. Use `Payment method` and `Signed up by` filter controls and confirm card list changes correctly.
+8. Switch status filter (`All`, `Active`, `Inactive`) and confirm card list changes correctly.
+9. Change sort mode and confirm card order updates.
+10. Trigger `Deactivate`, accept confirmation, and confirm status updates to inactive.
 
 Settings UX:
 

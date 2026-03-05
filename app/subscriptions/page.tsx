@@ -33,7 +33,7 @@ function getResultMessage(searchParams?: SubscriptionsPageProps["searchParams"])
   if (searchParams.error === "invalid_fields") {
     return {
       type: "error",
-      text: "Invalid subscription details. Check amount, currency, and billing fields.",
+      text: "Invalid subscription details. Check payment method, amount, currency, and billing fields.",
     };
   }
 
@@ -71,12 +71,41 @@ function getResultMessage(searchParams?: SubscriptionsPageProps["searchParams"])
 export default async function SubscriptionsPage({ searchParams }: SubscriptionsPageProps) {
   const user = await requireAuthenticatedUser();
   const resultMessage = getResultMessage(searchParams);
-  const subscriptions = await db.subscription.findMany({
-    where: {
-      userId: user.id,
-    },
-    orderBy: [{ isActive: "desc" }, { nextBillingDate: "asc" }, { createdAt: "desc" }],
-  });
+  const [subscriptions, paymentMethodSuggestions, signedUpBySuggestions] = await Promise.all([
+    db.subscription.findMany({
+      where: {
+        userId: user.id,
+      },
+      orderBy: [{ isActive: "desc" }, { nextBillingDate: "asc" }, { createdAt: "desc" }],
+    }),
+    db.subscription.findMany({
+      where: {
+        userId: user.id,
+      },
+      select: {
+        paymentMethod: true,
+      },
+      distinct: ["paymentMethod"],
+      orderBy: {
+        paymentMethod: "asc",
+      },
+    }),
+    db.subscription.findMany({
+      where: {
+        userId: user.id,
+        signedUpBy: {
+          not: null,
+        },
+      },
+      select: {
+        signedUpBy: true,
+      },
+      distinct: ["signedUpBy"],
+      orderBy: {
+        signedUpBy: "asc",
+      },
+    }),
+  ]);
 
   return (
     <SubscriptionsClient
@@ -86,7 +115,8 @@ export default async function SubscriptionsPage({ searchParams }: SubscriptionsP
       subscriptions={subscriptions.map((subscription) => ({
         id: subscription.id,
         name: subscription.name,
-        provider: subscription.provider,
+        paymentMethod: subscription.paymentMethod,
+        signedUpBy: subscription.signedUpBy,
         amountCents: subscription.amountCents,
         currency: subscription.currency,
         billingInterval: subscription.billingInterval,
@@ -94,6 +124,10 @@ export default async function SubscriptionsPage({ searchParams }: SubscriptionsP
         isActive: subscription.isActive,
         createdAt: subscription.createdAt.toISOString(),
       }))}
+      paymentMethodSuggestions={paymentMethodSuggestions.map((entry) => entry.paymentMethod)}
+      signedUpBySuggestions={signedUpBySuggestions
+        .map((entry) => entry.signedUpBy?.trim() ?? "")
+        .filter((value) => value.length > 0)}
       updateAction={updateSubscriptionAction}
       userEmail={user.email}
     />

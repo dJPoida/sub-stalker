@@ -30,9 +30,23 @@ Defined in `prisma/schema.prisma`:
 - `User`
 - `UserSettings` (1:1 with user; `defaultCurrency`, `remindersEnabled`, `reminderDaysBefore`, `displayMode`)
 - `DisplayMode` enum (`DEVICE`, `LIGHT`, `DARK`)
-- `Subscription` (many per user)
+- `Subscription` (many per user; includes learning fields `paymentMethod` required and `signedUpBy` optional)
 - `Session` (many per user; opaque token hashes)
 - `SignInAttempt` (rate-limit tracking by hashed email+IP key)
+
+## Learning fields
+
+Learning fields are user-owned text values that gain suggestions over time from prior entries.
+
+Current implementation for subscriptions:
+
+1. `paymentMethod` is required on create/edit.
+2. `signedUpBy` is optional on create/edit.
+3. Suggestions are loaded as distinct values from the authenticated user’s existing subscriptions.
+4. `/subscriptions` supports direct filtering by both fields.
+5. DB indexes (`userId + paymentMethod`, `userId + signedUpBy`) support scoped filter queries.
+
+Detailed specification: `docs/LEARNING_FIELDS.md`.
 
 ## Auth flow
 

@@ -181,6 +181,10 @@ Open http://localhost:3000.
 - Manual maintenance actions are available at `/tools` for test runs.
 - `/subscriptions` and `/settings` require authentication.
 - `/subscriptions` provides modal add/edit flows with client-side search, status filtering, and sort controls.
+- `/subscriptions` learning fields:
+  - required `payment method` (free-text + learned suggestions)
+  - optional `signed up by` (free-text + learned suggestions)
+  - both fields are filterable in the subscriptions list
 - `/settings` uses action-first controls:
   - simple preferences auto-save inline on change (display mode, default currency, reminder toggle, reminder lead time)
   - account details are edited in a dedicated modal dialog
@@ -198,6 +202,7 @@ Open http://localhost:3000.
 - `docs/ROADMAP.md`
 - `docs/TEST_PLAN.md`
 - `docs/STATUS_CONTRACT.md`
+- `docs/LEARNING_FIELDS.md`
 
 ## Production build locally
 
