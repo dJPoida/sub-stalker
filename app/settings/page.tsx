@@ -1,5 +1,6 @@
 import { requireAuthenticatedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import type { DisplayMode } from "@prisma/client";
 
 import { saveUserSettingsAction } from "./actions";
 import SettingsClient from "./SettingsClient";
@@ -29,7 +30,7 @@ function getResultMessage(searchParams?: SettingsPageProps["searchParams"]): {
   if (searchParams.error === "invalid_fields") {
     return {
       type: "error",
-      text: "Invalid settings values. Use a 3-letter currency and reminder days between 0 and 30.",
+      text: "Invalid settings values. Use a 3-letter currency, reminder days between 0 and 30, and a valid display mode.",
     };
   }
 
@@ -56,6 +57,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         defaultCurrency: true,
         remindersEnabled: true,
         reminderDaysBefore: true,
+        displayMode: true,
       },
     }),
     db.subscription.count({
@@ -75,6 +77,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     <SettingsClient
       activeSubscriptions={activeSubscriptions}
       initialDefaultCurrency={settings?.defaultCurrency ?? "USD"}
+      initialDisplayMode={(settings?.displayMode ?? "DEVICE") as DisplayMode}
       initialReminderDaysBefore={settings?.reminderDaysBefore ?? 3}
       initialRemindersEnabled={settings?.remindersEnabled ?? true}
       resultMessage={resultMessage}

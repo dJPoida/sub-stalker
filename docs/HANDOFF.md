@@ -33,12 +33,17 @@ Implemented:
   - subscriptions are persisted in the `Subscription` table.
   - server actions validate amount, currency, billing interval, and optional next billing date.
   - update/deactivate operations are scoped to the authenticated user.
+- Settings persistence:
+  - `/settings` reads/writes `UserSettings` defaults (currency + reminders).
+  - display mode preference is persisted as `DEVICE | LIGHT | DARK`.
+  - app theme follows system preference in `DEVICE` mode and uses explicit override for `LIGHT`/`DARK`.
+- Form submit UX feedback:
+  - all primary form/server-action flows use pending submit states and disabled fieldsets via shared `PendingFormControls`.
 - Dashboard:
   - shows active subscription count, estimated monthly spend, next charge summary, and quick actions.
 
 Not implemented yet:
 
-- Improved form submission UX (loading/disabled states during in-flight requests).
 - Email/notification workflows.
 - Automated tests.
 
@@ -54,8 +59,7 @@ Not implemented yet:
 
 1. Add minimal e2e smoke tests for auth + status + subscriptions CRUD.
 2. Add optional "sign out all sessions" account control.
-3. Add loading/lock-out UI states for form submissions (e.g., disable submit + show in-progress text).
-4. Add notifications/reminders workflow from settings preferences.
+3. Add notifications/reminders workflow from settings preferences.
 
 ## Files to understand first
 

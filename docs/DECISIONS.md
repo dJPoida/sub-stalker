@@ -102,3 +102,24 @@ Rationale:
 
 - Matches platform cron limits while keeping routine maintenance automated.
 - Keeps auth tables bounded even when sign-ins are infrequent.
+
+## D-008: Documentation sync is a delivery requirement
+
+Date: 2026-03-05
+
+Decision:
+
+- Treat documentation updates as part of feature completion, not follow-up work.
+- Every implementation change must update affected docs in the same change set before handoff/merge.
+- Minimum docs to review on each feature change:
+  - `README.md`
+  - `docs/ARCHITECTURE.md`
+  - `docs/HANDOFF.md`
+  - `docs/TEST_PLAN.md`
+  - plus any domain-specific docs impacted by the change.
+
+Rationale:
+
+- Prevents drift between implementation and written guidance.
+- Improves reliability for future AI/agent contributions and human handoffs.
+- Keeps operational/testing expectations aligned with actual shipped behavior.

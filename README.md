@@ -32,6 +32,7 @@ Subscription Stalker is a web app that helps users keep track of recurring subsc
 - Treat this repository as an evolving MVP: prefer small, testable steps.
 - Preserve and improve operational visibility (`/status`, `/api/status`) as features expand.
 - Keep environment variables and deployment docs up to date when adding integrations.
+- Documentation sync is mandatory: every feature or behavior change must update relevant docs in the same change set before handoff/merge (`README.md`, `docs/ARCHITECTURE.md`, `docs/HANDOFF.md`, `docs/TEST_PLAN.md`, and other affected docs).
 - When implementing new features, align changes to the mission above (help users track, understand, and act on subscription costs).
 
 ## Prerequisites
@@ -180,6 +181,10 @@ Open http://localhost:3000.
 - Manual maintenance actions are available at `/tools` for test runs.
 - `/subscriptions` and `/settings` require authentication.
 - `/subscriptions` provides modal add/edit flows with client-side search, status filtering, and sort controls.
+- `/settings` persists default currency, reminder controls, and display mode (`Device`, `Light`, `Dark`).
+- Display mode behavior:
+  - `Device` follows OS/browser `prefers-color-scheme`.
+  - `Light` and `Dark` force an explicit app theme override.
 
 ## Additional docs
 

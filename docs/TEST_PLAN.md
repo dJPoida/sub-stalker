@@ -35,6 +35,15 @@ Subscriptions UX:
 6. Change sort mode and confirm card order updates.
 7. Trigger `Deactivate`, accept confirmation, and confirm status updates to inactive.
 
+Settings UX:
+
+1. Open `/settings` while signed in and confirm current values are pre-filled from saved preferences.
+2. Change display mode to `Dark`, save settings, and confirm the app re-renders in dark theme.
+3. Navigate to another page (for example `/`) and confirm the dark theme remains applied.
+4. Change display mode to `Light`, save settings, and confirm the app re-renders in light theme.
+5. Change display mode to `Device`, save settings, then toggle OS/browser color scheme and confirm app theme follows system preference.
+6. Update reminder lead-time and currency together with display mode and confirm all values persist after page reload.
+
 Status:
 
 1. Open `/status`.

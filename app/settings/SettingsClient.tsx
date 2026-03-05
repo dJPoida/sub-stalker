@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { DisplayMode } from "@prisma/client";
 import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
 
 type ResultMessage = {
@@ -11,6 +12,7 @@ type ResultMessage = {
 type SettingsClientProps = {
   userEmail: string;
   initialDefaultCurrency: string;
+  initialDisplayMode: DisplayMode;
   initialRemindersEnabled: boolean;
   initialReminderDaysBefore: number;
   totalSubscriptions: number;
@@ -20,11 +22,17 @@ type SettingsClientProps = {
 };
 
 const CURRENCY_OPTIONS = ["USD", "EUR", "GBP", "JPY", "CAD", "AUD"];
+const DISPLAY_MODE_OPTIONS: Array<{ value: DisplayMode; label: string }> = [
+  { value: "DEVICE", label: "Device" },
+  { value: "LIGHT", label: "Light" },
+  { value: "DARK", label: "Dark" },
+];
 const REMINDER_DAY_PRESETS = [1, 3, 7, 14];
 
 export default function SettingsClient({
   userEmail,
   initialDefaultCurrency,
+  initialDisplayMode,
   initialRemindersEnabled,
   initialReminderDaysBefore,
   totalSubscriptions,
@@ -33,6 +41,7 @@ export default function SettingsClient({
   saveAction,
 }: SettingsClientProps) {
   const [defaultCurrency, setDefaultCurrency] = useState(initialDefaultCurrency);
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(initialDisplayMode);
   const [remindersEnabled, setRemindersEnabled] = useState(initialRemindersEnabled);
   const [reminderDaysBefore, setReminderDaysBefore] = useState(initialReminderDaysBefore);
   const currencyOptions = useMemo(() => {
@@ -68,6 +77,29 @@ export default function SettingsClient({
     return `Email reminders are sent ${reminderDaysBefore} day(s) before billing.`;
   }, [remindersEnabled, reminderDaysBefore]);
 
+  const displayModeSummary = useMemo(() => {
+    if (displayMode === "LIGHT") {
+      return "Always use light mode.";
+    }
+
+    if (displayMode === "DARK") {
+      return "Always use dark mode.";
+    }
+
+    return "Follow your device color scheme.";
+  }, [displayMode]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    if (displayMode === "DEVICE") {
+      delete root.dataset.theme;
+      return;
+    }
+
+    root.dataset.theme = displayMode.toLowerCase();
+  }, [displayMode]);
+
   return (
     <section className="page-stack">
       <header className="page-header">
@@ -100,6 +132,11 @@ export default function SettingsClient({
           </strong>
           <span className="metric-note">Active / total tracked</span>
         </article>
+        <article className="metric-card">
+          <span className="metric-label">Display</span>
+          <strong className="metric-value">{displayMode}</strong>
+          <span className="metric-note">{displayModeSummary}</span>
+        </article>
       </section>
 
       <div className="split-grid">
@@ -116,6 +153,7 @@ export default function SettingsClient({
           <h2>Reminder profile</h2>
           <p className="text-muted">{reminderSummary}</p>
           <p className="text-muted mt-md">Current currency preference: {defaultCurrency}.</p>
+          <p className="text-muted">Display mode: {displayModeSummary}</p>
         </article>
       </div>
 
@@ -124,6 +162,21 @@ export default function SettingsClient({
         <form action={saveAction} className="form-grid">
           <PendingFieldset className="form-grid form-pending-group">
             <div className="settings-grid">
+              <label className="form-field">
+                Display mode
+                <select
+                  name="displayMode"
+                  onChange={(event) => setDisplayMode(event.target.value as DisplayMode)}
+                  value={displayMode}
+                >
+                  {DISPLAY_MODE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
               <label className="form-field">
                 Default currency
                 <select

@@ -9,6 +9,7 @@ Main concerns:
 - Web UI: App Router pages in `app/`.
 - Auth/session: server-side, cookie + DB-backed session table.
 - Data layer: Prisma client in `lib/db.ts`, schema in `prisma/schema.prisma`.
+- Theme system: CSS variable tokens with `html[data-theme]` override and `prefers-color-scheme` fallback.
 - Ops status: `/status` page + `/api/status` JSON route.
 
 ## Route map
@@ -16,7 +17,7 @@ Main concerns:
 - `/` dashboard (auth-aware message).
 - `/auth/sign-in`, `/auth/sign-up` (server-action forms).
 - `/subscriptions` (authenticated).
-- `/settings` (authenticated).
+- `/settings` (authenticated; persists currency, reminders, and display mode preferences).
 - `/tools` (authenticated maintenance actions).
 - `/status` (human-readable operational status).
 - `/api/status` (machine-readable operational status).
@@ -27,7 +28,8 @@ Main concerns:
 Defined in `prisma/schema.prisma`:
 
 - `User`
-- `UserSettings` (1:1 with user)
+- `UserSettings` (1:1 with user; `defaultCurrency`, `remindersEnabled`, `reminderDaysBefore`, `displayMode`)
+- `DisplayMode` enum (`DEVICE`, `LIGHT`, `DARK`)
 - `Subscription` (many per user)
 - `Session` (many per user; opaque token hashes)
 - `SignInAttempt` (rate-limit tracking by hashed email+IP key)

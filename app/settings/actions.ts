@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import type { DisplayMode } from "@prisma/client";
 
 import { requireAuthenticatedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -34,6 +35,16 @@ function parseReminderDaysBefore(value: FormDataEntryValue | null): number | nul
   }
 
   return parsed;
+}
+
+function parseDisplayMode(value: FormDataEntryValue | null): DisplayMode | null {
+  const normalized = normalizeText(value).toUpperCase();
+
+  if (normalized === "DEVICE" || normalized === "LIGHT" || normalized === "DARK") {
+    return normalized;
+  }
+
+  return null;
 }
 
 async function isSameOriginRequest(): Promise<boolean> {
@@ -71,8 +82,9 @@ export async function saveUserSettingsAction(formData: FormData): Promise<void> 
   const defaultCurrency = parseDefaultCurrency(formData.get("defaultCurrency"));
   const remindersEnabled = formData.get("remindersEnabled") === "on";
   const reminderDaysBefore = parseReminderDaysBefore(formData.get("reminderDaysBefore"));
+  const displayMode = parseDisplayMode(formData.get("displayMode"));
 
-  if (!defaultCurrency || reminderDaysBefore === null) {
+  if (!defaultCurrency || reminderDaysBefore === null || !displayMode) {
     redirect("/settings?error=invalid_fields");
   }
 
@@ -85,11 +97,13 @@ export async function saveUserSettingsAction(formData: FormData): Promise<void> 
       defaultCurrency,
       remindersEnabled,
       reminderDaysBefore,
+      displayMode,
     },
     update: {
       defaultCurrency,
       remindersEnabled,
       reminderDaysBefore,
+      displayMode,
     },
   });
 

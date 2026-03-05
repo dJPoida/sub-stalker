@@ -13,7 +13,7 @@ Acceptance criteria:
 - Basic validation for amount, currency, billing interval.
 - UI shows empty state and list state.
 
-## P1: Settings persistence
+## P1: Settings persistence (completed)
 
 Goal:
 
@@ -23,6 +23,7 @@ Acceptance criteria:
 
 - Persist `defaultCurrency`.
 - Persist reminder preferences.
+- Persist display mode preferences (`DEVICE`, `LIGHT`, `DARK`).
 - Pre-fill form from DB values.
 
 ## P2: Dashboard signal
@@ -49,7 +50,7 @@ Acceptance criteria:
 - Integrate mail provider wrapper.
 - Add delivery attempt logging model.
 
-## P4: Form submit UX feedback
+## P4: Form submit UX feedback (completed)
 
 Goal:
 

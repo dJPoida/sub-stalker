@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import type { DisplayMode } from "@prisma/client";
 
 import { signOutAction } from "@/app/auth/actions";
 import { PendingSubmitButton } from "@/app/components/PendingFormControls";
 import { getCurrentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 import "./globals.css";
 
@@ -18,6 +20,22 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getCurrentUser();
+  let displayMode: DisplayMode = "DEVICE";
+
+  if (user) {
+    const settings = await db.userSettings.findUnique({
+      where: {
+        userId: user.id,
+      },
+      select: {
+        displayMode: true,
+      },
+    });
+
+    displayMode = settings?.displayMode ?? "DEVICE";
+  }
+
+  const htmlTheme = displayMode === "DEVICE" ? undefined : displayMode.toLowerCase();
 
   const navItems = user
     ? [
@@ -35,7 +53,7 @@ export default async function RootLayout({
       ];
 
   return (
-    <html lang="en">
+    <html data-theme={htmlTheme} lang="en">
       <body>
         <div className="app-shell">
           <header className="app-header">
