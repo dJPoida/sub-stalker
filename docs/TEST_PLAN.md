@@ -42,6 +42,19 @@ Subscriptions UX:
 13. Add markdown notes/comments in the WYSIWYG notes editor, save, reopen edit modal, and confirm markdown content round-trips.
 14. Confirm subscription cards render `Open` links for populated URL fields and show `Not set` when empty.
 15. Use global search with text that appears only in notes or URL fields and confirm matching subscriptions are returned.
+16. Click a subscription card body (not Edit/Deactivate buttons) and confirm `Subscription Details` modal opens.
+17. Focus a subscription card and press `Enter`, then `Space`; confirm modal opens from keyboard.
+18. Inside the modal, confirm focus remains trapped, `Esc` closes it, and there are no editing controls.
+19. In the modal, click `Copy Subscription ID` and confirm clipboard copy succeeds.
+20. In browser devtools network tab, confirm modal interaction telemetry posts to `POST /api/telemetry` with source `subscriptions_list`.
+
+Dashboard details modal UX:
+
+1. Open `/` while signed in and click an item in `Upcoming Charges`; confirm `Subscription Details` modal opens.
+2. Open an item from `Recent Activity`; confirm the same modal component opens with the selected subscription.
+3. While opening modal, confirm loading state is visible and details render after request.
+4. Temporarily break the details request (for example, by forcing `401/404`) and confirm error/empty state copy is shown.
+5. In browser devtools network tab, confirm telemetry source values are `upcoming_charges` and `recent_activity`.
 
 Settings UX:
 

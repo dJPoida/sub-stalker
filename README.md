@@ -209,6 +209,12 @@ Open http://localhost:3000.
 - Manual maintenance actions are available at `/tools` for test runs.
 - `/subscriptions` and `/settings` require authentication.
 - `/subscriptions` provides modal add/edit flows with client-side search, status filtering, and sort controls.
+- subscription details are available in a shared read-only modal opened from:
+  - dashboard -> `Upcoming Charges`
+  - dashboard -> `Recent Activity`
+  - subscriptions list -> subscription card row (click, Enter, or Space)
+- the details modal fetches fresh data on open via `/api/subscriptions/[subscriptionId]/details` and includes loading, empty, and error states.
+- modal telemetry events are posted to `/api/telemetry` for open/close/view-history interactions with source context.
 - `/subscriptions` learning fields:
   - required `payment method` (free-text + learned suggestions)
   - optional `signed up by` (free-text + learned suggestions)

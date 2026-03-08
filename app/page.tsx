@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import DashboardSectionsClient from "@/app/DashboardSectionsClient";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -153,54 +154,26 @@ export default async function DashboardPage() {
         </article>
       </section>
 
-      <div className="split-grid">
-        <article className="surface">
-          <h2>Upcoming Charges</h2>
-          {upcomingCharges.length === 0 ? (
-            <p className="text-muted">No upcoming charges with billing dates yet.</p>
-          ) : (
-            <div className="stack">
-              {upcomingCharges.map((subscription) => (
-                <div className="status-item" key={subscription.id}>
-                  <div className="subscription-header">
-                    <h2>{subscription.name}</h2>
-                    <span className={subscription.isActive ? "pill pill-ok" : "pill pill-fail"}>
-                      {subscription.isActive ? "ACTIVE" : "INACTIVE"}
-                    </span>
-                  </div>
-                  <p className="subscription-meta">
-                    {formatMoney(subscription.amountCents, subscription.currency)} -{" "}
-                    {subscription.nextBillingDate ? formatDate(subscription.nextBillingDate) : "No date"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </article>
-
-        <article className="surface surface-soft">
-          <h2>Recent Activity</h2>
-          {recentSubscriptions.length === 0 ? (
-            <p className="text-muted">No subscriptions added yet.</p>
-          ) : (
-            <div className="stack">
-              {recentSubscriptions.map((subscription) => (
-                <div className="status-item" key={subscription.id}>
-                  <div className="subscription-header">
-                    <h2>{subscription.name}</h2>
-                    <span className={subscription.isActive ? "pill pill-ok" : "pill pill-fail"}>
-                      {subscription.isActive ? "ACTIVE" : "INACTIVE"}
-                    </span>
-                  </div>
-                  <p className="subscription-meta">
-                    Added {formatDate(subscription.createdAt)} - {formatMoney(subscription.amountCents, subscription.currency)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </article>
-      </div>
+      <DashboardSectionsClient
+        recentSubscriptions={recentSubscriptions.map((subscription) => ({
+          id: subscription.id,
+          name: subscription.name,
+          isActive: subscription.isActive,
+          amountCents: subscription.amountCents,
+          currency: subscription.currency,
+          nextBillingDate: subscription.nextBillingDate ? subscription.nextBillingDate.toISOString() : null,
+          createdAt: subscription.createdAt.toISOString(),
+        }))}
+        upcomingCharges={upcomingCharges.map((subscription) => ({
+          id: subscription.id,
+          name: subscription.name,
+          isActive: subscription.isActive,
+          amountCents: subscription.amountCents,
+          currency: subscription.currency,
+          nextBillingDate: subscription.nextBillingDate ? subscription.nextBillingDate.toISOString() : null,
+          createdAt: subscription.createdAt.toISOString(),
+        }))}
+      />
 
       <article className="surface">
         <h2>Quick Actions</h2>

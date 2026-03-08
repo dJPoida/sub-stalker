@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import SubscriptionDetailsModal from "@/app/components/SubscriptionDetailsModal";
 import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
+import { useSubscriptionDetailsModal } from "@/app/components/useSubscriptionDetailsModal";
 
 type ActionResultMessage = {
   type: "error" | "success";
@@ -98,6 +100,14 @@ function buildOptionSet(values: string[]): string[] {
   );
 }
 
+function eventTargetsInteractiveElement(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return Boolean(target.closest("a, button, input, select, textarea, form"));
+}
+
 export default function SubscriptionsClient({
   userEmail,
   subscriptions,
@@ -115,6 +125,7 @@ export default function SubscriptionsClient({
   const [signedUpByFilter, setSignedUpByFilter] = useState("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingSubscriptionId, setEditingSubscriptionId] = useState<string | null>(null);
+  const detailsModal = useSubscriptionDetailsModal();
 
   const paymentMethodOptions = useMemo(
     () =>
@@ -334,7 +345,37 @@ export default function SubscriptionsClient({
       ) : (
         <section className="subscription-cards">
           {filteredSubscriptions.map((subscription) => (
-            <article className="surface subscription-card" key={subscription.id}>
+            <article
+              className="surface subscription-card subscription-card-clickable"
+              key={subscription.id}
+              onClick={(event) => {
+                if (eventTargetsInteractiveElement(event.target)) {
+                  return;
+                }
+
+                void detailsModal.openModal({
+                  subscriptionId: subscription.id,
+                  source: "subscriptions_list",
+                });
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") {
+                  return;
+                }
+
+                if (eventTargetsInteractiveElement(event.target)) {
+                  return;
+                }
+
+                event.preventDefault();
+                void detailsModal.openModal({
+                  subscriptionId: subscription.id,
+                  source: "subscriptions_list",
+                });
+              }}
+              role="button"
+              tabIndex={0}
+            >
               <div className="subscription-header">
                 <h2>{subscription.name}</h2>
                 <span className={subscription.isActive ? "pill pill-ok" : "pill pill-fail"}>
@@ -387,7 +428,11 @@ export default function SubscriptionsClient({
                 <p className="text-muted">Notes: Not set</p>
               )}
               <div className="inline-actions mt-md">
-                <button className="button button-secondary" onClick={() => setEditingSubscriptionId(subscription.id)} type="button">
+                <button
+                  className="button button-secondary"
+                  onClick={() => setEditingSubscriptionId(subscription.id)}
+                  type="button"
+                >
                   Edit
                 </button>
                 {subscription.isActive ? (
@@ -414,6 +459,16 @@ export default function SubscriptionsClient({
           ))}
         </section>
       )}
+
+      <SubscriptionDetailsModal
+        details={detailsModal.details}
+        errorMessage={detailsModal.errorMessage}
+        isOpen={detailsModal.isOpen}
+        loadState={detailsModal.fetchState}
+        onClose={detailsModal.closeModal}
+        onViewFullHistoryClick={detailsModal.trackViewFullHistory}
+        source={detailsModal.source}
+      />
 
       {isAddModalOpen ? (
         <div

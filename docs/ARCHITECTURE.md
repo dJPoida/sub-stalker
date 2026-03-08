@@ -21,6 +21,8 @@ Main concerns:
 - `/tools` (authenticated maintenance actions).
 - `/status` (human-readable operational status).
 - `/api/status` (machine-readable operational status).
+- `/api/subscriptions/[subscriptionId]/details` (authenticated, read-only details contract for modal).
+- `/api/telemetry` (lightweight modal interaction telemetry ingestion).
 - `/api/internal/daily-maintenance` (cron-only daily maintenance endpoint).
 
 ## Data model
@@ -63,6 +65,27 @@ UI behavior:
 2. URL fields are validated server-side and must be `http` or `https` when provided.
 3. `notesMarkdown` is edited through a WYSIWYG markdown editor and saved as raw markdown text.
 4. Subscription card search includes these metadata fields.
+
+## Shared subscription details contract
+
+`lib/subscription-details.ts` defines a shared, typed contract used by:
+
+1. `/api/subscriptions/[subscriptionId]/details` (server response builder).
+2. Dashboard + subscriptions modal consumers (single read-only component).
+3. Shared timeline and normalized-cost formatting logic.
+
+Current modal coverage:
+
+1. Dashboard `Upcoming Charges`
+2. Dashboard `Recent Activity`
+3. `/subscriptions` subscription row cards
+
+Modal behavior:
+
+1. Refetches details on open (`cache: no-store`) to reduce stale views.
+2. Includes loading, empty, and error states.
+3. Uses keyboard accessible dialog behavior (focus trap + `Esc` close).
+4. Supports contextual actions without editing controls (view history, copy ID, close).
 
 ## Auth flow
 
