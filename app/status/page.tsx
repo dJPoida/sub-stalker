@@ -1,4 +1,4 @@
-import { getDatabaseStatus } from "@/lib/status";
+import { getDatabaseStatus, getEmailStatus } from "@/lib/status";
 
 function formatLatency(latencyMs: number | null): string {
   if (latencyMs === null) {
@@ -20,6 +20,7 @@ export const dynamic = "force-dynamic";
 
 export default async function StatusPage() {
   const database = await getDatabaseStatus();
+  const email = getEmailStatus();
 
   return (
     <section className="page-stack">
@@ -52,6 +53,11 @@ export default async function StatusPage() {
           <strong className="metric-value">{database.metadata.appliedMigrations ?? "n/a"}</strong>
           <span className="metric-note">Applied entries</span>
         </article>
+        <article className="metric-card">
+          <span className="metric-label">Email Service</span>
+          <strong className="metric-value">{email.configured ? "Configured" : "Not configured"}</strong>
+          <span className="metric-note">Provider: {email.provider}</span>
+        </article>
       </div>
 
       <article className="surface">
@@ -76,6 +82,15 @@ export default async function StatusPage() {
           SUB_STALKER_STORAGE_POSTGRES_URL.
         </p>
       ) : null}
+
+      <article className="surface">
+        <h2>Email readiness</h2>
+        <ul className="stack text-muted">
+          <li>Configured: {email.configured ? "yes" : "no"}</li>
+          <li>Provider: {email.provider}</li>
+          <li>From address: {email.fromAddress}</li>
+        </ul>
+      </article>
 
       <article className="surface surface-soft">
         <h2>Future metrics</h2>

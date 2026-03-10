@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
     jobs: {
       staleSignInAttemptsDeleted: result.staleSignInAttemptsDeleted,
       expiredPendingInvitesMarked: result.expiredPendingInvitesMarked,
+      emailDeliveryLogsDeleted: result.emailDeliveryLogsDeleted,
     },
     ranAt: result.ranAt,
   });

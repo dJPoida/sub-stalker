@@ -14,6 +14,8 @@ Top-level shape:
   "app": "Subscription Stalker",
   "status": "ok | degraded",
   "database": {},
+  "email": {},
+  "emailConfigured": "boolean",
   "metrics": {
     "users": null,
     "subscriptions": null,
@@ -39,6 +41,16 @@ Top-level shape:
   - `pendingMigrations`: number or null
   - `error`: optional string
 
+`email` fields:
+
+- `configured`: boolean (`MAIL_PROVIDER_API_KEY` presence)
+- `provider`: string (`resend`, `console`, `mock`)
+- `fromAddress`: string (`not configured` when unset)
+
+`emailConfigured` field:
+
+- legacy/shortcut top-level boolean mirror of `email.configured`
+
 ## Health semantics
 
 `status = "ok"` when:
@@ -60,4 +72,3 @@ If `status = "ok"`:
 - Keep existing field names stable when adding new status data.
 - Add fields, do not rename/remove fields without explicit migration note.
 - Preserve `503` behavior for degraded status for uptime tooling compatibility.
-

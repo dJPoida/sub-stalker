@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { db } from "./db";
 import { getDatabaseUrlSource, getServerEnv, normalizeEnvValue } from "./env";
+import { getEmailServiceStatus } from "./mail/config";
 
 type DatabaseMetadata = {
   serverVersion: string | null;
@@ -23,6 +24,12 @@ export type DatabaseStatus = {
   envSource: string;
   metadata: DatabaseMetadata;
   error?: string;
+};
+
+export type EmailStatus = {
+  configured: boolean;
+  provider: string;
+  fromAddress: string;
 };
 
 function parseConnectionTarget(databaseUrl: string): { host: string; port: number } {
@@ -181,4 +188,14 @@ export async function getDatabaseStatus(): Promise<DatabaseStatus> {
       error: message,
     };
   }
+}
+
+export function getEmailStatus(): EmailStatus {
+  const email = getEmailServiceStatus();
+
+  return {
+    configured: email.configured,
+    provider: email.provider,
+    fromAddress: email.fromAddress,
+  };
 }
