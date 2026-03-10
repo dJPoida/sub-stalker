@@ -1,6 +1,7 @@
 import { requireAuthenticatedUser } from "@/lib/auth";
 import { PendingSubmitButton } from "@/app/components/PendingFormControls";
 import InviteIssuanceCard from "@/app/tools/InviteIssuanceCard";
+import { isInvitesRequired } from "@/lib/env";
 
 import { issueInviteAction, runDailyMaintenanceAction, runSessionCleanupAction } from "./actions";
 
@@ -54,6 +55,7 @@ function getResultMessage(searchParams?: ToolsPageProps["searchParams"]): string
 
 export default async function ToolsPage({ searchParams }: ToolsPageProps) {
   await requireAuthenticatedUser();
+  const invitesRequired = isInvitesRequired();
   const message = getResultMessage(searchParams);
 
   return (
@@ -85,7 +87,16 @@ export default async function ToolsPage({ searchParams }: ToolsPageProps) {
           </form>
         </article>
 
-        <InviteIssuanceCard issueInviteAction={issueInviteAction} />
+        {invitesRequired ? (
+          <InviteIssuanceCard issueInviteAction={issueInviteAction} />
+        ) : (
+          <article className="surface surface-soft">
+            <h2>Issue Invitation Link</h2>
+            <p className="text-muted">
+              Invitation issuance is disabled because <code>INVITES_REQUIRED=false</code>.
+            </p>
+          </article>
+        )}
       </div>
 
       <article className="surface">

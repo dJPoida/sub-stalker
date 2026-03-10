@@ -10,6 +10,7 @@ import {
   issueInvite,
   parseInviteExpiryDays,
 } from "@/lib/invites";
+import { isInvitesRequired } from "@/lib/env";
 import { runDailyMaintenanceJobs } from "@/lib/maintenance";
 
 export type InviteIssuanceActionState =
@@ -84,6 +85,13 @@ export async function issueInviteAction(
   formData: FormData,
 ): Promise<InviteIssuanceActionState> {
   const user = await requireAuthenticatedUser();
+
+  if (!isInvitesRequired()) {
+    return {
+      status: "error",
+      message: "Invitation mode is disabled (`INVITES_REQUIRED=false`).",
+    };
+  }
 
   if (!(await isSameOriginRequest())) {
     return {

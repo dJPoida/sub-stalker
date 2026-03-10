@@ -13,7 +13,7 @@ type SignUpPageProps = {
   };
 };
 
-function getErrorMessage(errorCode?: string): string | null {
+function getErrorMessage(errorCode: string | undefined, invitesRequired: boolean): string | null {
   if (!errorCode) {
     return null;
   }
@@ -34,7 +34,7 @@ function getErrorMessage(errorCode?: string): string | null {
     return "Unable to create account with the provided details.";
   }
 
-  if (errorCode === "invalid_invite") {
+  if (errorCode === "invalid_invite" && invitesRequired) {
     return "A valid invitation is required to create an account.";
   }
 
@@ -49,7 +49,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
   }
 
   const invitesRequired = isInvitesRequired();
-  const errorMessage = getErrorMessage(searchParams?.error);
+  const errorMessage = getErrorMessage(searchParams?.error, invitesRequired);
   const inviteToken = String(searchParams?.invite ?? "").trim();
 
   return (
@@ -83,16 +83,18 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
                 required
               />
             </label>
-            <label className="form-field">
-              Invitation token
-              <input
-                name="inviteToken"
-                type="text"
-                autoComplete="off"
-                defaultValue={inviteToken}
-                placeholder="Paste your invite token"
-              />
-            </label>
+            {invitesRequired ? (
+              <label className="form-field">
+                Invitation token
+                <input
+                  name="inviteToken"
+                  type="text"
+                  autoComplete="off"
+                  defaultValue={inviteToken}
+                  placeholder="Paste your invite token"
+                />
+              </label>
+            ) : null}
             <PendingSubmitButton className="button" idleLabel="Create Account" pendingLabel="Creating Account..." />
           </PendingFieldset>
         </form>
