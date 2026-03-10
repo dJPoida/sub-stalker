@@ -86,6 +86,10 @@ Next.js automatically loads `.env.local` for local development and Vercel projec
 - `AUTH_SECRET`
 - `CRON_SECRET`
 - `MAIL_PROVIDER_API_KEY`
+- `MAIL_FROM_ADDRESS`
+- `MAIL_FROM_NAME` (optional; defaults to `Sub Stalker`)
+- `MAIL_PROVIDER` (optional; `resend`, `console`, or `mock`)
+- `EMAIL_DELIVERY_LOG_RETENTION_DAYS` (optional; defaults to `90`)
 - `INVITES_REQUIRED` (optional; set to `true` to enforce invite-only sign-up)
 
 ## Local database and Prisma migrations
@@ -100,6 +104,10 @@ DIRECT_URL="postgresql://sub_stalker:sub_stalker@localhost:5433/sub_stalker?sche
 AUTH_SECRET="replace-with-a-random-secret"
 CRON_SECRET="replace-with-a-random-secret"
 MAIL_PROVIDER_API_KEY="replace-with-provider-key"
+MAIL_PROVIDER="resend"
+MAIL_FROM_ADDRESS="onboarding@resend.dev"
+MAIL_FROM_NAME="Sub Stalker"
+EMAIL_DELIVERY_LOG_RETENTION_DAYS="90"
 INVITES_REQUIRED="false"
 ```
 
@@ -126,6 +134,35 @@ Useful commands:
 - Use `/api/status` for JSON output suitable for uptime checks.
 - Database connectivity is checked via a TCP probe to the `DATABASE_URL` host/port.
 - Status output also includes database version and Prisma migration currency (applied/pending + latest migration).
+- Status output includes email readiness (`email.configured`, `email.provider`, `email.fromAddress`).
+
+## Email service
+
+- Email delivery is implemented via `lib/mail` with a provider-agnostic `sendEmail` interface.
+- Current provider path:
+  - `resend` when `MAIL_PROVIDER_API_KEY` is set
+  - `console` no-op fallback when API key is missing
+  - `mock` provider for automated tests (`MAIL_PROVIDER=mock`)
+- Email templates are authored with React Email in `lib/mail/templates/`:
+  - test email
+  - registration verification (template only)
+  - subscription reminder (template only)
+- Manual validation workflow:
+  - go to `/tools`
+  - use `Send Test Email` to send to the authenticated account email
+  - endpoint is rate-limited to 3 sends per user per hour
+- Delivery attempts are recorded in Prisma `EmailDeliveryLog` (`SENT`, `FAILED`, `SKIPPED`).
+- Daily maintenance prunes stale email logs using `EMAIL_DELIVERY_LOG_RETENTION_DAYS`.
+- Local template preview command:
+  - `npm run email:dev`
+
+### Free-tier constraints and growth limits
+
+- Resend free tier is intended for MVP scale (100 emails/day, 3,000/month).
+- Current safeguards:
+  - test email endpoint limit: 3/user/hour
+  - no-op fallback when provider key is missing
+- As usage grows, add global send budgeting and provider failover before expanding reminder volumes.
 
 ### Database URL troubleshooting
 
@@ -214,6 +251,7 @@ Open http://localhost:3000.
 - Expired sessions are pruned on sign-in.
 - Manual maintenance actions are available at `/tools` for test runs.
 - `/tools` includes operational invite issuance (manual copy/share of one-time invite links).
+- `/tools` includes a `Send Test Email` action for operational email verification.
 - `/subscriptions` and `/settings` require authentication.
 - `/subscriptions` provides modal add/edit flows with client-side search, status filtering, and sort controls.
 - subscription details are available in a shared read-only modal opened from:
@@ -268,6 +306,10 @@ npm run start
    - `AUTH_SECRET`
    - `CRON_SECRET`
    - `MAIL_PROVIDER_API_KEY`
+   - `MAIL_FROM_ADDRESS`
+   - `MAIL_FROM_NAME` (optional)
+   - `MAIL_PROVIDER` (optional; use `mock` in automated tests)
+   - `EMAIL_DELIVERY_LOG_RETENTION_DAYS` (optional)
    - `INVITES_REQUIRED` (optional, `true` for invite-only sign-up)
 4. Ensure your Vercel Production environment has:
    - `DATABASE_URL` for runtime app traffic (pooler URL is acceptable)

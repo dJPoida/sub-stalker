@@ -9,6 +9,7 @@ Main concerns:
 - Web UI: App Router pages in `app/`.
 - Auth/session: server-side, cookie + DB-backed session table.
 - Data layer: Prisma client in `lib/db.ts`, schema in `prisma/schema.prisma`.
+- Email service: provider-agnostic abstraction in `lib/mail/` with React Email templates.
 - Theme system: CSS variable tokens with `html[data-theme]` override and `prefers-color-scheme` fallback.
 - Ops status: `/status` page + `/api/status` JSON route.
 
@@ -21,6 +22,7 @@ Main concerns:
 - `/tools` (authenticated maintenance + invite issuance actions).
 - `/status` (human-readable operational status).
 - `/api/status` (machine-readable operational status).
+- `/api/mail/test` (authenticated test-email send, rate-limited per user).
 - `/api/subscriptions/[subscriptionId]/details` (authenticated, read-only details contract for modal).
 - `/api/telemetry` (lightweight modal interaction telemetry ingestion).
 - `/api/internal/daily-maintenance` (cron-only daily maintenance endpoint).
@@ -37,6 +39,8 @@ Defined in `prisma/schema.prisma`:
 - `SignInAttempt` (rate-limit tracking by hashed email+IP key)
 - `Invite` (single-use invitation registry with token hash, status lifecycle, and audit fields)
 - `InviteStatus` enum (`PENDING`, `CONSUMED`, `EXPIRED`, `REVOKED`)
+- `EmailDeliveryLog` (delivery attempts with template metadata and provider outcome)
+- `EmailDeliveryStatus` enum (`SENT`, `FAILED`, `SKIPPED`)
 
 ## Learning fields
 
@@ -131,6 +135,27 @@ Modal behavior:
    - pending migration count vs local `prisma/migrations`.
 
 `/api/status` returns `200` for fully healthy, `503` for degraded.
+
+Status payload also includes email readiness:
+
+1. `email.configured` (`MAIL_PROVIDER_API_KEY` present)
+2. `email.provider` (`resend`, `console`, or `mock`)
+3. `email.fromAddress` (configured sender or `not configured`)
+
+## Email flow
+
+`lib/mail/` provides:
+
+1. Provider abstraction and runtime selection (`resend`, `console`, `mock`).
+2. React Email template rendering (`lib/mail/templates`).
+3. `sendEmail` logging into `EmailDeliveryLog` for all attempts.
+4. Rate-limit helper for `/api/mail/test` (3 sends per user per hour).
+
+Current guarantees:
+
+1. No-op fallback when API key is missing (safe local/dev behavior).
+2. Provider-specific SDK usage is isolated to `lib/mail/providers.ts`.
+3. Daily maintenance prunes stale email logs based on retention env configuration.
 
 ## Deployment flow
 

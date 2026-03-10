@@ -28,6 +28,12 @@ enum InviteStatus {
   REVOKED
 }
 
+enum EmailDeliveryStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
 model User {
   id            String         @id @default(cuid())
   email         String         @unique
@@ -40,6 +46,7 @@ model User {
   sessions      Session[]
   invitesCreated Invite[]      @relation("InviteCreatedByUser")
   invitesConsumed Invite[]     @relation("InviteConsumedByUser")
+  emailDeliveryLogs EmailDeliveryLog[]
 }
 
 model UserSettings {
@@ -118,4 +125,20 @@ model Invite {
   @@index([email, status])
   @@index([status])
   @@index([expiresAt])
+}
+
+model EmailDeliveryLog {
+  id                String              @id @default(cuid())
+  userId            String?
+  recipientEmail    String
+  templateName      String
+  status            EmailDeliveryStatus
+  providerMessageId String?
+  errorMessage      String?
+  createdAt         DateTime            @default(now())
+  user              User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([templateName, createdAt])
+  @@index([createdAt])
 }

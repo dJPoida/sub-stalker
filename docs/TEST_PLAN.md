@@ -6,6 +6,7 @@
 2. `npm run lint`
 3. `npm run build`
 4. `npm run test:invites` (when local Postgres is available)
+5. `npm run test:mail`
 
 For migration/schema changes:
 
@@ -78,6 +79,14 @@ Status:
 2. Confirm DB connectivity fields render.
 3. Confirm migration metadata renders.
 4. Open `/api/status` and confirm JSON contract.
+5. Confirm `email.configured`, `email.provider`, and `email.fromAddress` are present.
+
+Email:
+
+1. Open `/tools` as an authenticated user and click `Send Test Email`.
+2. Confirm success response instructs to check inbox/spam.
+3. Trigger 4 sends within one hour and confirm the fourth request is rate-limited.
+4. In Prisma Studio, verify `EmailDeliveryLog` rows are created with expected `templateName` and `status`.
 
 Deploy:
 
@@ -87,6 +96,7 @@ Deploy:
 4. Confirm daily cron endpoint is invoked by Vercel and returns success.
 5. Confirm `/tools` manual maintenance actions run successfully for testing.
 6. Confirm maintenance output includes expired invite counts.
+7. Confirm maintenance output includes pruned email delivery log counts.
 
 ## Known gaps
 

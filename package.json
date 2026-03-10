@@ -10,6 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test:invites": "dotenv -e .env.local -- node --import tsx --test tests/invites/*.test.ts",
+    "test:mail": "dotenv -e .env.local -- node --import tsx --test tests/mail/*.test.ts",
+    "email:dev": "email dev --dir lib/mail/templates",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f db",
@@ -21,11 +23,14 @@
     "db:studio": "dotenv -e .env.local -- prisma studio"
   },
   "dependencies": {
+    "@react-email/components": "^0.5.7",
+    "@react-email/render": "^1.4.0",
     "@mdxeditor/editor": "^3.52.4",
     "@prisma/client": "^6.14.0",
     "next": "14.2.5",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "resend": "^6.3.0"
   },
   "devDependencies": {
     "@types/node": "20.14.9",
@@ -35,6 +40,7 @@
     "eslint": "8.57.0",
     "eslint-config-next": "14.2.5",
     "prisma": "^6.14.0",
+    "react-email": "^5.2.9",
     "tsx": "^4.20.5",
     "typescript": "5.5.3"
   }

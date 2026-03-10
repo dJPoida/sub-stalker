@@ -21,7 +21,7 @@ type DatabaseUrlResolution = {
 export type ServerEnv = {
   DATABASE_URL: string;
   AUTH_SECRET: string;
-  MAIL_PROVIDER_API_KEY: string;
+  MAIL_PROVIDER_API_KEY: string | null;
 };
 
 const TRUTHY_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
@@ -85,15 +85,14 @@ export function getDatabaseUrlSource(): string {
 export function getServerEnv(): ServerEnv {
   const { value: DATABASE_URL } = resolveDatabaseUrl();
 
+  const AUTH_SECRET = process.env.AUTH_SECRET;
   const env = {
     DATABASE_URL,
-    AUTH_SECRET: process.env.AUTH_SECRET,
-    MAIL_PROVIDER_API_KEY: process.env.MAIL_PROVIDER_API_KEY,
+    AUTH_SECRET,
+    MAIL_PROVIDER_API_KEY: process.env.MAIL_PROVIDER_API_KEY ?? null,
   };
 
-  const missing = Object.entries(env)
-    .filter(([, value]) => !value)
-    .map(([key]) => key);
+  const missing = !AUTH_SECRET ? ["AUTH_SECRET"] : [];
 
   if (missing.length > 0) {
     throw new Error(

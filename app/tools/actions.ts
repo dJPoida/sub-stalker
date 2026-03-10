@@ -178,6 +178,6 @@ export async function runDailyMaintenanceAction(): Promise<void> {
 
   const result = await runDailyMaintenanceJobs();
   redirect(
-    `/tools?job=daily_maintenance&attempts_deleted=${result.staleSignInAttemptsDeleted}&invites_expired=${result.expiredPendingInvitesMarked}`,
+    `/tools?job=daily_maintenance&attempts_deleted=${result.staleSignInAttemptsDeleted}&invites_expired=${result.expiredPendingInvitesMarked}&email_logs_deleted=${result.emailDeliveryLogsDeleted}`,
   );
 }
