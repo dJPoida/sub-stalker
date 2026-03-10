@@ -30,6 +30,13 @@ Supabase guidance:
 - Use pooled URL for `DATABASE_URL` (runtime).
 - Use migration-safe URL for `DIRECT_URL`.
 
+Public schema security baseline:
+
+- Every new table in `public` must enable Row Level Security in the same Prisma migration that creates it.
+- If the table is internal-only, revoke table privileges from `anon` and `authenticated`.
+- If API access is required, add explicit least-privilege RLS policies instead of broad grants.
+- After deploy, confirm Supabase Security Advisor shows no `RLS Disabled in Public` findings for app tables.
+
 ## Build and migration pipeline
 
 `npm run build:vercel` performs:
