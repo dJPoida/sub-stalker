@@ -145,3 +145,20 @@ Rationale:
 Tradeoff:
 
 - Suggestions currently come from existing subscription rows; if future domains need cross-entity reuse or retention after deletions, a dedicated shared learning-value table will be needed.
+
+## D-010: Invitation-only onboarding with token-hash registry
+
+Date: 2026-03-10
+
+Decision:
+
+- Add an `Invite` registry separate from `User`.
+- Store invite token hashes only; never persist raw invite tokens.
+- Enforce invite validation and single-use consumption in sign-up when `INVITES_REQUIRED=true`.
+- Keep rollout/rollback controlled by `INVITES_REQUIRED` without schema toggles.
+
+Rationale:
+
+- Enables controlled onboarding without introducing email-provider coupling in v1.
+- Keeps invite lifecycle auditable (`createdBy`, `consumedBy`, `expiresAt`, status transitions).
+- Prevents double-consumption via transactional update + user creation.

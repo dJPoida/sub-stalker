@@ -19,6 +19,7 @@ Vercel production:
 - `AUTH_SECRET`
 - `CRON_SECRET`
 - `MAIL_PROVIDER_API_KEY`
+- `INVITES_REQUIRED` (optional; set `true` for invite-only sign-up)
 
 Supabase guidance:
 
@@ -38,6 +39,8 @@ Scheduled cleanup:
 - Vercel cron runs once daily at `/api/internal/daily-maintenance`.
 - Endpoint requires `Authorization: Bearer <CRON_SECRET>`.
 - For ad-hoc testing, use `/tools` manual actions instead of increasing cron frequency.
+- Daily maintenance marks expired pending invites as `EXPIRED`.
+- Invite issuance is conservatively throttled per authenticated operator (hourly window).
 
 ## Common runbook
 
@@ -60,6 +63,9 @@ Scheduled cleanup:
    - `/api/status`
 4. Verify session cleanup endpoint health:
    - ensure cron requests succeed in Vercel logs.
+5. If invite-only onboarding is enabled:
+   - verify `/tools` invite issuance succeeds for authenticated operators.
+   - confirm sign-up rejects missing/invalid invite tokens.
 
 ### If deployment fails
 
@@ -82,3 +88,9 @@ Auth rejects with `invalid_request`:
 
 - verify app hostname and origin match expected host/protocol.
 - check proxy headers (`x-forwarded-host`, `x-forwarded-proto`) in deployment path.
+
+Invite sign-up rejects with invalid invite:
+
+- verify `INVITES_REQUIRED` expected value in environment.
+- confirm invite token was freshly issued from `/tools` and not previously consumed.
+- confirm submitted sign-up email exactly matches invite target email after lowercase normalization.

@@ -15,10 +15,10 @@ Main concerns:
 ## Route map
 
 - `/` dashboard (auth-aware message).
-- `/auth/sign-in`, `/auth/sign-up` (server-action forms).
+- `/auth/sign-in`, `/auth/sign-up` (server-action forms; sign-up accepts optional `invite` token context).
 - `/subscriptions` (authenticated).
 - `/settings` (authenticated; action-first settings UI with inline auto-save for simple preferences and modal edit flow for account details).
-- `/tools` (authenticated maintenance actions).
+- `/tools` (authenticated maintenance + invite issuance actions).
 - `/status` (human-readable operational status).
 - `/api/status` (machine-readable operational status).
 - `/api/subscriptions/[subscriptionId]/details` (authenticated, read-only details contract for modal).
@@ -35,6 +35,8 @@ Defined in `prisma/schema.prisma`:
 - `Subscription` (many per user; includes learning fields `paymentMethod` required and `signedUpBy` optional, plus optional billing links and markdown notes)
 - `Session` (many per user; opaque token hashes)
 - `SignInAttempt` (rate-limit tracking by hashed email+IP key)
+- `Invite` (single-use invitation registry with token hash, status lifecycle, and audit fields)
+- `InviteStatus` enum (`PENDING`, `CONSUMED`, `EXPIRED`, `REVOKED`)
 
 ## Learning fields
 
@@ -100,6 +102,8 @@ Modal behavior:
 6. Sign-in enforces rate limiting (email+IP), prunes stale attempts, and prunes expired sessions.
 7. Sign-out deletes matching session row and clears cookie.
 8. Auth actions require same-origin request validation.
+9. If `INVITES_REQUIRED=true`, sign-up additionally requires a valid invite token bound to submitted email.
+10. Invite consumption and user creation run in one DB transaction to ensure one-time use under concurrency.
 
 ## Settings flow
 
@@ -143,3 +147,4 @@ Production build command is defined by `vercel.json`:
 Additional scheduled operation:
 
 - Daily Vercel cron calls `/api/internal/daily-maintenance` (guarded by `CRON_SECRET`).
+- Daily maintenance marks expired pending invites as `EXPIRED`.

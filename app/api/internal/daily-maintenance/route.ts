@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
     ok: true,
     jobs: {
       staleSignInAttemptsDeleted: result.staleSignInAttemptsDeleted,
+      expiredPendingInvitesMarked: result.expiredPendingInvitesMarked,
     },
     ranAt: result.ranAt,
   });

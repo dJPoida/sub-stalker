@@ -1,7 +1,8 @@
 import { requireAuthenticatedUser } from "@/lib/auth";
 import { PendingSubmitButton } from "@/app/components/PendingFormControls";
+import InviteIssuanceCard from "@/app/tools/InviteIssuanceCard";
 
-import { runDailyMaintenanceAction, runSessionCleanupAction } from "./actions";
+import { issueInviteAction, runDailyMaintenanceAction, runSessionCleanupAction } from "./actions";
 
 type ToolsPageProps = {
   searchParams?: {
@@ -9,6 +10,7 @@ type ToolsPageProps = {
     job?: string;
     sessions_deleted?: string;
     attempts_deleted?: string;
+    invites_expired?: string;
   };
 };
 
@@ -43,7 +45,8 @@ function getResultMessage(searchParams?: ToolsPageProps["searchParams"]): string
 
   if (searchParams.job === "daily_maintenance") {
     const attemptsDeleted = parseCount(searchParams.attempts_deleted) ?? 0;
-    return `Daily maintenance completed. Stale sign-in attempts deleted: ${attemptsDeleted}.`;
+    const invitesExpired = parseCount(searchParams.invites_expired) ?? 0;
+    return `Daily maintenance completed. Stale sign-in attempts deleted: ${attemptsDeleted}. Expired invites marked: ${invitesExpired}.`;
   }
 
   return null;
@@ -81,6 +84,8 @@ export default async function ToolsPage({ searchParams }: ToolsPageProps) {
             <PendingSubmitButton idleLabel="Run Daily Batch" pendingLabel="Running Daily Batch..." />
           </form>
         </article>
+
+        <InviteIssuanceCard issueInviteAction={issueInviteAction} />
       </div>
 
       <article className="surface">

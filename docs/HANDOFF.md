@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-03-08
+Last updated: 2026-03-10
 
 ## Current status
 
@@ -25,7 +25,12 @@ Implemented:
   - same-origin validation on auth actions.
   - expired sessions pruned on sign-in.
   - stale sign-in attempts pruned by daily cron batch.
+  - invite registry with single-use token hashes and lifecycle statuses (`PENDING`, `CONSUMED`, `EXPIRED`, `REVOKED`).
+  - optional invite-only sign-up gate via `INVITES_REQUIRED=true`.
+  - invite issuance workflow available in `/tools` for authenticated operators (manual copy/share links).
+  - invite validation + consumption occurs transactionally during sign-up.
   - manual maintenance actions available in `/tools`.
+  - daily maintenance now marks expired pending invites.
   - `/subscriptions` and `/settings` protected.
 - Subscription CRUD:
   - authenticated users can create, list, update, and deactivate subscriptions from `/subscriptions`.
@@ -63,7 +68,7 @@ Implemented:
 Not implemented yet:
 
 - Email/notification workflows.
-- Automated tests.
+- Full end-to-end browser coverage.
 
 ## Critical deployment notes
 
@@ -75,7 +80,7 @@ Not implemented yet:
 
 ## Immediate next tasks
 
-1. Add minimal e2e smoke tests for auth + status + subscriptions CRUD.
+1. Add role-based operator permissions for `/tools` invite issuance.
 2. Add optional "sign out all sessions" account control.
 3. Add notifications/reminders workflow from settings preferences.
 
