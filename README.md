@@ -86,6 +86,7 @@ Next.js automatically loads `.env.local` for local development and Vercel projec
 - `AUTH_SECRET`
 - `CRON_SECRET`
 - `MAIL_PROVIDER_API_KEY`
+- `INVITES_REQUIRED` (optional; set to `true` to enforce invite-only sign-up)
 
 ## Local database and Prisma migrations
 
@@ -99,6 +100,7 @@ DIRECT_URL="postgresql://sub_stalker:sub_stalker@localhost:5433/sub_stalker?sche
 AUTH_SECRET="replace-with-a-random-secret"
 CRON_SECRET="replace-with-a-random-secret"
 MAIL_PROVIDER_API_KEY="replace-with-provider-key"
+INVITES_REQUIRED="false"
 ```
 
 Common local workflow:
@@ -195,6 +197,10 @@ Open http://localhost:3000.
 ## Basic auth (MVP)
 
 - Sign up at `/auth/sign-up` (email + password, minimum 8 chars).
+- Optional invitation-only mode:
+  - set `INVITES_REQUIRED=true` to require valid invite token on sign-up.
+  - invite token must be pending, unexpired, and tied to the same normalized email.
+  - keep `INVITES_REQUIRED=false` for rollback to open sign-up.
 - Sign in at `/auth/sign-in`.
 - Session is stored as an HTTP-only cookie with an opaque token backed by the `Session` database table.
 - Session token hashes are keyed with `AUTH_SECRET`.
@@ -207,6 +213,7 @@ Open http://localhost:3000.
 - Auth server actions enforce same-origin request checks.
 - Expired sessions are pruned on sign-in.
 - Manual maintenance actions are available at `/tools` for test runs.
+- `/tools` includes operational invite issuance (manual copy/share of one-time invite links).
 - `/subscriptions` and `/settings` require authentication.
 - `/subscriptions` provides modal add/edit flows with client-side search, status filtering, and sort controls.
 - subscription details are available in a shared read-only modal opened from:
@@ -261,6 +268,7 @@ npm run start
    - `AUTH_SECRET`
    - `CRON_SECRET`
    - `MAIL_PROVIDER_API_KEY`
+   - `INVITES_REQUIRED` (optional, `true` for invite-only sign-up)
 4. Ensure your Vercel Production environment has:
    - `DATABASE_URL` for runtime app traffic (pooler URL is acceptable)
    - `DIRECT_URL` for Prisma migrations (must be a direct Postgres connection, not the pooler)

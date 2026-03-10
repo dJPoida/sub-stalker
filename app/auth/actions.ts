@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
+import { isInvitesRequired } from "@/lib/env";
+import { createUserWithInvite } from "@/lib/invites";
 import {
   clearAuthSession,
   clearSignInRateLimit,
@@ -65,6 +67,7 @@ export async function signUpAction(formData: FormData): Promise<void> {
   const email = normalizeEmail(formData.get("email"));
   const password = normalizeText(formData.get("password"));
   const name = normalizeText(formData.get("name"));
+  const inviteToken = normalizeText(formData.get("inviteToken"));
 
   if (!email || !password) {
     redirect("/auth/sign-up?error=missing_fields");
@@ -72,6 +75,29 @@ export async function signUpAction(formData: FormData): Promise<void> {
 
   if (password.length < 8) {
     redirect("/auth/sign-up?error=password_too_short");
+  }
+
+  const passwordHash = hashPassword(password);
+  const invitesRequired = isInvitesRequired();
+
+  if (invitesRequired) {
+    const registration = await createUserWithInvite({
+      email,
+      name: name || null,
+      passwordHash,
+      inviteToken,
+    });
+
+    if (!registration.ok) {
+      if (registration.reason === "unable_to_create") {
+        redirect("/auth/sign-up?error=unable_to_create");
+      }
+
+      redirect("/auth/sign-up?error=invalid_invite");
+    }
+
+    await setAuthSession(registration.user);
+    redirect("/");
   }
 
   const existingUser = await db.user.findUnique({
@@ -87,7 +113,7 @@ export async function signUpAction(formData: FormData): Promise<void> {
     data: {
       email,
       name: name || null,
-      passwordHash: hashPassword(password),
+      passwordHash,
       settings: {
         create: {},
       },

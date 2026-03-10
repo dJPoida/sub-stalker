@@ -5,6 +5,7 @@
 1. `npm run typecheck`
 2. `npm run lint`
 3. `npm run build`
+4. `npm run test:invites` (when local Postgres is available)
 
 For migration/schema changes:
 
@@ -24,6 +25,10 @@ Auth:
 5. Confirm `/subscriptions` redirects to sign-in when signed out.
 6. Submit repeated bad credentials and confirm rate-limit response appears.
 7. Confirm sign-in rejects cross-origin requests (invalid request path).
+8. If `INVITES_REQUIRED=true`, confirm sign-up rejects missing invite token with safe generic error.
+9. From `/tools`, issue an invite for `invite-test@example.com`; complete sign-up using invite link and matching email.
+10. Retry sign-up with the same invite token and confirm rejection.
+11. Issue invite for one email and attempt sign-up with different email; confirm rejection.
 
 Subscriptions UX:
 
@@ -81,6 +86,7 @@ Deploy:
 3. Confirm deployed `/status` and `/api/status`.
 4. Confirm daily cron endpoint is invoked by Vercel and returns success.
 5. Confirm `/tools` manual maintenance actions run successfully for testing.
+6. Confirm maintenance output includes expired invite counts.
 
 ## Known gaps
 

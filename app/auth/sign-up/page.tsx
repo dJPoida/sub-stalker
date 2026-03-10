@@ -4,14 +4,16 @@ import { redirect } from "next/navigation";
 import { signUpAction } from "@/app/auth/actions";
 import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
 import { getCurrentUser } from "@/lib/auth";
+import { isInvitesRequired } from "@/lib/env";
 
 type SignUpPageProps = {
   searchParams?: {
     error?: string;
+    invite?: string;
   };
 };
 
-function getErrorMessage(errorCode?: string): string | null {
+function getErrorMessage(errorCode: string | undefined, invitesRequired: boolean): string | null {
   if (!errorCode) {
     return null;
   }
@@ -32,6 +34,10 @@ function getErrorMessage(errorCode?: string): string | null {
     return "Unable to create account with the provided details.";
   }
 
+  if (errorCode === "invalid_invite" && invitesRequired) {
+    return "A valid invitation is required to create an account.";
+  }
+
   return "Unable to create account.";
 }
 
@@ -42,7 +48,9 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
     redirect("/");
   }
 
-  const errorMessage = getErrorMessage(searchParams?.error);
+  const invitesRequired = isInvitesRequired();
+  const errorMessage = getErrorMessage(searchParams?.error, invitesRequired);
+  const inviteToken = String(searchParams?.invite ?? "").trim();
 
   return (
     <section className="auth-wrap">
@@ -50,6 +58,9 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
         <p className="eyebrow">Get Started</p>
         <h1>Create Account</h1>
         <p className="page-lead">Set up your account to begin tracking recurring charges.</p>
+        {invitesRequired ? (
+          <p className="status-help mt-md">Invitation-only mode is active. Enter a valid invitation token to continue.</p>
+        ) : null}
         {errorMessage ? <p className="status-error mt-md">{errorMessage}</p> : null}
         <form className="mt-md" action={signUpAction}>
           <PendingFieldset className="form-grid form-pending-group">
@@ -72,6 +83,18 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
                 required
               />
             </label>
+            {invitesRequired ? (
+              <label className="form-field">
+                Invitation token
+                <input
+                  name="inviteToken"
+                  type="text"
+                  autoComplete="off"
+                  defaultValue={inviteToken}
+                  placeholder="Paste your invite token"
+                />
+              </label>
+            ) : null}
             <PendingSubmitButton className="button" idleLabel="Create Account" pendingLabel="Creating Account..." />
           </PendingFieldset>
         </form>

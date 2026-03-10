@@ -87,3 +87,16 @@ Acceptance criteria:
 - Subscriptions support optional `notesMarkdown`.
 - Notes are edited via a WYSIWYG markdown editor in create/edit flows.
 - Server actions validate URL fields when provided (`http/https` only).
+
+## P7: Invitation-only onboarding (completed)
+
+Goal:
+
+- Move sign-up from open registration to optional invite-only gating.
+
+Acceptance criteria:
+
+- Invite registry exists separately from user data.
+- `/tools` can issue single-use invite links for manual sharing.
+- Sign-up enforces invite token + email match when `INVITES_REQUIRED=true`.
+- Invite consumption is atomic and safe under concurrent registration attempts.

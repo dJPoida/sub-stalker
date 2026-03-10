@@ -24,6 +24,8 @@ export type ServerEnv = {
   MAIL_PROVIDER_API_KEY: string;
 };
 
+const TRUTHY_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
+
 function stripWrappingQuotes(value: string): string {
   let result = value.trim();
   let changed = true;
@@ -100,4 +102,9 @@ export function getServerEnv(): ServerEnv {
   }
 
   return env as ServerEnv;
+}
+
+export function isInvitesRequired(env: NodeJS.ProcessEnv = process.env): boolean {
+  const normalized = normalizeEnvValue(env.INVITES_REQUIRED ?? "").toLowerCase();
+  return TRUTHY_ENV_VALUES.has(normalized);
 }

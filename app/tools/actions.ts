@@ -4,7 +4,32 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { pruneExpiredSessions, pruneStaleSignInAttempts, requireAuthenticatedUser } from "@/lib/auth";
+import {
+  InviteIssuanceRateLimitError,
+  InviteValidationError,
+  issueInvite,
+  parseInviteExpiryDays,
+} from "@/lib/invites";
+import { isInvitesRequired } from "@/lib/env";
 import { runDailyMaintenanceJobs } from "@/lib/maintenance";
+
+export type InviteIssuanceActionState =
+  | {
+      status: "idle";
+    }
+  | {
+      status: "error";
+      message: string;
+    }
+  | {
+      status: "success";
+      message: string;
+      email: string;
+      expiresAt: string;
+      inviteToken: string;
+      inviteUrl: string;
+      rotatedExistingInvite: boolean;
+    };
 
 async function isSameOriginRequest(): Promise<boolean> {
   const headerStore = await headers();
@@ -28,6 +53,102 @@ async function isSameOriginRequest(): Promise<boolean> {
     return originUrl.host.toLowerCase() === host.toLowerCase() && originUrl.protocol === `${proto}:`;
   } catch {
     return false;
+  }
+}
+
+async function getRequestBaseUrl(): Promise<string> {
+  const headerStore = await headers();
+  const origin = headerStore.get("origin");
+
+  if (origin) {
+    return origin;
+  }
+
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  const proto =
+    headerStore.get("x-forwarded-proto") ??
+    (process.env.NODE_ENV === "development" ? "http" : "https");
+
+  if (host) {
+    return `${proto}://${host}`;
+  }
+
+  return "http://localhost:3000";
+}
+
+function normalizeText(value: FormDataEntryValue | null): string {
+  return String(value ?? "").trim();
+}
+
+export async function issueInviteAction(
+  _previousState: InviteIssuanceActionState,
+  formData: FormData,
+): Promise<InviteIssuanceActionState> {
+  const user = await requireAuthenticatedUser();
+
+  if (!isInvitesRequired()) {
+    return {
+      status: "error",
+      message: "Invitation mode is disabled (`INVITES_REQUIRED=false`).",
+    };
+  }
+
+  if (!(await isSameOriginRequest())) {
+    return {
+      status: "error",
+      message: "Invalid invite request. Retry from this page.",
+    };
+  }
+
+  const email = normalizeText(formData.get("email"));
+  const expiresInDays = parseInviteExpiryDays(normalizeText(formData.get("expiresInDays")));
+
+  if (!email || expiresInDays === null) {
+    return {
+      status: "error",
+      message: "Provide a valid email and expiration window (1-30 days).",
+    };
+  }
+
+  try {
+    const baseUrl = await getRequestBaseUrl();
+    const result = await issueInvite({
+      email,
+      expiresInDays,
+      createdByUserId: user.id,
+      baseUrl,
+    });
+
+    return {
+      status: "success",
+      message: result.rotatedExistingInvite
+        ? "Invite issued and previous pending invite was rotated."
+        : "Invite issued successfully.",
+      email: result.email,
+      expiresAt: result.expiresAt,
+      inviteToken: result.inviteToken,
+      inviteUrl: result.inviteUrl,
+      rotatedExistingInvite: result.rotatedExistingInvite,
+    };
+  } catch (error) {
+    if (error instanceof InviteIssuanceRateLimitError) {
+      return {
+        status: "error",
+        message: `Invite issuance is temporarily rate limited. Try again in ${error.retryAfterSeconds} seconds.`,
+      };
+    }
+
+    if (error instanceof InviteValidationError) {
+      return {
+        status: "error",
+        message: "Provide a valid email address for invite issuance.",
+      };
+    }
+
+    return {
+      status: "error",
+      message: "Unable to issue invite right now. Please retry.",
+    };
   }
 }
 
@@ -56,5 +177,7 @@ export async function runDailyMaintenanceAction(): Promise<void> {
   }
 
   const result = await runDailyMaintenanceJobs();
-  redirect(`/tools?job=daily_maintenance&attempts_deleted=${result.staleSignInAttemptsDeleted}`);
+  redirect(
+    `/tools?job=daily_maintenance&attempts_deleted=${result.staleSignInAttemptsDeleted}&invites_expired=${result.expiredPendingInvitesMarked}`,
+  );
 }

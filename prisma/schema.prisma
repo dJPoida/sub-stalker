@@ -21,6 +21,13 @@ enum DisplayMode {
   DARK
 }
 
+enum InviteStatus {
+  PENDING
+  CONSUMED
+  EXPIRED
+  REVOKED
+}
+
 model User {
   id            String         @id @default(cuid())
   email         String         @unique
@@ -31,6 +38,8 @@ model User {
   settings      UserSettings?
   subscriptions Subscription[]
   sessions      Session[]
+  invitesCreated Invite[]      @relation("InviteCreatedByUser")
+  invitesConsumed Invite[]     @relation("InviteConsumedByUser")
 }
 
 model UserSettings {
@@ -90,4 +99,23 @@ model SignInAttempt {
   blockedUntil    DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model Invite {
+  id               String       @id @default(cuid())
+  email            String
+  tokenHash        String       @unique
+  status           InviteStatus @default(PENDING)
+  expiresAt        DateTime
+  createdByUserId  String?
+  consumedAt       DateTime?
+  consumedByUserId String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  createdByUser    User?        @relation("InviteCreatedByUser", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  consumedByUser   User?        @relation("InviteConsumedByUser", fields: [consumedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([email, status])
+  @@index([status])
+  @@index([expiresAt])
 }
