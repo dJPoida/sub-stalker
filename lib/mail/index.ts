@@ -18,12 +18,47 @@ import type { EmailPayload, EmailResult, MailProviderName, MockEmailRecord } fro
 const TEST_EMAIL_RATE_LIMIT_MAX_PER_HOUR = 3;
 const TEST_EMAIL_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
+type PrismaKnownRequestLike = {
+  code?: unknown;
+  meta?: {
+    modelName?: unknown;
+    table?: unknown;
+  };
+};
+
 function asErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
 
   return "Unknown email error.";
+}
+
+function asPrismaKnownRequestLike(error: unknown): PrismaKnownRequestLike | null {
+  if (typeof error !== "object" || error === null) {
+    return null;
+  }
+
+  return error as PrismaKnownRequestLike;
+}
+
+function isMissingEmailDeliveryLogTableError(error: unknown): boolean {
+  const prismaError = asPrismaKnownRequestLike(error);
+
+  if (!prismaError) {
+    return false;
+  }
+
+  const code = typeof prismaError.code === "string" ? prismaError.code : "";
+
+  if (code !== "P2021" && code !== "P2022") {
+    return false;
+  }
+
+  const modelName = typeof prismaError.meta?.modelName === "string" ? prismaError.meta.modelName : "";
+  const table = typeof prismaError.meta?.table === "string" ? prismaError.meta.table : "";
+
+  return modelName === "EmailDeliveryLog" || table.includes("EmailDeliveryLog");
 }
 
 function resolveDeliveryStatus(provider: MailProviderName, result: EmailResult): EmailDeliveryStatus {
@@ -173,70 +208,96 @@ export type TestEmailRateLimitState = {
 
 export async function getTestEmailRateLimitState(userId: string): Promise<TestEmailRateLimitState> {
   const windowStart = new Date(Date.now() - TEST_EMAIL_RATE_LIMIT_WINDOW_MS);
-  const attemptsInWindow = await db.emailDeliveryLog.count({
-    where: {
-      userId,
-      templateName: "test_email",
-      createdAt: {
-        gte: windowStart,
+  try {
+    const attemptsInWindow = await db.emailDeliveryLog.count({
+      where: {
+        userId,
+        templateName: "test_email",
+        createdAt: {
+          gte: windowStart,
+        },
       },
-    },
-  });
+    });
 
-  if (attemptsInWindow < TEST_EMAIL_RATE_LIMIT_MAX_PER_HOUR) {
+    if (attemptsInWindow < TEST_EMAIL_RATE_LIMIT_MAX_PER_HOUR) {
+      return {
+        allowed: true,
+        attemptsInWindow,
+        remainingInWindow: TEST_EMAIL_RATE_LIMIT_MAX_PER_HOUR - attemptsInWindow,
+        retryAfterSeconds: null,
+      };
+    }
+
+    const oldestAttempt = await db.emailDeliveryLog.findFirst({
+      where: {
+        userId,
+        templateName: "test_email",
+        createdAt: {
+          gte: windowStart,
+        },
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      select: {
+        createdAt: true,
+      },
+    });
+
+    const retryAfterSeconds = oldestAttempt
+      ? Math.max(
+          Math.ceil(
+            (oldestAttempt.createdAt.getTime() + TEST_EMAIL_RATE_LIMIT_WINDOW_MS - Date.now()) / 1000,
+          ),
+          1,
+        )
+      : 60 * 60;
+
     return {
-      allowed: true,
+      allowed: false,
       attemptsInWindow,
-      remainingInWindow: TEST_EMAIL_RATE_LIMIT_MAX_PER_HOUR - attemptsInWindow,
-      retryAfterSeconds: null,
+      remainingInWindow: 0,
+      retryAfterSeconds,
     };
+  } catch (error) {
+    if (isMissingEmailDeliveryLogTableError(error)) {
+      console.warn(
+        "[mail] EmailDeliveryLog table is unavailable; allowing test email send without rate-limit persistence.",
+      );
+
+      return {
+        allowed: true,
+        attemptsInWindow: 0,
+        remainingInWindow: TEST_EMAIL_RATE_LIMIT_MAX_PER_HOUR,
+        retryAfterSeconds: null,
+      };
+    }
+
+    throw error;
   }
-
-  const oldestAttempt = await db.emailDeliveryLog.findFirst({
-    where: {
-      userId,
-      templateName: "test_email",
-      createdAt: {
-        gte: windowStart,
-      },
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-    select: {
-      createdAt: true,
-    },
-  });
-
-  const retryAfterSeconds = oldestAttempt
-    ? Math.max(
-        Math.ceil(
-          (oldestAttempt.createdAt.getTime() + TEST_EMAIL_RATE_LIMIT_WINDOW_MS - Date.now()) / 1000,
-        ),
-        1,
-      )
-    : 60 * 60;
-
-  return {
-    allowed: false,
-    attemptsInWindow,
-    remainingInWindow: 0,
-    retryAfterSeconds,
-  };
 }
 
 export async function pruneEmailDeliveryLogs(): Promise<number> {
   const retentionDays = getEmailLogRetentionDays();
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
-  const result = await db.emailDeliveryLog.deleteMany({
-    where: {
-      createdAt: {
-        lte: cutoff,
+  try {
+    const result = await db.emailDeliveryLog.deleteMany({
+      where: {
+        createdAt: {
+          lte: cutoff,
+        },
       },
-    },
-  });
+    });
 
-  return result.count;
+    return result.count;
+  } catch (error) {
+    if (isMissingEmailDeliveryLogTableError(error)) {
+      console.warn("[mail] EmailDeliveryLog table is unavailable; skipping log pruning.");
+      return 0;
+    }
+
+    throw error;
+  }
 }
 
 export function getEmailMockLog(): MockEmailRecord[] {

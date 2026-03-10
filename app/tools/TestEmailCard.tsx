@@ -12,6 +12,12 @@ type SendState =
   | { status: "success"; message: string }
   | { status: "error"; message: string };
 
+type SendTestEmailResponse = {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+};
+
 export default function TestEmailCard({ emailConfigured }: TestEmailCardProps): JSX.Element {
   const [sendState, setSendState] = useState<SendState>({ status: "idle" });
 
@@ -22,16 +28,15 @@ export default function TestEmailCard({ emailConfigured }: TestEmailCardProps): 
       const response = await fetch("/api/mail/test", {
         method: "POST",
       });
-      const data = (await response.json()) as {
-        success: boolean;
-        messageId?: string;
-        error?: string;
-      };
+      const contentType = response.headers.get("content-type") ?? "";
+      const data = contentType.includes("application/json")
+        ? ((await response.json().catch(() => null)) as SendTestEmailResponse | null)
+        : null;
 
-      if (!response.ok || !data.success) {
+      if (!response.ok || !data?.success) {
         setSendState({
           status: "error",
-          message: data.error ?? "Unable to send test email right now.",
+          message: data?.error ?? `Unable to send test email right now (HTTP ${response.status}).`,
         });
         return;
       }
