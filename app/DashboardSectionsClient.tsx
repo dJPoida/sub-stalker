@@ -12,6 +12,7 @@ import type {
   DashboardCurrencyTotal,
   DashboardKpis,
   DashboardMetricAmount,
+  DashboardSavingsOpportunity,
   DashboardUpcomingRenewalTag,
 } from "@/lib/dashboard";
 import {
@@ -58,10 +59,43 @@ type DashboardAttentionListItem = {
   currency: string | null;
 };
 
+type DashboardTopCostDriverListItem = {
+  id: string;
+  name: string;
+  currency: string;
+  billingInterval: "WEEKLY" | "MONTHLY" | "YEARLY" | "CUSTOM";
+  monthlyEquivalentAmountCents: number;
+  annualProjectionCents: number;
+  nextBillingDate: string | null;
+};
+
+type DashboardSavingsOpportunityListItem = {
+  id: string;
+  type: DashboardSavingsOpportunity["type"];
+  title: string;
+  description: string;
+  currency: string;
+  estimatedMonthlySavingsCents: number;
+  subscriptionIds: string[];
+};
+
+type DashboardPotentialSavingsData = {
+  estimatedMonthlySavingsCents: number | null;
+  currency: string | null;
+  totalsByCurrency: Array<{
+    currency: string;
+    estimatedMonthlySavingsCents: number;
+  }>;
+  opportunities: DashboardSavingsOpportunityListItem[];
+  assumptions: string[];
+};
+
 type DashboardSectionsClientProps = {
   availableCurrencies: string[];
   kpis?: DashboardKpis | null;
   attentionNeeded: DashboardAttentionListItem[];
+  topCostDrivers: DashboardTopCostDriverListItem[];
+  potentialSavings: DashboardPotentialSavingsData;
   upcomingCharges: DashboardUpcomingChargeListItem[];
   recentSubscriptions: DashboardRecentActivityListItem[];
   monthlySpendTotalsByCurrency: Array<{
@@ -143,6 +177,26 @@ function formatCurrencyTotalsSummary(totalsByCurrency: DashboardCurrencyTotal[],
   return `${summary} · +${remainingCount} more`;
 }
 
+function formatSavingsCurrencyTotalsSummary(
+  totalsByCurrency: Array<{ currency: string; estimatedMonthlySavingsCents: number }>,
+): string {
+  if (totalsByCurrency.length === 0) {
+    return "No opportunities currently qualify for savings.";
+  }
+
+  const visibleTotals = totalsByCurrency.slice(0, 2);
+  const summary = visibleTotals
+    .map((entry) => `${formatMoney(entry.estimatedMonthlySavingsCents, entry.currency)} ${entry.currency}/mo`)
+    .join(" · ");
+  const remainingCount = totalsByCurrency.length - visibleTotals.length;
+
+  if (remainingCount <= 0) {
+    return summary;
+  }
+
+  return `${summary} · +${remainingCount} more`;
+}
+
 type KpiCardContent = {
   value: string;
   note: string;
@@ -199,6 +253,14 @@ function formatTag(tag: DashboardUpcomingRenewalTag): string {
   }
 
   return "RENEW";
+}
+
+function formatSavingsOpportunityType(type: DashboardSavingsOpportunity["type"]): string {
+  if (type === "duplicate_overlap") {
+    return "Duplicate overlap";
+  }
+
+  return "Potentially unused";
 }
 
 function tagClassName(tag: DashboardUpcomingRenewalTag): string {
@@ -339,6 +401,8 @@ export default function DashboardSectionsClient({
   availableCurrencies,
   kpis,
   attentionNeeded,
+  topCostDrivers,
+  potentialSavings,
   upcomingCharges,
   recentSubscriptions,
   monthlySpendTotalsByCurrency,
@@ -420,6 +484,93 @@ export default function DashboardSectionsClient({
       );
     });
   }, [attentionNeeded, currency, dateRangeDays, now, searchQuery]);
+  const filteredTopCostDrivers = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const selectedCurrency = currency.toUpperCase();
+
+    return topCostDrivers.filter((driver) => {
+      if (currency !== DASHBOARD_ALL_CURRENCIES && driver.currency.toUpperCase() !== selectedCurrency) {
+        return false;
+      }
+
+      if (!isInDateRange(driver.nextBillingDate, now, dateRangeDays)) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return [driver.name, driver.currency, driver.billingInterval].some((value) =>
+        value.toLowerCase().includes(normalizedQuery),
+      );
+    });
+  }, [currency, dateRangeDays, now, searchQuery, topCostDrivers]);
+  const filteredSavingsOpportunities = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const selectedCurrency = currency.toUpperCase();
+
+    return potentialSavings.opportunities.filter((opportunity) => {
+      if (currency !== DASHBOARD_ALL_CURRENCIES && opportunity.currency.toUpperCase() !== selectedCurrency) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return [opportunity.title, opportunity.description, opportunity.currency, opportunity.type].some((value) =>
+        value.toLowerCase().includes(normalizedQuery),
+      );
+    });
+  }, [currency, potentialSavings.opportunities, searchQuery]);
+  const filteredSavingsTotalsByCurrency = useMemo(() => {
+    const totalsMap = new Map<string, number>();
+
+    for (const opportunity of filteredSavingsOpportunities) {
+      totalsMap.set(
+        opportunity.currency,
+        (totalsMap.get(opportunity.currency) ?? 0) + opportunity.estimatedMonthlySavingsCents,
+      );
+    }
+
+    return [...totalsMap.entries()]
+      .map(([currencyCode, estimatedMonthlySavingsCents]) => ({
+        currency: currencyCode,
+        estimatedMonthlySavingsCents,
+      }))
+      .sort((first, second) => {
+        return (
+          second.estimatedMonthlySavingsCents - first.estimatedMonthlySavingsCents ||
+          first.currency.localeCompare(second.currency)
+        );
+      });
+  }, [filteredSavingsOpportunities]);
+  const potentialSavingsSummary = useMemo<KpiCardContent>(() => {
+    if (filteredSavingsTotalsByCurrency.length === 0) {
+      return {
+        value: "No opportunities",
+        note: "No savings candidates match the current control filters.",
+      };
+    }
+
+    if (filteredSavingsTotalsByCurrency.length === 1) {
+      const [singleTotal] = filteredSavingsTotalsByCurrency;
+
+      return {
+        value: `${formatMoney(singleTotal.estimatedMonthlySavingsCents, singleTotal.currency)}${formatCadenceSuffix("monthly")}`,
+        note: `Estimated from ${formatCountLabel(filteredSavingsOpportunities.length, "opportunity")} in ${singleTotal.currency}.`,
+      };
+    }
+
+    return {
+      value: `${filteredSavingsTotalsByCurrency.length} currencies`,
+      note: formatSavingsCurrencyTotalsSummary(filteredSavingsTotalsByCurrency),
+    };
+  }, [filteredSavingsOpportunities.length, filteredSavingsTotalsByCurrency]);
+  const topCostDriverCurrencyCount = useMemo(() => {
+    return new Set(filteredTopCostDrivers.map((driver) => driver.currency.toUpperCase())).size;
+  }, [filteredTopCostDrivers]);
   const currencyOptions = useMemo(() => {
     const normalized = [
       ...new Set(
@@ -848,12 +999,105 @@ export default function DashboardSectionsClient({
 
         <section className="dashboard-grid dashboard-grid-two-up">
           <article className="dashboard-card">
-            <h2>Potential Savings</h2>
-            <p className="text-muted">Savings opportunity insights will render in this container.</p>
+            <div className="dashboard-card-header">
+              <h2>Potential Savings</h2>
+              <span className="metric-note">{filteredSavingsOpportunities.length} matching opportunities</span>
+            </div>
+            <article className="metric-card savings-summary-card">
+              <span className="metric-label">Estimated monthly savings</span>
+              <strong className="metric-value">{potentialSavingsSummary.value}</strong>
+              <span className="metric-note">{potentialSavingsSummary.note}</span>
+            </article>
+            {filteredSavingsOpportunities.length === 0 ? (
+              <p className="text-muted mt-sm">No savings opportunities match the current control filters.</p>
+            ) : (
+              <ul className="savings-opportunity-list">
+                {filteredSavingsOpportunities.map((opportunity) => {
+                  const singleSubscriptionId =
+                    opportunity.subscriptionIds.length === 1 ? opportunity.subscriptionIds[0] : null;
+
+                  return (
+                    <li className="savings-opportunity-item" key={opportunity.id}>
+                      <div className="savings-opportunity-header">
+                        <span className="pill savings-rule-pill">{formatSavingsOpportunityType(opportunity.type)}</span>
+                        <strong>{formatMoney(opportunity.estimatedMonthlySavingsCents, opportunity.currency)}/mo</strong>
+                      </div>
+                      <h3>{opportunity.title}</h3>
+                      <p className="text-muted">{opportunity.description}</p>
+                      {singleSubscriptionId ? (
+                        <button
+                          className="button button-secondary button-small"
+                          onClick={() =>
+                            void detailsModal.openModal({
+                              subscriptionId: singleSubscriptionId,
+                              source: "subscriptions_list",
+                            })
+                          }
+                          type="button"
+                        >
+                          View subscription
+                        </button>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {potentialSavings.assumptions.length > 0 ? (
+              <div className="savings-assumptions">
+                <span className="metric-note">Assumptions</span>
+                <ul>
+                  {potentialSavings.assumptions.map((assumption) => (
+                    <li key={assumption}>{assumption}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </article>
           <article className="dashboard-card">
-            <h2>Top Cost Drivers</h2>
-            <p className="text-muted">Top-cost subscription rankings will render in this section.</p>
+            <div className="dashboard-card-header">
+              <h2>Top Cost Drivers</h2>
+              <span className="metric-note">{filteredTopCostDrivers.length} matching rows</span>
+            </div>
+            {filteredTopCostDrivers.length === 0 ? (
+              <p className="text-muted">No cost drivers match the current control filters.</p>
+            ) : (
+              <ol className="cost-driver-list">
+                {filteredTopCostDrivers.map((driver, index) => (
+                  <li className="cost-driver-item" key={driver.id}>
+                    <span aria-hidden="true" className="cost-driver-rank">
+                      {index + 1}
+                    </span>
+                    <div className="cost-driver-copy">
+                      <div className="cost-driver-header">
+                        <button
+                          aria-label={`View details for ${driver.name}`}
+                          className="renewal-service-button"
+                          onClick={() =>
+                            void detailsModal.openModal({
+                              subscriptionId: driver.id,
+                              source: "subscriptions_list",
+                            })
+                          }
+                          type="button"
+                        >
+                          {driver.name}
+                        </button>
+                        <strong>{formatMoney(driver.monthlyEquivalentAmountCents, driver.currency)}/mo</strong>
+                      </div>
+                      <p className="cost-driver-meta">
+                        Annual projection {formatMoney(driver.annualProjectionCents, driver.currency)} · Billing cadence{" "}
+                        {driver.billingInterval.toLowerCase()}
+                        {driver.nextBillingDate ? ` · Next renewal ${formatDate(driver.nextBillingDate)}` : ""}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+            {topCostDriverCurrencyCount > 1 ? (
+              <p className="text-muted mt-sm">Ranking is normalized to monthly amounts without FX conversion.</p>
+            ) : null}
           </article>
         </section>
 

@@ -145,7 +145,7 @@ export type DashboardTopCostDriver = {
 
 export type DashboardSavingsOpportunity = {
   id: string;
-  type: "duplicate_overlap";
+  type: "duplicate_overlap" | "potentially_unused_subscription";
   title: string;
   description: string;
   currency: string;
@@ -411,6 +411,15 @@ function chooseUpcomingRenewalTag(subscription: NormalizedSubscription, daysUnti
   return "renew";
 }
 
+function isPotentiallyUnusedCandidate(subscription: NormalizedSubscription, now: Date): boolean {
+  return (
+    subscription.nextBillingDateDate !== null &&
+    isWithinNextDays(subscription.nextBillingDateDate, now, DASHBOARD_UPCOMING_RENEWALS_WINDOW_DAYS) &&
+    daysSince(subscription.createdAtDate, now) >= ATTENTION_UNUSED_MIN_ACCOUNT_AGE_DAYS &&
+    daysSince(subscription.updatedAtDate, now) >= ATTENTION_UNUSED_STALE_UPDATED_DAYS
+  );
+}
+
 function compareAttentionItems(first: DashboardAttentionItem, second: DashboardAttentionItem): number {
   const severityDelta = ATTENTION_SEVERITY_RANK[second.severity] - ATTENTION_SEVERITY_RANK[first.severity];
 
@@ -623,13 +632,7 @@ export function buildDashboardPayload(
         };
       }),
     ...activeSubscriptions
-      .filter(
-        (subscription) =>
-          subscription.nextBillingDateDate !== null &&
-          isWithinNextDays(subscription.nextBillingDateDate, now, DASHBOARD_UPCOMING_RENEWALS_WINDOW_DAYS) &&
-          daysSince(subscription.createdAtDate, now) >= ATTENTION_UNUSED_MIN_ACCOUNT_AGE_DAYS &&
-          daysSince(subscription.updatedAtDate, now) >= ATTENTION_UNUSED_STALE_UPDATED_DAYS,
-      )
+      .filter((subscription) => isPotentiallyUnusedCandidate(subscription, now))
       .map((subscription) => {
         const dueDate = subscription.nextBillingDateDate as Date;
         const staleDays = daysSince(subscription.updatedAtDate, now);
@@ -704,12 +707,9 @@ export function buildDashboardPayload(
         subscription.monthlyEquivalentAmountCents !== null && subscription.annualProjectionCents !== null,
     )
     .sort((first, second) => {
-      if (first.currency !== second.currency) {
-        return first.currency.localeCompare(second.currency);
-      }
-
       return (
         second.monthlyEquivalentAmountCents - first.monthlyEquivalentAmountCents ||
+        first.currency.localeCompare(second.currency) ||
         first.name.localeCompare(second.name) ||
         first.id.localeCompare(second.id)
       );
@@ -725,7 +725,7 @@ export function buildDashboardPayload(
       nextBillingDate: subscription.nextBillingDateDate ? subscription.nextBillingDateDate.toISOString() : null,
     }));
 
-  const opportunities: DashboardSavingsOpportunity[] = duplicateGroups
+  const duplicateOpportunities: DashboardSavingsOpportunity[] = duplicateGroups
     .map((group) => {
       const duplicateSubscriptions = group.subscriptions.slice(1);
       const estimatedMonthlySavingsCents = duplicateSubscriptions.reduce(
@@ -743,14 +743,39 @@ export function buildDashboardPayload(
         subscriptionIds: duplicateSubscriptions.map((subscription) => subscription.id),
       };
     })
-    .filter((opportunity) => opportunity.estimatedMonthlySavingsCents > 0)
-    .sort((first, second) => {
+    .filter((opportunity) => opportunity.estimatedMonthlySavingsCents > 0);
+
+  const subscriptionsInDuplicateGroups = new Set(
+    duplicateGroups.flatMap((group) => group.subscriptions.map((subscription) => subscription.id)),
+  );
+
+  const potentiallyUnusedOpportunities: DashboardSavingsOpportunity[] = activeSubscriptions
+    .filter(
+      (subscription): subscription is NormalizedSubscription & { monthlyEquivalentAmountCents: number } =>
+        subscription.monthlyEquivalentAmountCents !== null &&
+        isPotentiallyUnusedCandidate(subscription, now) &&
+        !subscriptionsInDuplicateGroups.has(subscription.id),
+    )
+    .map((subscription) => ({
+      id: `savings-unused-${subscription.id}`,
+      type: "potentially_unused_subscription" as const,
+      title: `Review usage for ${subscription.name}`,
+      description: "No recent updates detected. Confirm this subscription is still needed before the next renewal.",
+      currency: subscription.currency,
+      estimatedMonthlySavingsCents: subscription.monthlyEquivalentAmountCents,
+      subscriptionIds: [subscription.id],
+    }))
+    .filter((opportunity) => opportunity.estimatedMonthlySavingsCents > 0);
+
+  const opportunities: DashboardSavingsOpportunity[] = [...duplicateOpportunities, ...potentiallyUnusedOpportunities].sort(
+    (first, second) => {
       return (
         second.estimatedMonthlySavingsCents - first.estimatedMonthlySavingsCents ||
         first.title.localeCompare(second.title) ||
         first.id.localeCompare(second.id)
       );
-    });
+    },
+  );
 
   const savingsTotalsMap = new Map<string, number>();
 
@@ -780,7 +805,9 @@ export function buildDashboardPayload(
     totalsByCurrency: savingsTotalsByCurrency,
     opportunities,
     assumptions: [
-      "Savings estimate includes only duplicate active subscriptions sharing a canonical service name and currency.",
+      "Savings estimate includes duplicate-overlap candidates (same canonical service name + currency) and potentially-unused subscriptions.",
+      "Potentially-unused candidates require an upcoming renewal within 30 days, account age of at least 120 days, and no updates for 90+ days.",
+      "Subscriptions in duplicate groups are excluded from the potentially-unused rule to avoid double counting.",
       "No FX conversion is applied when currencies differ.",
       "Custom billing intervals are excluded from normalized monthly/annual estimates.",
     ],

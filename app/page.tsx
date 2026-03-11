@@ -59,6 +59,9 @@ export default async function DashboardPage() {
         .map((entry) => entry.currency)
         .filter((value): value is string => value !== null),
       ...dashboardPayload.upcomingRenewals.map((entry) => entry.currency),
+      ...dashboardPayload.topCostDrivers.map((entry) => entry.currency),
+      ...dashboardPayload.potentialSavings.totalsByCurrency.map((entry) => entry.currency),
+      ...dashboardPayload.potentialSavings.opportunities.map((entry) => entry.currency),
       ...dashboardPayload.recentSubscriptions.map((entry) => entry.currency),
     ]),
   ];
@@ -93,6 +96,24 @@ export default async function DashboardPage() {
           currency: entry.currency,
           monthlyEquivalentSpendCents: entry.monthlyEquivalentSpendCents,
         }))}
+        potentialSavings={{
+          estimatedMonthlySavingsCents: dashboardPayload.potentialSavings.estimatedMonthlySavingsCents,
+          currency: dashboardPayload.potentialSavings.currency,
+          totalsByCurrency: dashboardPayload.potentialSavings.totalsByCurrency.map((entry) => ({
+            currency: entry.currency,
+            estimatedMonthlySavingsCents: entry.estimatedMonthlySavingsCents,
+          })),
+          opportunities: dashboardPayload.potentialSavings.opportunities.map((opportunity) => ({
+            id: opportunity.id,
+            type: opportunity.type,
+            title: opportunity.title,
+            description: opportunity.description,
+            currency: opportunity.currency,
+            estimatedMonthlySavingsCents: opportunity.estimatedMonthlySavingsCents,
+            subscriptionIds: opportunity.subscriptionIds,
+          })),
+          assumptions: dashboardPayload.potentialSavings.assumptions,
+        }}
         recentSubscriptions={dashboardPayload.recentSubscriptions.map((subscription) => ({
           id: subscription.id,
           name: subscription.name,
@@ -100,6 +121,15 @@ export default async function DashboardPage() {
           amountCents: subscription.amountCents,
           currency: subscription.currency,
           createdAt: subscription.createdAt,
+        }))}
+        topCostDrivers={dashboardPayload.topCostDrivers.map((driver) => ({
+          id: driver.id,
+          name: driver.name,
+          currency: driver.currency,
+          billingInterval: driver.billingInterval,
+          monthlyEquivalentAmountCents: driver.monthlyEquivalentAmountCents,
+          annualProjectionCents: driver.annualProjectionCents,
+          nextBillingDate: driver.nextBillingDate,
         }))}
         upcomingCharges={dashboardPayload.upcomingRenewals.map((subscription) => ({
           id: subscription.id,

@@ -575,6 +575,124 @@ a {
   color: var(--text-muted);
 }
 
+.savings-summary-card {
+  margin-top: 0.25rem;
+}
+
+.savings-opportunity-list {
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.62rem;
+}
+
+.savings-opportunity-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-soft);
+  padding: 0.75rem 0.8rem;
+  display: grid;
+  gap: 0.42rem;
+}
+
+.savings-opportunity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.savings-opportunity-item h3 {
+  margin: 0;
+  font-size: 0.97rem;
+}
+
+.savings-opportunity-item p {
+  margin: 0;
+}
+
+.savings-rule-pill {
+  color: color-mix(in srgb, var(--brand), var(--text) 26%);
+  border-color: color-mix(in srgb, var(--brand), var(--border) 45%);
+  background: color-mix(in srgb, var(--brand) 10%, var(--panel));
+}
+
+.savings-assumptions {
+  margin-top: 0.7rem;
+  display: grid;
+  gap: 0.32rem;
+}
+
+.savings-assumptions ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.83rem;
+}
+
+.cost-driver-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.cost-driver-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-soft);
+  padding: 0.72rem 0.75rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.64rem;
+  align-items: start;
+}
+
+.cost-driver-rank {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--brand), var(--border) 45%);
+  background: color-mix(in srgb, var(--brand) 12%, var(--panel));
+  color: color-mix(in srgb, var(--brand), var(--text) 25%);
+  font-size: 0.76rem;
+  font-weight: 750;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.05rem;
+}
+
+.cost-driver-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.cost-driver-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.cost-driver-header strong {
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.cost-driver-meta {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.83rem;
+}
+
 .stack {
   display: grid;
   gap: 0.8rem;
