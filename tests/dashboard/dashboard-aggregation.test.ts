@@ -248,4 +248,68 @@ describe("buildDashboardPayload", () => {
 
     assert.deepEqual(forwardIds, reverseIds);
   });
+
+  test("sorts upcoming renewals by soonest renewal date and then name", () => {
+    const now = new Date("2026-03-11T00:00:00.000Z");
+
+    const payload = buildDashboardPayload(
+      [
+        makeSubscription({
+          id: "third",
+          name: "Zulu Service",
+          nextBillingDate: new Date("2026-03-26T00:00:00.000Z"),
+        }),
+        makeSubscription({
+          id: "first-b",
+          name: "Beta Service",
+          nextBillingDate: new Date("2026-03-14T00:00:00.000Z"),
+        }),
+        makeSubscription({
+          id: "first-a",
+          name: "Alpha Service",
+          nextBillingDate: new Date("2026-03-14T00:00:00.000Z"),
+        }),
+      ],
+      now,
+    );
+
+    assert.deepEqual(payload.upcomingRenewals.map((renewal) => renewal.id), ["first-a", "first-b", "third"]);
+  });
+
+  test("assigns deterministic upcoming renewal tags with explicit precedence", () => {
+    const now = new Date("2026-03-11T00:00:00.000Z");
+
+    const payload = buildDashboardPayload(
+      [
+        makeSubscription({
+          id: "urgent-over-work",
+          name: "GitHub Team",
+          nextBillingDate: new Date("2026-03-12T00:00:00.000Z"),
+        }),
+        makeSubscription({
+          id: "renew-over-gaming",
+          name: "Xbox Game Pass",
+          nextBillingDate: new Date("2026-03-16T00:00:00.000Z"),
+        }),
+        makeSubscription({
+          id: "work-over-gaming",
+          name: "Steam GitHub Bundle",
+          nextBillingDate: new Date("2026-03-30T00:00:00.000Z"),
+        }),
+        makeSubscription({
+          id: "gaming",
+          name: "PlayStation Plus",
+          nextBillingDate: new Date("2026-03-31T00:00:00.000Z"),
+        }),
+      ],
+      now,
+    );
+
+    const tagsById = new Map(payload.upcomingRenewals.map((renewal) => [renewal.id, renewal.tag]));
+
+    assert.equal(tagsById.get("urgent-over-work"), "urgent");
+    assert.equal(tagsById.get("renew-over-gaming"), "renew");
+    assert.equal(tagsById.get("work-over-gaming"), "work");
+    assert.equal(tagsById.get("gaming"), "gaming");
+  });
 });

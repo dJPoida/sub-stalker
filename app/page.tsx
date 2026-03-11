@@ -107,6 +107,7 @@ export default async function DashboardPage() {
           isActive: subscription.isActive,
           amountCents: subscription.amountCents,
           currency: subscription.currency,
+          billingInterval: subscription.billingInterval,
           paymentMethod: subscription.paymentMethod,
           renewalDate: subscription.renewalDate,
           createdAt: subscription.createdAt,
