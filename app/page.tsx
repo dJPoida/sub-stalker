@@ -71,6 +71,7 @@ export default async function DashboardPage() {
 
       <DashboardSectionsClient
         availableCurrencies={availableCurrencies}
+        kpis={dashboardPayload.kpis}
         recentSubscriptions={dashboardPayload.recentSubscriptions.map((subscription) => ({
           id: subscription.id,
           name: subscription.name,
