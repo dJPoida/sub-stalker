@@ -9,6 +9,12 @@ const DAYS_TO_MILLISECONDS = 24 * 60 * 60 * 1000;
 const WEEKLY_TO_MONTHLY_FACTOR = 4.33;
 const TOP_COST_DRIVERS_LIMIT = 5;
 const RECENT_SUBSCRIPTIONS_LIMIT = 5;
+const ATTENTION_PROMO_WINDOW_DAYS = 7;
+const ATTENTION_PROMO_MAX_ACCOUNT_AGE_DAYS = 45;
+const ATTENTION_UNUSED_MIN_ACCOUNT_AGE_DAYS = 120;
+const ATTENTION_UNUSED_STALE_UPDATED_DAYS = 90;
+
+const PROMO_HINT_KEYWORDS = ["trial", "promo", "intro", "discount", "offer", "starter"] as const;
 
 const CATEGORY_RULES: ReadonlyArray<{ category: string; keywords: readonly string[] }> = [
   { category: "Streaming", keywords: ["netflix", "hulu", "disney", "paramount", "spotify", "youtube", "apple tv", "prime video"] },
@@ -73,7 +79,11 @@ export type DashboardSpendCategory = {
 
 export type DashboardAttentionSeverity = "high" | "medium" | "low";
 
-export type DashboardAttentionType = "renewal_soon" | "annual_renewal_soon" | "potential_duplicate";
+export type DashboardAttentionType =
+  | "promo_ending_soon"
+  | "potentially_unused_subscription"
+  | "potential_duplicate_services"
+  | "annual_renewal_approaching";
 
 export type DashboardAttentionItem = {
   id: string;
@@ -243,6 +253,32 @@ function daysUntil(value: Date, now: Date): number {
   return Math.max(0, Math.ceil((value.getTime() - now.getTime()) / DAYS_TO_MILLISECONDS));
 }
 
+function daysSince(value: Date, now: Date): number {
+  return Math.max(0, Math.floor((now.getTime() - value.getTime()) / DAYS_TO_MILLISECONDS));
+}
+
+function formatCurrencyCents(amountCents: number, currency: string): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amountCents / 100);
+}
+
+function formatAttentionDate(value: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(value);
+}
+
+function hasPromoHint(name: string): boolean {
+  const lowered = name.trim().toLowerCase();
+  return PROMO_HINT_KEYWORDS.some((keyword) => lowered.includes(keyword));
+}
+
 function inferCategory(name: string): string {
   const lowered = name.trim().toLowerCase();
 
@@ -349,7 +385,7 @@ function compareAttentionItems(first: DashboardAttentionItem, second: DashboardA
     return firstDue - secondDue;
   }
 
-  return first.title.localeCompare(second.title);
+  return first.title.localeCompare(second.title) || first.id.localeCompare(second.id);
 }
 
 function findDuplicateGroups(records: NormalizedSubscription[]): DuplicateGroup[] {
@@ -524,20 +560,52 @@ export function buildDashboardPayload(
     ...activeSubscriptions
       .filter(
         (subscription) =>
+          subscription.billingInterval !== "YEARLY" &&
           subscription.nextBillingDateDate !== null &&
-          isWithinNextDays(subscription.nextBillingDateDate, now, DASHBOARD_RENEWALS_WINDOW_DAYS),
+          isWithinNextDays(subscription.nextBillingDateDate, now, ATTENTION_PROMO_WINDOW_DAYS) &&
+          (daysSince(subscription.createdAtDate, now) <= ATTENTION_PROMO_MAX_ACCOUNT_AGE_DAYS ||
+            hasPromoHint(subscription.name)),
       )
-      .map((subscription) => ({
-        id: `renewal-soon-${subscription.id}`,
-        type: "renewal_soon" as const,
-        severity: "high" as const,
-        title: `${subscription.name} renews soon`,
-        message: `Renews in ${daysUntil(subscription.nextBillingDateDate as Date, now)} day(s).`,
-        dueDate: (subscription.nextBillingDateDate as Date).toISOString(),
-        subscriptionIds: [subscription.id],
-        estimatedMonthlyImpactCents: subscription.monthlyEquivalentAmountCents,
-        currency: subscription.currency,
-      })),
+      .map((subscription) => {
+        const dueDate = subscription.nextBillingDateDate as Date;
+        const daysUntilDue = daysUntil(dueDate, now);
+
+        return {
+          id: `promo-ending-${subscription.id}`,
+          type: "promo_ending_soon" as const,
+          severity: "high" as const,
+          title: `Promo ending soon: ${subscription.name}`,
+          message: `Potential charge of ${formatCurrencyCents(subscription.amountCents, subscription.currency)} on ${formatAttentionDate(dueDate)} (${daysUntilDue} day(s)).`,
+          dueDate: dueDate.toISOString(),
+          subscriptionIds: [subscription.id],
+          estimatedMonthlyImpactCents: subscription.monthlyEquivalentAmountCents,
+          currency: subscription.currency,
+        };
+      }),
+    ...activeSubscriptions
+      .filter(
+        (subscription) =>
+          subscription.nextBillingDateDate !== null &&
+          isWithinNextDays(subscription.nextBillingDateDate, now, DASHBOARD_UPCOMING_RENEWALS_WINDOW_DAYS) &&
+          daysSince(subscription.createdAtDate, now) >= ATTENTION_UNUSED_MIN_ACCOUNT_AGE_DAYS &&
+          daysSince(subscription.updatedAtDate, now) >= ATTENTION_UNUSED_STALE_UPDATED_DAYS,
+      )
+      .map((subscription) => {
+        const dueDate = subscription.nextBillingDateDate as Date;
+        const staleDays = daysSince(subscription.updatedAtDate, now);
+
+        return {
+          id: `potentially-unused-${subscription.id}`,
+          type: "potentially_unused_subscription" as const,
+          severity: "low" as const,
+          title: `Potentially unused: ${subscription.name}`,
+          message: `No subscription updates in ${staleDays} day(s). Next charge ${formatCurrencyCents(subscription.amountCents, subscription.currency)} on ${formatAttentionDate(dueDate)}.`,
+          dueDate: dueDate.toISOString(),
+          subscriptionIds: [subscription.id],
+          estimatedMonthlyImpactCents: subscription.monthlyEquivalentAmountCents,
+          currency: subscription.currency,
+        };
+      }),
     ...activeSubscriptions
       .filter(
         (subscription) =>
@@ -546,17 +614,22 @@ export function buildDashboardPayload(
           isWithinNextDays(subscription.nextBillingDateDate, now, DASHBOARD_UPCOMING_RENEWALS_WINDOW_DAYS) &&
           !isWithinNextDays(subscription.nextBillingDateDate, now, DASHBOARD_RENEWALS_WINDOW_DAYS),
       )
-      .map((subscription) => ({
-        id: `annual-renewal-${subscription.id}`,
-        type: "annual_renewal_soon" as const,
-        severity: "medium" as const,
-        title: `${subscription.name} annual renewal`,
-        message: `Annual charge is due in ${daysUntil(subscription.nextBillingDateDate as Date, now)} day(s).`,
-        dueDate: (subscription.nextBillingDateDate as Date).toISOString(),
-        subscriptionIds: [subscription.id],
-        estimatedMonthlyImpactCents: subscription.monthlyEquivalentAmountCents,
-        currency: subscription.currency,
-      })),
+      .map((subscription) => {
+        const dueDate = subscription.nextBillingDateDate as Date;
+        const daysUntilDue = daysUntil(dueDate, now);
+
+        return {
+          id: `annual-renewal-${subscription.id}`,
+          type: "annual_renewal_approaching" as const,
+          severity: daysUntilDue <= 14 ? ("high" as const) : ("medium" as const),
+          title: `Annual renewal approaching: ${subscription.name}`,
+          message: `Annual charge of ${formatCurrencyCents(subscription.amountCents, subscription.currency)} is due on ${formatAttentionDate(dueDate)} (${daysUntilDue} day(s)).`,
+          dueDate: dueDate.toISOString(),
+          subscriptionIds: [subscription.id],
+          estimatedMonthlyImpactCents: subscription.monthlyEquivalentAmountCents,
+          currency: subscription.currency,
+        };
+      }),
     ...duplicateGroups.map((group) => {
       const duplicates = group.subscriptions.slice(1);
       const estimatedMonthlyImpactCents = duplicates.reduce(
@@ -567,13 +640,16 @@ export function buildDashboardPayload(
         .map((subscription) => subscription.nextBillingDateDate)
         .filter((value): value is Date => value !== null)
         .sort((first, second) => first.getTime() - second.getTime())[0];
+      const soonestRenewalText = soonestRenewal
+        ? ` Earliest renewal is ${formatAttentionDate(soonestRenewal)}.`
+        : "";
 
       return {
         id: `potential-duplicate-${group.key}`,
-        type: "potential_duplicate" as const,
-        severity: "medium" as const,
-        title: `Potential duplicate: ${group.displayName}`,
-        message: `${group.subscriptions.length} active subscriptions look overlapping in ${group.currency}.`,
+        type: "potential_duplicate_services" as const,
+        severity: "high" as const,
+        title: `Potential duplicate services: ${group.displayName}`,
+        message: `${group.subscriptions.length} active subscriptions may overlap. Estimated extra spend is ${formatCurrencyCents(estimatedMonthlyImpactCents, group.currency)} per month.${soonestRenewalText}`,
         dueDate: soonestRenewal ? soonestRenewal.toISOString() : null,
         subscriptionIds: group.subscriptions.map((subscription) => subscription.id),
         estimatedMonthlyImpactCents,

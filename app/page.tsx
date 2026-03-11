@@ -55,6 +55,9 @@ export default async function DashboardPage() {
       ...dashboardPayload.spendBreakdownByCategory.flatMap((entry) =>
         entry.totalsByCurrency.map((total) => total.currency),
       ),
+      ...dashboardPayload.attentionNeeded
+        .map((entry) => entry.currency)
+        .filter((value): value is string => value !== null),
       ...dashboardPayload.upcomingRenewals.map((entry) => entry.currency),
       ...dashboardPayload.recentSubscriptions.map((entry) => entry.currency),
     ]),
@@ -74,6 +77,17 @@ export default async function DashboardPage() {
 
       <DashboardSectionsClient
         availableCurrencies={availableCurrencies}
+        attentionNeeded={dashboardPayload.attentionNeeded.map((item) => ({
+          id: item.id,
+          type: item.type,
+          severity: item.severity,
+          title: item.title,
+          message: item.message,
+          dueDate: item.dueDate,
+          subscriptionIds: item.subscriptionIds,
+          estimatedMonthlyImpactCents: item.estimatedMonthlyImpactCents,
+          currency: item.currency,
+        }))}
         kpis={dashboardPayload.kpis}
         monthlySpendTotalsByCurrency={dashboardPayload.kpis.monthlyEquivalentSpend.totalsByCurrency.map((entry) => ({
           currency: entry.currency,
