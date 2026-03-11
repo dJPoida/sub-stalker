@@ -399,6 +399,92 @@ a {
   margin-bottom: 0.2rem;
 }
 
+.spend-breakdown-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.spend-donut-figure {
+  margin: 0;
+  min-width: 180px;
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+}
+
+.spend-donut {
+  width: 160px;
+  height: 160px;
+  display: block;
+}
+
+.spend-donut-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--panel-soft), var(--text) 14%);
+  stroke-width: 16;
+}
+
+.spend-donut-segment {
+  fill: none;
+  stroke-width: 16;
+  transform-origin: center;
+  transform: rotate(-90deg);
+  transition: stroke-dasharray 200ms ease, stroke-dashoffset 200ms ease;
+}
+
+.spend-donut-total {
+  display: grid;
+  justify-items: center;
+  gap: 0.08rem;
+  text-align: center;
+}
+
+.spend-donut-total strong {
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+}
+
+.spend-legend {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: min(300px, 100%);
+}
+
+.spend-legend-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.55rem;
+  align-items: start;
+}
+
+.spend-legend-swatch {
+  width: 0.78rem;
+  height: 0.78rem;
+  border-radius: 999px;
+  margin-top: 0.25rem;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--panel), var(--text) 24%);
+}
+
+.spend-legend-copy {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.spend-legend-label {
+  font-weight: 650;
+}
+
+.spend-legend-value {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
 .stack {
   display: grid;
   gap: 0.8rem;
@@ -990,6 +1076,14 @@ ul {
   }
 
   .dashboard-control-actions .button {
+    width: 100%;
+  }
+
+  .spend-breakdown-layout {
+    flex-direction: column;
+  }
+
+  .spend-donut-figure {
     width: 100%;
   }
 

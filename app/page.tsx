@@ -52,6 +52,9 @@ export default async function DashboardPage() {
   const availableCurrencies = [
     ...new Set([
       ...dashboardPayload.kpis.monthlyEquivalentSpend.totalsByCurrency.map((entry) => entry.currency),
+      ...dashboardPayload.spendBreakdownByCategory.flatMap((entry) =>
+        entry.totalsByCurrency.map((total) => total.currency),
+      ),
       ...dashboardPayload.upcomingRenewals.map((entry) => entry.currency),
       ...dashboardPayload.recentSubscriptions.map((entry) => entry.currency),
     ]),
@@ -72,6 +75,10 @@ export default async function DashboardPage() {
       <DashboardSectionsClient
         availableCurrencies={availableCurrencies}
         kpis={dashboardPayload.kpis}
+        monthlySpendTotalsByCurrency={dashboardPayload.kpis.monthlyEquivalentSpend.totalsByCurrency.map((entry) => ({
+          currency: entry.currency,
+          monthlyEquivalentSpendCents: entry.monthlyEquivalentSpendCents,
+        }))}
         recentSubscriptions={dashboardPayload.recentSubscriptions.map((subscription) => ({
           id: subscription.id,
           name: subscription.name,
@@ -90,6 +97,14 @@ export default async function DashboardPage() {
           renewalDate: subscription.renewalDate,
           createdAt: subscription.createdAt,
           tag: subscription.tag,
+        }))}
+        spendBreakdownByCategory={dashboardPayload.spendBreakdownByCategory.map((category) => ({
+          category: category.category,
+          subscriptionCount: category.subscriptionCount,
+          totalsByCurrency: category.totalsByCurrency.map((total) => ({
+            currency: total.currency,
+            monthlyEquivalentSpendCents: total.monthlyEquivalentSpendCents,
+          })),
         }))}
       />
     </section>
