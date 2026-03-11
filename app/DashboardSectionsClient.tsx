@@ -5,7 +5,13 @@ import { useId, useMemo, useState } from "react";
 
 import SubscriptionDetailsModal from "@/app/components/SubscriptionDetailsModal";
 import { useSubscriptionDetailsModal } from "@/app/components/useSubscriptionDetailsModal";
-import type { DashboardCurrencyTotal, DashboardKpis, DashboardMetricAmount } from "@/lib/dashboard";
+import type {
+  DashboardAttentionSeverity,
+  DashboardAttentionType,
+  DashboardCurrencyTotal,
+  DashboardKpis,
+  DashboardMetricAmount,
+} from "@/lib/dashboard";
 import {
   DASHBOARD_ALL_CURRENCIES,
   DASHBOARD_DATE_RANGE_OPTIONS,
@@ -37,9 +43,22 @@ type DashboardRecentActivityListItem = {
   createdAt: string;
 };
 
+type DashboardAttentionListItem = {
+  id: string;
+  type: DashboardAttentionType;
+  severity: DashboardAttentionSeverity;
+  title: string;
+  message: string;
+  dueDate: string | null;
+  subscriptionIds: string[];
+  estimatedMonthlyImpactCents: number | null;
+  currency: string | null;
+};
+
 type DashboardSectionsClientProps = {
   availableCurrencies: string[];
   kpis?: DashboardKpis | null;
+  attentionNeeded: DashboardAttentionListItem[];
   upcomingCharges: DashboardUpcomingChargeListItem[];
   recentSubscriptions: DashboardRecentActivityListItem[];
   monthlySpendTotalsByCurrency: Array<{
@@ -169,9 +188,55 @@ function tagClassName(tag: "urgent" | "soon" | "upcoming"): string {
   return "pill";
 }
 
+function formatAttentionSeverityLabel(severity: DashboardAttentionSeverity): string {
+  if (severity === "high") {
+    return "High";
+  }
+
+  if (severity === "medium") {
+    return "Medium";
+  }
+
+  return "Low";
+}
+
+function attentionSeverityClassName(severity: DashboardAttentionSeverity): string {
+  return `attention-severity attention-severity-${severity}`;
+}
+
+function attentionSeverityGlyph(severity: DashboardAttentionSeverity): string {
+  if (severity === "high") {
+    return "!";
+  }
+
+  if (severity === "medium") {
+    return "~";
+  }
+
+  return "i";
+}
+
+function isInDateRange(value: string | null, now: Date, rangeDays: number): boolean {
+  if (!value) {
+    return true;
+  }
+
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return false;
+  }
+
+  const deltaMs = parsedDate.getTime() - now.getTime();
+  const maxMs = rangeDays * 24 * 60 * 60 * 1000;
+
+  return deltaMs >= 0 && deltaMs <= maxMs;
+}
+
 export default function DashboardSectionsClient({
   availableCurrencies,
   kpis,
+  attentionNeeded,
   upcomingCharges,
   recentSubscriptions,
   monthlySpendTotalsByCurrency,
@@ -184,6 +249,9 @@ export default function DashboardSectionsClient({
   const [dateRange, setDateRange] = useState<DashboardDateRangeValue>(DEFAULT_DASHBOARD_DATE_RANGE);
   const [searchQuery, setSearchQuery] = useState("");
   const now = useMemo(() => new Date(), []);
+  const dateRangeDays = useMemo(() => {
+    return DASHBOARD_DATE_RANGE_OPTIONS.find((option) => option.value === dateRange)?.days ?? 30;
+  }, [dateRange]);
 
   const filteredUpcomingCharges = useMemo(
     () =>
@@ -211,6 +279,32 @@ export default function DashboardSectionsClient({
       ),
     [currency, dateRange, now, recentSubscriptions, searchQuery],
   );
+  const filteredAttentionNeeded = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const selectedCurrency = currency.toUpperCase();
+
+    return attentionNeeded.filter((alert) => {
+      if (
+        currency !== DASHBOARD_ALL_CURRENCIES &&
+        alert.currency !== null &&
+        alert.currency.toUpperCase() !== selectedCurrency
+      ) {
+        return false;
+      }
+
+      if (!isInDateRange(alert.dueDate, now, dateRangeDays)) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return [alert.title, alert.message, alert.currency ?? "", alert.type].some((value) =>
+        value.toLowerCase().includes(normalizedQuery),
+      );
+    });
+  }, [attentionNeeded, currency, dateRangeDays, now, searchQuery]);
   const currencyOptions = useMemo(() => {
     const normalized = [
       ...new Set(
@@ -479,8 +573,54 @@ export default function DashboardSectionsClient({
             ) : null}
           </article>
           <article className="dashboard-card">
-            <h2>Attention Needed</h2>
-            <p className="text-muted">Alert items and severity indicators will render in this section.</p>
+            <div className="dashboard-card-header">
+              <h2>Attention Needed</h2>
+              <span className="metric-note">{filteredAttentionNeeded.length} matching alerts</span>
+            </div>
+            {filteredAttentionNeeded.length === 0 ? (
+              <p className="text-muted">No attention alerts match the current control filters.</p>
+            ) : (
+              <div className="attention-list">
+                {filteredAttentionNeeded.map((alert) => {
+                  const singleSubscriptionId = alert.subscriptionIds.length === 1 ? alert.subscriptionIds[0] : null;
+
+                  return (
+                    <article className="attention-item" key={alert.id}>
+                      <div className="attention-item-header">
+                        <span className={attentionSeverityClassName(alert.severity)}>
+                          <span aria-hidden="true" className="attention-severity-glyph">
+                            {attentionSeverityGlyph(alert.severity)}
+                          </span>
+                          {formatAttentionSeverityLabel(alert.severity)}
+                        </span>
+                        {alert.dueDate ? <span className="metric-note">Due {formatDate(alert.dueDate)}</span> : null}
+                      </div>
+                      <h3>{alert.title}</h3>
+                      <p className="text-muted">{alert.message}</p>
+                      {alert.estimatedMonthlyImpactCents !== null && alert.currency ? (
+                        <p className="attention-impact">
+                          Estimated monthly impact: {formatMoney(alert.estimatedMonthlyImpactCents, alert.currency)}
+                        </p>
+                      ) : null}
+                      {singleSubscriptionId ? (
+                        <button
+                          className="button button-secondary button-small"
+                          onClick={() =>
+                            void detailsModal.openModal({
+                              subscriptionId: singleSubscriptionId,
+                              source: "subscriptions_list",
+                            })
+                          }
+                          type="button"
+                        >
+                          View subscription
+                        </button>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
           </article>
         </section>
 

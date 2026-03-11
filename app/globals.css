@@ -485,6 +485,96 @@ a {
   font-size: 0.84rem;
 }
 
+.attention-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.attention-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-soft);
+  padding: 0.8rem 0.85rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.attention-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.attention-item h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.attention-item p {
+  margin: 0;
+}
+
+.attention-severity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.48rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.attention-severity-glyph {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.attention-severity-high {
+  color: var(--fail);
+  border-color: color-mix(in srgb, var(--fail), var(--border) 40%);
+  background: color-mix(in srgb, var(--fail) 12%, var(--panel));
+}
+
+.attention-severity-high .attention-severity-glyph {
+  background: color-mix(in srgb, var(--fail) 22%, var(--panel));
+}
+
+.attention-severity-medium {
+  color: color-mix(in srgb, var(--brand), var(--text) 26%);
+  border-color: color-mix(in srgb, var(--brand) 46%, var(--border));
+  background: color-mix(in srgb, var(--brand) 9%, var(--panel));
+}
+
+.attention-severity-medium .attention-severity-glyph {
+  background: color-mix(in srgb, var(--brand) 20%, var(--panel));
+}
+
+.attention-severity-low {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok), var(--border) 42%);
+  background: color-mix(in srgb, var(--ok) 10%, var(--panel));
+}
+
+.attention-severity-low .attention-severity-glyph {
+  background: color-mix(in srgb, var(--ok) 20%, var(--panel));
+}
+
+.attention-impact {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
 .stack {
   display: grid;
   gap: 0.8rem;

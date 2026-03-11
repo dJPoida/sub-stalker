@@ -105,7 +105,7 @@ describe("buildDashboardPayload", () => {
     assert.equal(payload.kpis.annualProjection.amountCents, 80000);
     assert.equal(payload.kpis.monthlyEquivalentSpend.excludedCustomCadenceCount, 1);
     assert.equal(payload.kpis.annualProjection.excludedCustomCadenceCount, 1);
-    assert.equal(payload.attentionNeeded.some((item) => item.type === "annual_renewal_soon"), true);
+    assert.equal(payload.attentionNeeded.some((item) => item.type === "annual_renewal_approaching"), true);
   });
 
   test("does not merge mixed currencies into a single normalized KPI total", () => {
@@ -155,10 +155,97 @@ describe("buildDashboardPayload", () => {
       now,
     );
 
-    assert.equal(payload.attentionNeeded.some((item) => item.type === "potential_duplicate"), true);
+    assert.equal(payload.attentionNeeded.some((item) => item.type === "potential_duplicate_services"), true);
     assert.equal(payload.potentialSavings.opportunities.length, 1);
     assert.equal(payload.potentialSavings.currency, "USD");
     assert.equal(payload.potentialSavings.estimatedMonthlySavingsCents, 4000);
     assert.deepEqual(payload.potentialSavings.opportunities[0]?.subscriptionIds, ["stream-c", "stream-b"]);
+  });
+
+  test("builds promo-ending and potentially-unused alerts with actionable amount/date context", () => {
+    const now = new Date("2026-03-11T00:00:00.000Z");
+
+    const payload = buildDashboardPayload(
+      [
+        makeSubscription({
+          id: "promo-1",
+          name: "Streaming Trial Promo",
+          amountCents: 1299,
+          billingInterval: "MONTHLY",
+          createdAt: new Date("2026-02-20T00:00:00.000Z"),
+          updatedAt: new Date("2026-03-01T00:00:00.000Z"),
+          nextBillingDate: new Date("2026-03-14T00:00:00.000Z"),
+        }),
+        makeSubscription({
+          id: "unused-1",
+          name: "Legacy Tool Suite",
+          amountCents: 4500,
+          billingInterval: "MONTHLY",
+          createdAt: new Date("2025-07-01T00:00:00.000Z"),
+          updatedAt: new Date("2025-10-01T00:00:00.000Z"),
+          nextBillingDate: new Date("2026-03-20T00:00:00.000Z"),
+        }),
+      ],
+      now,
+    );
+
+    const promoAlert = payload.attentionNeeded.find((item) => item.type === "promo_ending_soon");
+    const unusedAlert = payload.attentionNeeded.find((item) => item.type === "potentially_unused_subscription");
+
+    assert.ok(promoAlert);
+    assert.equal(promoAlert.severity, "high");
+    assert.equal(promoAlert.message.includes("$12.99"), true);
+    assert.equal(promoAlert.message.includes("Mar"), true);
+
+    assert.ok(unusedAlert);
+    assert.equal(unusedAlert.severity, "low");
+    assert.equal(unusedAlert.message.includes("$45.00"), true);
+    assert.equal(unusedAlert.message.includes("No subscription updates"), true);
+  });
+
+  test("keeps attention ordering deterministic regardless of input order", () => {
+    const now = new Date("2026-03-11T00:00:00.000Z");
+    const records = [
+      makeSubscription({
+        id: "promo-1",
+        name: "Cloud Trial Promo",
+        amountCents: 1599,
+        createdAt: new Date("2026-02-18T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-01T00:00:00.000Z"),
+        nextBillingDate: new Date("2026-03-14T00:00:00.000Z"),
+      }),
+      makeSubscription({
+        id: "annual-1",
+        name: "Cloudflare Pro",
+        amountCents: 12000,
+        billingInterval: "YEARLY",
+        nextBillingDate: new Date("2026-03-28T00:00:00.000Z"),
+      }),
+      makeSubscription({
+        id: "duplicate-a",
+        name: "Netflix",
+        amountCents: 1000,
+        nextBillingDate: new Date("2026-03-22T00:00:00.000Z"),
+      }),
+      makeSubscription({
+        id: "duplicate-b",
+        name: "Netflix",
+        amountCents: 2200,
+        nextBillingDate: new Date("2026-03-26T00:00:00.000Z"),
+      }),
+      makeSubscription({
+        id: "unused-1",
+        name: "Design Toolkit",
+        amountCents: 3000,
+        createdAt: new Date("2025-07-01T00:00:00.000Z"),
+        updatedAt: new Date("2025-10-01T00:00:00.000Z"),
+        nextBillingDate: new Date("2026-03-24T00:00:00.000Z"),
+      }),
+    ] satisfies DashboardSubscriptionSourceRecord[];
+
+    const forwardIds = buildDashboardPayload(records, now).attentionNeeded.map((item) => item.id);
+    const reverseIds = buildDashboardPayload([...records].reverse(), now).attentionNeeded.map((item) => item.id);
+
+    assert.deepEqual(forwardIds, reverseIds);
   });
 });
