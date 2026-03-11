@@ -5,6 +5,7 @@ import { useId, useMemo, useState } from "react";
 
 import SubscriptionDetailsModal from "@/app/components/SubscriptionDetailsModal";
 import { useSubscriptionDetailsModal } from "@/app/components/useSubscriptionDetailsModal";
+import type { DashboardCurrencyTotal, DashboardKpis, DashboardMetricAmount } from "@/lib/dashboard";
 import {
   DASHBOARD_ALL_CURRENCIES,
   DASHBOARD_DATE_RANGE_OPTIONS,
@@ -38,6 +39,7 @@ type DashboardRecentActivityListItem = {
 
 type DashboardSectionsClientProps = {
   availableCurrencies: string[];
+  kpis?: DashboardKpis | null;
   upcomingCharges: DashboardUpcomingChargeListItem[];
   recentSubscriptions: DashboardRecentActivityListItem[];
   monthlySpendTotalsByCurrency: Array<{
@@ -71,6 +73,78 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
+function formatCadenceSuffix(type: "monthly" | "annual"): string {
+  return type === "monthly" ? "/mo" : "/yr";
+}
+
+function formatCountLabel(value: number, singular: string, plural: string = `${singular}s`): string {
+  return `${value} ${value === 1 ? singular : plural}`;
+}
+
+function formatCurrencyTotalsSummary(totalsByCurrency: DashboardCurrencyTotal[], type: "monthly" | "annual"): string {
+  if (totalsByCurrency.length === 0) {
+    return "No active subscriptions.";
+  }
+
+  const visibleTotals = totalsByCurrency.slice(0, 2);
+  const cadenceSuffix = formatCadenceSuffix(type);
+  const summary = visibleTotals
+    .map((entry) => {
+      const amount = type === "monthly" ? entry.monthlyEquivalentSpendCents : entry.annualProjectionCents;
+      return `${formatMoney(amount, entry.currency)} ${entry.currency}${cadenceSuffix}`;
+    })
+    .join(" · ");
+  const remainingCount = totalsByCurrency.length - visibleTotals.length;
+
+  if (remainingCount <= 0) {
+    return summary;
+  }
+
+  return `${summary} · +${remainingCount} more`;
+}
+
+type KpiCardContent = {
+  value: string;
+  note: string;
+};
+
+function buildSpendMetricContent(
+  metric: DashboardMetricAmount | null | undefined,
+  type: "monthly" | "annual",
+): KpiCardContent {
+  if (!metric) {
+    return {
+      value: "Loading...",
+      note: "Calculating from subscription data.",
+    };
+  }
+
+  if (metric.totalsByCurrency.length === 0) {
+    return {
+      value: "No data",
+      note: "No active subscriptions to summarize.",
+    };
+  }
+
+  const cadenceSuffix = formatCadenceSuffix(type);
+  const excludedCustomCadenceNote =
+    metric.excludedCustomCadenceCount > 0
+      ? ` Excludes ${formatCountLabel(metric.excludedCustomCadenceCount, "custom cadence subscription")}.`
+      : "";
+
+  if (metric.amountCents !== null && metric.currency) {
+    return {
+      value: `${formatMoney(metric.amountCents, metric.currency)}${cadenceSuffix}`,
+      note: `Active subscriptions in ${metric.currency}.${excludedCustomCadenceNote}`,
+    };
+  }
+
+  return {
+    value: `${metric.totalsByCurrency.length} currencies`,
+    note: `${formatCurrencyTotalsSummary(metric.totalsByCurrency, type)}${excludedCustomCadenceNote}`.trim(),
+  };
+}
+
 function formatTag(tag: "urgent" | "soon" | "upcoming"): string {
   if (tag === "urgent") {
     return "URGENT";
@@ -97,6 +171,7 @@ function tagClassName(tag: "urgent" | "soon" | "upcoming"): string {
 
 export default function DashboardSectionsClient({
   availableCurrencies,
+  kpis,
   upcomingCharges,
   recentSubscriptions,
   monthlySpendTotalsByCurrency,
@@ -151,6 +226,36 @@ export default function DashboardSectionsClient({
 
     return ["USD", ...normalized.filter((value) => value !== "USD")];
   }, [availableCurrencies]);
+  const monthlyEquivalentSpend = buildSpendMetricContent(kpis?.monthlyEquivalentSpend, "monthly");
+  const annualProjection = buildSpendMetricContent(kpis?.annualProjection, "annual");
+  const renewalsInNextSevenDays: KpiCardContent = !kpis
+    ? {
+        value: "Loading...",
+        note: "Calculating upcoming renewals.",
+      }
+    : kpis.subscriptions.active === 0
+      ? {
+          value: "0 renewals",
+          note: "Add active subscriptions to track near-term renewals.",
+        }
+      : {
+          value: formatCountLabel(kpis.renewalsInNext7Days, "renewal"),
+          note: `${formatCountLabel(kpis.renewalsInNext7Days, "subscription")} due in the next 7 days.`,
+        };
+  const activeVsCanceled: KpiCardContent = !kpis
+    ? {
+        value: "Loading...",
+        note: "Counting current subscription statuses.",
+      }
+    : kpis.subscriptions.total === 0
+      ? {
+          value: "0 active",
+          note: "Add your first subscription to populate this KPI.",
+        }
+      : {
+          value: `${formatCountLabel(kpis.subscriptions.active, "active", "active")}`,
+          note: `${formatCountLabel(kpis.subscriptions.canceled, "canceled", "canceled")} · ${kpis.subscriptions.total} total`,
+        };
   const spendBreakdownCurrency = useMemo(() => {
     if (currency !== DASHBOARD_ALL_CURRENCIES) {
       return currency.toUpperCase();
@@ -266,9 +371,28 @@ export default function DashboardSectionsClient({
         <section className="dashboard-grid">
           <article className="dashboard-card">
             <h2>KPI Summary</h2>
-            <p className="text-muted">
-              Summary metric cards are reserved in this section and will expand in the next dashboard iteration.
-            </p>
+            <div className="metric-grid dashboard-kpi-grid">
+              <article className="metric-card" aria-live="polite" aria-busy={!kpis}>
+                <span className="metric-label">Monthly equivalent spend</span>
+                <strong className="metric-value">{monthlyEquivalentSpend.value}</strong>
+                <span className="metric-note">{monthlyEquivalentSpend.note}</span>
+              </article>
+              <article className="metric-card" aria-live="polite" aria-busy={!kpis}>
+                <span className="metric-label">Annual projection</span>
+                <strong className="metric-value">{annualProjection.value}</strong>
+                <span className="metric-note">{annualProjection.note}</span>
+              </article>
+              <article className="metric-card" aria-live="polite" aria-busy={!kpis}>
+                <span className="metric-label">Renewing in next 7 days</span>
+                <strong className="metric-value">{renewalsInNextSevenDays.value}</strong>
+                <span className="metric-note">{renewalsInNextSevenDays.note}</span>
+              </article>
+              <article className="metric-card" aria-live="polite" aria-busy={!kpis}>
+                <span className="metric-label">Active vs canceled subscriptions</span>
+                <strong className="metric-value">{activeVsCanceled.value}</strong>
+                <span className="metric-note">{activeVsCanceled.note}</span>
+              </article>
+            </div>
           </article>
         </section>
 

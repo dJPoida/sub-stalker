@@ -74,6 +74,7 @@ export default async function DashboardPage() {
 
       <DashboardSectionsClient
         availableCurrencies={availableCurrencies}
+        kpis={dashboardPayload.kpis}
         monthlySpendTotalsByCurrency={dashboardPayload.kpis.monthlyEquivalentSpend.totalsByCurrency.map((entry) => ({
           currency: entry.currency,
           monthlyEquivalentSpendCents: entry.monthlyEquivalentSpendCents,
