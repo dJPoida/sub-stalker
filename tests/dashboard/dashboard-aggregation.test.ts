@@ -143,6 +143,21 @@ describe("buildDashboardPayload", () => {
     assert.deepEqual(payload.topCostDrivers.map((driver) => driver.id), ["active"]);
   });
 
+  test("ranks top cost drivers by normalized monthly equivalent spend", () => {
+    const now = new Date("2026-03-11T00:00:00.000Z");
+
+    const payload = buildDashboardPayload(
+      [
+        makeSubscription({ id: "monthly", name: "Monthly Plan", amountCents: 2100, billingInterval: "MONTHLY" }),
+        makeSubscription({ id: "weekly", name: "Weekly Plan", amountCents: 500, billingInterval: "WEEKLY" }),
+        makeSubscription({ id: "yearly", name: "Yearly Plan", amountCents: 24000, billingInterval: "YEARLY" }),
+      ],
+      now,
+    );
+
+    assert.deepEqual(payload.topCostDrivers.map((driver) => driver.id), ["weekly", "monthly", "yearly"]);
+  });
+
   test("builds duplicate-service alerts and savings opportunities deterministically", () => {
     const now = new Date("2026-03-11T00:00:00.000Z");
 
@@ -160,6 +175,50 @@ describe("buildDashboardPayload", () => {
     assert.equal(payload.potentialSavings.currency, "USD");
     assert.equal(payload.potentialSavings.estimatedMonthlySavingsCents, 4000);
     assert.deepEqual(payload.potentialSavings.opportunities[0]?.subscriptionIds, ["stream-c", "stream-b"]);
+  });
+
+  test("includes potentially-unused savings candidates while preventing duplicate-group double counting", () => {
+    const now = new Date("2026-03-11T00:00:00.000Z");
+
+    const payload = buildDashboardPayload(
+      [
+        makeSubscription({
+          id: "duplicate-a",
+          name: "Netflix",
+          amountCents: 1000,
+          createdAt: new Date("2025-06-01T00:00:00.000Z"),
+          updatedAt: new Date("2025-10-01T00:00:00.000Z"),
+          nextBillingDate: new Date("2026-03-20T00:00:00.000Z"),
+        }),
+        makeSubscription({
+          id: "duplicate-b",
+          name: "Netflix",
+          amountCents: 2200,
+          createdAt: new Date("2025-06-01T00:00:00.000Z"),
+          updatedAt: new Date("2025-10-01T00:00:00.000Z"),
+          nextBillingDate: new Date("2026-03-22T00:00:00.000Z"),
+        }),
+        makeSubscription({
+          id: "unused-standalone",
+          name: "Legacy Tool",
+          amountCents: 3000,
+          createdAt: new Date("2025-06-01T00:00:00.000Z"),
+          updatedAt: new Date("2025-10-01T00:00:00.000Z"),
+          nextBillingDate: new Date("2026-03-24T00:00:00.000Z"),
+        }),
+      ],
+      now,
+    );
+
+    assert.deepEqual(
+      payload.potentialSavings.opportunities.map((opportunity) => [opportunity.type, opportunity.subscriptionIds]),
+      [
+        ["potentially_unused_subscription", ["unused-standalone"]],
+        ["duplicate_overlap", ["duplicate-b"]],
+      ],
+    );
+    assert.equal(payload.potentialSavings.currency, "USD");
+    assert.equal(payload.potentialSavings.estimatedMonthlySavingsCents, 5200);
   });
 
   test("builds promo-ending and potentially-unused alerts with actionable amount/date context", () => {
