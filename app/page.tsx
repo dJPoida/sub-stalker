@@ -4,25 +4,6 @@ import DashboardSectionsClient from "@/app/DashboardSectionsClient";
 import { getCurrentUser } from "@/lib/auth";
 import { getDashboardPayloadForUser } from "@/lib/dashboard";
 
-function formatMoney(amountCents: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amountCents / 100);
-}
-
-function formatDate(value: Date | string): string {
-  const parsedValue = value instanceof Date ? value : new Date(value);
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(parsedValue);
-}
-
 export default async function DashboardPage() {
   const user = await getCurrentUser();
 
@@ -68,14 +49,13 @@ export default async function DashboardPage() {
   }
 
   const dashboardPayload = await getDashboardPayloadForUser(user.id);
-
-  const monthlySpendMetric = dashboardPayload.kpis.monthlyEquivalentSpend;
-  const monthlySpendDisplay =
-    monthlySpendMetric.totalsByCurrency.length === 0
-      ? "n/a"
-      : monthlySpendMetric.amountCents !== null && monthlySpendMetric.currency
-      ? formatMoney(monthlySpendMetric.amountCents, monthlySpendMetric.currency)
-      : "Mixed currencies";
+  const availableCurrencies = [
+    ...new Set([
+      ...dashboardPayload.kpis.monthlyEquivalentSpend.totalsByCurrency.map((entry) => entry.currency),
+      ...dashboardPayload.upcomingRenewals.map((entry) => entry.currency),
+      ...dashboardPayload.recentSubscriptions.map((entry) => entry.currency),
+    ]),
+  ];
 
   return (
     <section className="page-stack">
@@ -83,52 +63,20 @@ export default async function DashboardPage() {
         <div className="stack">
           <p className="eyebrow">Dashboard</p>
           <h1>Subscription overview</h1>
-          <p className="page-lead">Signed in as {user.email}. Review upcoming charges and recent account activity.</p>
-        </div>
-        <div className="inline-actions">
-          <Link className="button" href="/subscriptions">
-            Manage Subscriptions
-          </Link>
-          <Link className="button button-secondary" href="/settings">
-            Preferences
-          </Link>
+          <p className="page-lead">
+            Signed in as {user.email}. Use the control bar to scope dashboard sections by currency, date range, and search.
+          </p>
         </div>
       </header>
 
-      <section className="metric-grid">
-        <article className="metric-card">
-          <span className="metric-label">Active Subscriptions</span>
-          <strong className="metric-value">{dashboardPayload.kpis.subscriptions.active}</strong>
-          <span className="metric-note">Currently billing</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Estimated Monthly Spend</span>
-          <strong className="metric-value">{monthlySpendDisplay}</strong>
-          <span className="metric-note">Normalized from all active plans</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Next Charge</span>
-          <strong className="metric-value">
-            {dashboardPayload.nextCharge
-              ? formatMoney(dashboardPayload.nextCharge.amountCents, dashboardPayload.nextCharge.currency)
-              : "n/a"}
-          </strong>
-          <span className="metric-note">
-            {dashboardPayload.nextCharge
-              ? `${dashboardPayload.nextCharge.name} on ${formatDate(dashboardPayload.nextCharge.nextBillingDate)}`
-              : "No date set"}
-          </span>
-        </article>
-      </section>
-
       <DashboardSectionsClient
+        availableCurrencies={availableCurrencies}
         recentSubscriptions={dashboardPayload.recentSubscriptions.map((subscription) => ({
           id: subscription.id,
           name: subscription.name,
           isActive: subscription.isActive,
           amountCents: subscription.amountCents,
           currency: subscription.currency,
-          nextBillingDate: subscription.nextBillingDate,
           createdAt: subscription.createdAt,
         }))}
         upcomingCharges={dashboardPayload.upcomingRenewals.map((subscription) => ({
@@ -137,25 +85,12 @@ export default async function DashboardPage() {
           isActive: subscription.isActive,
           amountCents: subscription.amountCents,
           currency: subscription.currency,
-          nextBillingDate: subscription.renewalDate,
+          paymentMethod: subscription.paymentMethod,
+          renewalDate: subscription.renewalDate,
           createdAt: subscription.createdAt,
+          tag: subscription.tag,
         }))}
       />
-
-      <article className="surface">
-        <h2>Quick Actions</h2>
-        <div className="inline-actions mt-sm">
-          <Link className="button" href="/subscriptions">
-            Add or Update Subscriptions
-          </Link>
-          <Link className="button button-secondary" href="/tools">
-            Run Maintenance Tools
-          </Link>
-          <Link className="button button-secondary" href="/status">
-            View System Status
-          </Link>
-        </div>
-      </article>
     </section>
   );
 }

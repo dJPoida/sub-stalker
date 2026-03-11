@@ -278,6 +278,7 @@ a {
 
 .card,
 .surface,
+.dashboard-card,
 .status-item {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -336,6 +337,57 @@ a {
   display: grid;
   gap: 0.9rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-shell {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: 1fr;
+}
+
+.dashboard-grid-two-up {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-controls-shell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.9rem;
+}
+
+.dashboard-control-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-search-control {
+  min-width: min(320px, 100%);
+}
+
+.dashboard-control-actions {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dashboard-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.dashboard-card-header h2 {
+  margin-bottom: 0.2rem;
 }
 
 .stack {
@@ -913,6 +965,23 @@ ul {
 
   .split-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid-two-up {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-control-grid {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .dashboard-control-actions {
+    width: 100%;
+  }
+
+  .dashboard-control-actions .button {
+    width: 100%;
   }
 
   .control-grid {
