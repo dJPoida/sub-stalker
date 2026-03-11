@@ -47,6 +47,14 @@ Subscription Stalker is a web app that helps users keep track of recurring subsc
 - GitHub Issues is the source of truth for backlog tasks, TODO follow-ups, and defects.
 - For AI-assisted development, contributors should use the GitHub MCP server to create/update issues while working.
 - Avoid leaving untracked TODOs without a linked issue.
+- Default execution flow for AI agents when a user requests work:
+  1. Check for an existing/overlapping issue.
+  2. Create a new issue if one does not exist.
+  3. If execution was not explicit, confirm whether the request is backlog-only or implementation now.
+  4. If implementing, create a branch first.
+  5. Implement the fix.
+  6. Commit and push/publish the branch.
+  7. Raise a pull request.
 - See `AGENTS.md` for AI-specific workflow requirements.
 
 ## Favicon and app icons
