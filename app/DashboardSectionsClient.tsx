@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 
 import SubscriptionDetailsModal from "@/app/components/SubscriptionDetailsModal";
 import { useSubscriptionDetailsModal } from "@/app/components/useSubscriptionDetailsModal";
@@ -10,6 +10,7 @@ import {
   DASHBOARD_DATE_RANGE_OPTIONS,
   DEFAULT_DASHBOARD_DATE_RANGE,
   filterDashboardRecentActivity,
+  mapDashboardSpendBreakdownByCurrency,
   filterDashboardUpcomingRenewals,
   type DashboardDateRangeValue,
 } from "@/lib/dashboard-controls";
@@ -39,6 +40,18 @@ type DashboardSectionsClientProps = {
   availableCurrencies: string[];
   upcomingCharges: DashboardUpcomingChargeListItem[];
   recentSubscriptions: DashboardRecentActivityListItem[];
+  monthlySpendTotalsByCurrency: Array<{
+    currency: string;
+    monthlyEquivalentSpendCents: number;
+  }>;
+  spendBreakdownByCategory: Array<{
+    category: string;
+    subscriptionCount: number;
+    totalsByCurrency: Array<{
+      currency: string;
+      monthlyEquivalentSpendCents: number;
+    }>;
+  }>;
 };
 
 function formatMoney(amountCents: number, currency: string): string {
@@ -86,8 +99,12 @@ export default function DashboardSectionsClient({
   availableCurrencies,
   upcomingCharges,
   recentSubscriptions,
+  monthlySpendTotalsByCurrency,
+  spendBreakdownByCategory,
 }: DashboardSectionsClientProps) {
   const detailsModal = useSubscriptionDetailsModal();
+  const spendBreakdownTitleId = useId();
+  const spendBreakdownDescriptionId = useId();
   const [currency, setCurrency] = useState<string>(DASHBOARD_ALL_CURRENCIES);
   const [dateRange, setDateRange] = useState<DashboardDateRangeValue>(DEFAULT_DASHBOARD_DATE_RANGE);
   const [searchQuery, setSearchQuery] = useState("");
@@ -134,6 +151,69 @@ export default function DashboardSectionsClient({
 
     return ["USD", ...normalized.filter((value) => value !== "USD")];
   }, [availableCurrencies]);
+  const spendBreakdownCurrency = useMemo(() => {
+    if (currency !== DASHBOARD_ALL_CURRENCIES) {
+      return currency.toUpperCase();
+    }
+
+    return monthlySpendTotalsByCurrency.length === 1 ? monthlySpendTotalsByCurrency[0].currency : null;
+  }, [currency, monthlySpendTotalsByCurrency]);
+  const spendBreakdownRows = useMemo(() => {
+    if (!spendBreakdownCurrency) {
+      return [];
+    }
+
+    return mapDashboardSpendBreakdownByCurrency(spendBreakdownByCategory, spendBreakdownCurrency, searchQuery);
+  }, [searchQuery, spendBreakdownByCategory, spendBreakdownCurrency]);
+  const spendBreakdownTotalCents = useMemo(() => {
+    return spendBreakdownRows.reduce((total, row) => total + row.monthlyEquivalentSpendCents, 0);
+  }, [spendBreakdownRows]);
+  const spendBreakdownKpiTotalCents = useMemo(() => {
+    if (!spendBreakdownCurrency) {
+      return null;
+    }
+
+    return (
+      monthlySpendTotalsByCurrency.find((entry) => entry.currency === spendBreakdownCurrency)?.monthlyEquivalentSpendCents ??
+      null
+    );
+  }, [monthlySpendTotalsByCurrency, spendBreakdownCurrency]);
+  const spendBreakdownReconciled =
+    spendBreakdownKpiTotalCents === null || spendBreakdownKpiTotalCents === spendBreakdownTotalCents;
+  const spendBreakdownSegments = useMemo(() => {
+    if (!spendBreakdownCurrency || spendBreakdownTotalCents <= 0) {
+      return [];
+    }
+
+    const radius = 44;
+    const circumference = 2 * Math.PI * radius;
+    let dashOffset = 0;
+
+    return spendBreakdownRows.map((row) => {
+      const segmentLength = (row.monthlyEquivalentSpendCents / spendBreakdownTotalCents) * circumference;
+      const segment = {
+        category: row.category,
+        color: row.color,
+        segmentLength,
+        dashOffset,
+      };
+      dashOffset -= segmentLength;
+      return segment;
+    });
+  }, [spendBreakdownCurrency, spendBreakdownRows, spendBreakdownTotalCents]);
+  const spendBreakdownDescription = useMemo(() => {
+    if (!spendBreakdownCurrency || spendBreakdownRows.length === 0 || spendBreakdownTotalCents <= 0) {
+      return "No categorized spend data is available for the current controls.";
+    }
+
+    return spendBreakdownRows
+      .map((row) => {
+        const percent = Math.round((row.monthlyEquivalentSpendCents / spendBreakdownTotalCents) * 100);
+        return `${row.category}: ${formatMoney(row.monthlyEquivalentSpendCents, spendBreakdownCurrency)} (${percent}%).`;
+      })
+      .join(" ");
+  }, [spendBreakdownCurrency, spendBreakdownRows, spendBreakdownTotalCents]);
+  const spendBreakdownChartCircumference = 2 * Math.PI * 44;
 
   return (
     <>
@@ -194,8 +274,85 @@ export default function DashboardSectionsClient({
 
         <section className="dashboard-grid dashboard-grid-two-up">
           <article className="dashboard-card">
-            <h2>Spend Breakdown</h2>
-            <p className="text-muted">Chart and category legend content will render inside this container.</p>
+            <div className="dashboard-card-header">
+              <h2>Spend Breakdown</h2>
+              <span className="metric-note">
+                {spendBreakdownCurrency ? `${spendBreakdownRows.length} categories` : "Select a currency"}
+              </span>
+            </div>
+            {!spendBreakdownCurrency ? (
+              <p className="text-muted">
+                Choose a specific currency to compare category spend when your dashboard contains multiple currencies.
+              </p>
+            ) : spendBreakdownRows.length === 0 || spendBreakdownTotalCents <= 0 ? (
+              <p className="text-muted">No categorized spend exists for the current filters.</p>
+            ) : (
+              <div className="spend-breakdown-layout">
+                <figure className="spend-donut-figure">
+                  <svg
+                    aria-describedby={spendBreakdownDescriptionId}
+                    aria-labelledby={spendBreakdownTitleId}
+                    className="spend-donut"
+                    role="img"
+                    viewBox="0 0 112 112"
+                  >
+                    <title id={spendBreakdownTitleId}>
+                      Spend by category in {spendBreakdownCurrency}
+                    </title>
+                    <desc id={spendBreakdownDescriptionId}>{spendBreakdownDescription}</desc>
+                    <circle className="spend-donut-track" cx="56" cy="56" r="44" />
+                    {spendBreakdownSegments.map((segment) => (
+                      <circle
+                        className="spend-donut-segment"
+                        cx="56"
+                        cy="56"
+                        key={segment.category}
+                        r="44"
+                        stroke={segment.color}
+                        strokeDasharray={`${segment.segmentLength} ${spendBreakdownChartCircumference}`}
+                        strokeDashoffset={segment.dashOffset}
+                      />
+                    ))}
+                  </svg>
+                  <figcaption className="spend-donut-total">
+                    <span className="metric-note">Monthly total</span>
+                    <strong>{formatMoney(spendBreakdownTotalCents, spendBreakdownCurrency)}</strong>
+                  </figcaption>
+                </figure>
+                <ul aria-label={`Spend category legend in ${spendBreakdownCurrency}`} className="spend-legend">
+                  {spendBreakdownRows.map((row) => {
+                    const percent = Math.round((row.monthlyEquivalentSpendCents / spendBreakdownTotalCents) * 100);
+                    const subscriptionLabel = row.subscriptionCount === 1 ? "1 subscription" : `${row.subscriptionCount} subscriptions`;
+
+                    return (
+                      <li className="spend-legend-item" key={row.category}>
+                        <span
+                          aria-hidden="true"
+                          className="spend-legend-swatch"
+                          style={{ backgroundColor: row.color }}
+                        />
+                        <div className="spend-legend-copy">
+                          <span className="spend-legend-label">{row.category}</span>
+                          <span className="spend-legend-value">
+                            {formatMoney(row.monthlyEquivalentSpendCents, spendBreakdownCurrency)} - {percent}% -{" "}
+                            {subscriptionLabel}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            {spendBreakdownCurrency && spendBreakdownRows.length === 1 ? (
+              <p className="text-muted">Only one category currently contributes spend for these filters.</p>
+            ) : null}
+            {spendBreakdownCurrency && !spendBreakdownReconciled ? (
+              <p className="text-muted" role="status">
+                Category totals ({formatMoney(spendBreakdownTotalCents, spendBreakdownCurrency)}) differ from KPI total (
+                {formatMoney(spendBreakdownKpiTotalCents ?? 0, spendBreakdownCurrency)}).
+              </p>
+            ) : null}
           </article>
           <article className="dashboard-card">
             <h2>Attention Needed</h2>
