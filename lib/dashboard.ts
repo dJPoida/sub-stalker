@@ -13,8 +13,27 @@ const ATTENTION_PROMO_WINDOW_DAYS = 7;
 const ATTENTION_PROMO_MAX_ACCOUNT_AGE_DAYS = 45;
 const ATTENTION_UNUSED_MIN_ACCOUNT_AGE_DAYS = 120;
 const ATTENTION_UNUSED_STALE_UPDATED_DAYS = 90;
+const UPCOMING_RENEW_URGENCY_WINDOW_DAYS = 3;
+const UPCOMING_RENEW_TAG_WINDOW_DAYS = 10;
 
 const PROMO_HINT_KEYWORDS = ["trial", "promo", "intro", "discount", "offer", "starter"] as const;
+const WORK_TAG_HINT_KEYWORDS = [
+  "github",
+  "figma",
+  "slack",
+  "notion",
+  "workspace",
+  "office",
+  "jira",
+  "confluence",
+  "cloud",
+  "aws",
+  "azure",
+  "gcp",
+  "vercel",
+  "netlify",
+] as const;
+const GAMING_TAG_HINT_KEYWORDS = ["xbox", "playstation", "steam", "nintendo", "epic", "game pass", "ea play"] as const;
 
 const CATEGORY_RULES: ReadonlyArray<{ category: string; keywords: readonly string[] }> = [
   { category: "Streaming", keywords: ["netflix", "hulu", "disney", "paramount", "spotify", "youtube", "apple tv", "prime video"] },
@@ -97,7 +116,7 @@ export type DashboardAttentionItem = {
   currency: string | null;
 };
 
-export type DashboardUpcomingRenewalTag = "urgent" | "soon" | "upcoming";
+export type DashboardUpcomingRenewalTag = "urgent" | "renew" | "work" | "gaming";
 
 export type DashboardUpcomingRenewal = {
   id: string;
@@ -279,6 +298,11 @@ function hasPromoHint(name: string): boolean {
   return PROMO_HINT_KEYWORDS.some((keyword) => lowered.includes(keyword));
 }
 
+function includesAnyKeyword(value: string, keywords: readonly string[]): boolean {
+  const lowered = value.trim().toLowerCase();
+  return keywords.some((keyword) => lowered.includes(keyword));
+}
+
 function inferCategory(name: string): string {
   const lowered = name.trim().toLowerCase();
 
@@ -359,16 +383,32 @@ function metricAmountFromCurrencyTotals(
   };
 }
 
-function chooseUpcomingRenewalTag(daysUntilRenewal: number): DashboardUpcomingRenewalTag {
-  if (daysUntilRenewal <= 3) {
+function chooseUpcomingRenewalTag(subscription: NormalizedSubscription, daysUntilRenewal: number): DashboardUpcomingRenewalTag {
+  if (daysUntilRenewal <= UPCOMING_RENEW_URGENCY_WINDOW_DAYS) {
     return "urgent";
   }
 
-  if (daysUntilRenewal <= 7) {
-    return "soon";
+  if (daysUntilRenewal <= UPCOMING_RENEW_TAG_WINDOW_DAYS) {
+    return "renew";
   }
 
-  return "upcoming";
+  const searchableText = [subscription.name, subscription.paymentMethod, subscription.signedUpBy ?? ""].join(" ");
+  const isWorkTagged =
+    subscription.inferredCategory === "Productivity" ||
+    subscription.inferredCategory === "Cloud & Hosting" ||
+    includesAnyKeyword(searchableText, WORK_TAG_HINT_KEYWORDS);
+
+  if (isWorkTagged) {
+    return "work";
+  }
+
+  const isGamingTagged = subscription.inferredCategory === "Gaming" || includesAnyKeyword(searchableText, GAMING_TAG_HINT_KEYWORDS);
+
+  if (isGamingTagged) {
+    return "gaming";
+  }
+
+  return "renew";
 }
 
 function compareAttentionItems(first: DashboardAttentionItem, second: DashboardAttentionItem): number {
@@ -543,7 +583,7 @@ export function buildDashboardPayload(
         renewalDate: renewalDate.toISOString(),
         daysUntilRenewal,
         monthlyEquivalentAmountCents: subscription.monthlyEquivalentAmountCents,
-        tag: chooseUpcomingRenewalTag(daysUntilRenewal),
+        tag: chooseUpcomingRenewalTag(subscription, daysUntilRenewal),
         isActive: subscription.isActive,
         createdAt: subscription.createdAtDate.toISOString(),
       };

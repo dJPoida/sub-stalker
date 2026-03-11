@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useMemo, useState } from "react";
+import Image from "next/image";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import SubscriptionDetailsModal from "@/app/components/SubscriptionDetailsModal";
 import { useSubscriptionDetailsModal } from "@/app/components/useSubscriptionDetailsModal";
@@ -11,6 +12,7 @@ import type {
   DashboardCurrencyTotal,
   DashboardKpis,
   DashboardMetricAmount,
+  DashboardUpcomingRenewalTag,
 } from "@/lib/dashboard";
 import {
   DASHBOARD_ALL_CURRENCIES,
@@ -28,10 +30,11 @@ type DashboardUpcomingChargeListItem = {
   isActive: boolean;
   amountCents: number;
   currency: string;
+  billingInterval: "WEEKLY" | "MONTHLY" | "YEARLY" | "CUSTOM";
   paymentMethod: string;
   renewalDate: string;
   createdAt: string;
-  tag: "urgent" | "soon" | "upcoming";
+  tag: DashboardUpcomingRenewalTag;
 };
 
 type DashboardRecentActivityListItem = {
@@ -75,6 +78,8 @@ type DashboardSectionsClientProps = {
   }>;
 };
 
+const UPCOMING_RENEWALS_VISIBLE_ROWS = 6;
+
 function formatMoney(amountCents: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -94,6 +99,22 @@ function formatDate(value: string): string {
 
 function formatCadenceSuffix(type: "monthly" | "annual"): string {
   return type === "monthly" ? "/mo" : "/yr";
+}
+
+function formatRenewalCadenceSuffix(billingInterval: DashboardUpcomingChargeListItem["billingInterval"]): string {
+  if (billingInterval === "WEEKLY") {
+    return "/wk";
+  }
+
+  if (billingInterval === "MONTHLY") {
+    return "/mo";
+  }
+
+  if (billingInterval === "YEARLY") {
+    return "/yr";
+  }
+
+  return "/custom";
 }
 
 function formatCountLabel(value: number, singular: string, plural: string = `${singular}s`): string {
@@ -164,28 +185,109 @@ function buildSpendMetricContent(
   };
 }
 
-function formatTag(tag: "urgent" | "soon" | "upcoming"): string {
+function formatTag(tag: DashboardUpcomingRenewalTag): string {
   if (tag === "urgent") {
     return "URGENT";
   }
 
-  if (tag === "soon") {
-    return "SOON";
+  if (tag === "work") {
+    return "WORK";
   }
 
-  return "UPCOMING";
+  if (tag === "gaming") {
+    return "GAMING";
+  }
+
+  return "RENEW";
 }
 
-function tagClassName(tag: "urgent" | "soon" | "upcoming"): string {
+function tagClassName(tag: DashboardUpcomingRenewalTag): string {
   if (tag === "urgent") {
-    return "pill pill-fail";
+    return "pill renewal-tag renewal-tag-urgent";
   }
 
-  if (tag === "soon") {
-    return "pill pill-ok";
+  if (tag === "work") {
+    return "pill renewal-tag renewal-tag-work";
   }
 
-  return "pill";
+  if (tag === "gaming") {
+    return "pill renewal-tag renewal-tag-gaming";
+  }
+
+  if (tag === "renew") {
+    return "pill renewal-tag renewal-tag-renew";
+  }
+
+  return "pill renewal-tag";
+}
+
+function getPaymentMethodIndicator(paymentMethod: string): string {
+  const normalized = paymentMethod.trim().toLowerCase();
+
+  if (!normalized) {
+    return "NA";
+  }
+
+  if (normalized.includes("visa")) {
+    return "VISA";
+  }
+
+  if (normalized.includes("mastercard")) {
+    return "MC";
+  }
+
+  if (normalized.includes("amex") || normalized.includes("american express")) {
+    return "AMEX";
+  }
+
+  if (normalized.includes("paypal")) {
+    return "PP";
+  }
+
+  if (normalized.includes("apple pay")) {
+    return "AP";
+  }
+
+  if (normalized.includes("google pay")) {
+    return "GP";
+  }
+
+  if (normalized.includes("bank") || normalized.includes("ach")) {
+    return "BANK";
+  }
+
+  return "CARD";
+}
+
+function getServiceInitials(name: string): string {
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .filter((value) => value.length > 0);
+
+  if (words.length === 0) {
+    return "?";
+  }
+
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${words[0]?.charAt(0) ?? ""}${words[1]?.charAt(0) ?? ""}`.toUpperCase();
+}
+
+function getServiceLogoSrc(name: string): string | null {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (!slug) {
+    return null;
+  }
+
+  return `/brands/${slug}.svg`;
 }
 
 function formatAttentionSeverityLabel(severity: DashboardAttentionSeverity): string {
@@ -248,6 +350,7 @@ export default function DashboardSectionsClient({
   const [currency, setCurrency] = useState<string>(DASHBOARD_ALL_CURRENCIES);
   const [dateRange, setDateRange] = useState<DashboardDateRangeValue>(DEFAULT_DASHBOARD_DATE_RANGE);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showAllUpcomingRenewals, setShowAllUpcomingRenewals] = useState(false);
   const now = useMemo(() => new Date(), []);
   const dateRangeDays = useMemo(() => {
     return DASHBOARD_DATE_RANGE_OPTIONS.find((option) => option.value === dateRange)?.days ?? 30;
@@ -266,6 +369,18 @@ export default function DashboardSectionsClient({
       ),
     [currency, dateRange, now, searchQuery, upcomingCharges],
   );
+  useEffect(() => {
+    setShowAllUpcomingRenewals(false);
+  }, [currency, dateRange, searchQuery]);
+  const visibleUpcomingCharges = useMemo(() => {
+    if (showAllUpcomingRenewals) {
+      return filteredUpcomingCharges;
+    }
+
+    return filteredUpcomingCharges.slice(0, UPCOMING_RENEWALS_VISIBLE_ROWS);
+  }, [filteredUpcomingCharges, showAllUpcomingRenewals]);
+  const hasClippedUpcomingRenewals = filteredUpcomingCharges.length > UPCOMING_RENEWALS_VISIBLE_ROWS;
+  const hiddenUpcomingRenewalsCount = Math.max(filteredUpcomingCharges.length - visibleUpcomingCharges.length, 0);
   const filteredRecentActivity = useMemo(
     () =>
       filterDashboardRecentActivity(
@@ -628,40 +743,104 @@ export default function DashboardSectionsClient({
           <article className="dashboard-card">
             <div className="dashboard-card-header">
               <h2>Upcoming Renewals</h2>
-              <span className="metric-note">{filteredUpcomingCharges.length} matching rows</span>
+              <span className="metric-note">{filteredUpcomingCharges.length} matching rows, sorted by soonest date</span>
             </div>
             {filteredUpcomingCharges.length === 0 ? (
               <p className="text-muted">No upcoming renewals match the current control filters.</p>
             ) : (
-              <div className="stack">
-                {filteredUpcomingCharges.map((subscription) => (
-                  <button
-                    aria-label={`View details for ${subscription.name}`}
-                    className="status-item subscription-entry-button"
-                    key={subscription.id}
-                    onClick={() =>
-                      void detailsModal.openModal({
-                        subscriptionId: subscription.id,
-                        source: "upcoming_charges",
-                      })
-                    }
-                    type="button"
-                  >
-                    <div className="subscription-header">
-                      <h2>{subscription.name}</h2>
-                      <div className="inline-actions">
-                        <span className={tagClassName(subscription.tag)}>{formatTag(subscription.tag)}</span>
-                        <span className={subscription.isActive ? "pill pill-ok" : "pill pill-fail"}>
-                          {subscription.isActive ? "ACTIVE" : "INACTIVE"}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="subscription-meta">
-                      {formatMoney(subscription.amountCents, subscription.currency)} - {formatDate(subscription.renewalDate)}
-                    </p>
-                    <p className="subscription-meta">Payment method: {subscription.paymentMethod}</p>
-                  </button>
-                ))}
+              <div className="upcoming-renewals-table-shell">
+                <p className="text-muted" role="status">
+                  {showAllUpcomingRenewals
+                    ? `Showing all ${filteredUpcomingCharges.length} rows.`
+                    : `Showing ${visibleUpcomingCharges.length} of ${filteredUpcomingCharges.length} rows.`}
+                </p>
+                <div className="upcoming-renewals-table-wrap">
+                  <table className="upcoming-renewals-table">
+                    <caption className="visually-hidden">
+                      Upcoming renewals including service, renewal date, amount cadence, payment method, and tag.
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Service</th>
+                        <th scope="col">Renewal Date</th>
+                        <th scope="col">Amount/Cadence</th>
+                        <th scope="col">Payment</th>
+                        <th scope="col">Tag</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleUpcomingCharges.map((subscription) => {
+                        const serviceInitials = getServiceInitials(subscription.name);
+                        const logoSrc = getServiceLogoSrc(subscription.name);
+
+                        return (
+                          <tr key={subscription.id}>
+                            <td data-label="Service">
+                              <div className="renewal-service-cell">
+                                <span aria-hidden="true" className="renewal-service-icon">
+                                  {logoSrc ? (
+                                    <Image
+                                      alt=""
+                                      className="renewal-service-logo"
+                                      height={28}
+                                      loading="lazy"
+                                      onError={(event) => {
+                                        event.currentTarget.style.display = "none";
+                                      }}
+                                      src={logoSrc}
+                                      width={28}
+                                    />
+                                  ) : null}
+                                  <span className="renewal-service-fallback">{serviceInitials}</span>
+                                </span>
+                                <button
+                                  aria-label={`View details for ${subscription.name}`}
+                                  className="renewal-service-button"
+                                  onClick={() =>
+                                    void detailsModal.openModal({
+                                      subscriptionId: subscription.id,
+                                      source: "upcoming_charges",
+                                    })
+                                  }
+                                  type="button"
+                                >
+                                  {subscription.name}
+                                </button>
+                              </div>
+                            </td>
+                            <td data-label="Renewal Date">{formatDate(subscription.renewalDate)}</td>
+                            <td data-label="Amount/Cadence">
+                              {formatMoney(subscription.amountCents, subscription.currency)}{" "}
+                              {formatRenewalCadenceSuffix(subscription.billingInterval)}
+                            </td>
+                            <td data-label="Payment">
+                              <div className="renewal-payment-cell">
+                                <span className="payment-indicator">{getPaymentMethodIndicator(subscription.paymentMethod)}</span>
+                                <span className="text-muted">
+                                  {subscription.paymentMethod.trim() || "No payment method on file"}
+                                </span>
+                              </div>
+                            </td>
+                            <td data-label="Tag">
+                              <span className={tagClassName(subscription.tag)}>{formatTag(subscription.tag)}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {hasClippedUpcomingRenewals ? (
+                  <div className="upcoming-renewals-actions">
+                    <button
+                      className="button button-secondary button-small"
+                      onClick={() => setShowAllUpcomingRenewals((currentValue) => !currentValue)}
+                      type="button"
+                    >
+                      {showAllUpcomingRenewals ? "Show less" : `Show ${hiddenUpcomingRenewalsCount} more`}
+                    </button>
+                  </div>
+                ) : null}
               </div>
             )}
           </article>
