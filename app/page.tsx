@@ -2,19 +2,7 @@ import Link from "next/link";
 
 import DashboardSectionsClient from "@/app/DashboardSectionsClient";
 import { getCurrentUser } from "@/lib/auth";
-import { db } from "@/lib/db";
-
-function estimateMonthlyAmountCents(subscription: { amountCents: number; billingInterval: string }): number {
-  if (subscription.billingInterval === "YEARLY") {
-    return Math.round(subscription.amountCents / 12);
-  }
-
-  if (subscription.billingInterval === "WEEKLY") {
-    return Math.round(subscription.amountCents * 4.33);
-  }
-
-  return subscription.amountCents;
-}
+import { getDashboardPayloadForUser } from "@/lib/dashboard";
 
 function formatMoney(amountCents: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
@@ -25,12 +13,14 @@ function formatMoney(amountCents: number, currency: string): string {
   }).format(amountCents / 100);
 }
 
-function formatDate(value: Date): string {
+function formatDate(value: Date | string): string {
+  const parsedValue = value instanceof Date ? value : new Date(value);
+
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(value);
+  }).format(parsedValue);
 }
 
 export default async function DashboardPage() {
@@ -77,42 +67,15 @@ export default async function DashboardPage() {
     );
   }
 
-  const subscriptions = await db.subscription.findMany({
-    where: {
-      userId: user.id,
-    },
-    orderBy: [{ isActive: "desc" }, { nextBillingDate: "asc" }, { createdAt: "desc" }],
-  });
+  const dashboardPayload = await getDashboardPayloadForUser(user.id);
 
-  const activeSubscriptions = subscriptions.filter((subscription) => subscription.isActive);
-  const estimatedMonthlySpendCents = activeSubscriptions.reduce(
-    (total, subscription) => total + estimateMonthlyAmountCents(subscription),
-    0,
-  );
-  const activeCurrencies = new Set(activeSubscriptions.map((subscription) => subscription.currency));
+  const monthlySpendMetric = dashboardPayload.kpis.monthlyEquivalentSpend;
   const monthlySpendDisplay =
-    activeSubscriptions.length === 0
+    monthlySpendMetric.totalsByCurrency.length === 0
       ? "n/a"
-      : activeCurrencies.size === 1
-      ? formatMoney(estimatedMonthlySpendCents, activeSubscriptions[0].currency)
+      : monthlySpendMetric.amountCents !== null && monthlySpendMetric.currency
+      ? formatMoney(monthlySpendMetric.amountCents, monthlySpendMetric.currency)
       : "Mixed currencies";
-
-  const nextCharge = activeSubscriptions
-    .filter((subscription) => subscription.nextBillingDate !== null)
-    .sort((first, second) => {
-      return (
-        (first.nextBillingDate?.getTime() ?? Number.POSITIVE_INFINITY) -
-        (second.nextBillingDate?.getTime() ?? Number.POSITIVE_INFINITY)
-      );
-    })[0];
-
-  const upcomingCharges = activeSubscriptions
-    .filter((subscription) => subscription.nextBillingDate !== null)
-    .slice(0, 5);
-
-  const recentSubscriptions = [...subscriptions]
-    .sort((first, second) => second.createdAt.getTime() - first.createdAt.getTime())
-    .slice(0, 5);
 
   return (
     <section className="page-stack">
@@ -135,7 +98,7 @@ export default async function DashboardPage() {
       <section className="metric-grid">
         <article className="metric-card">
           <span className="metric-label">Active Subscriptions</span>
-          <strong className="metric-value">{activeSubscriptions.length}</strong>
+          <strong className="metric-value">{dashboardPayload.kpis.subscriptions.active}</strong>
           <span className="metric-note">Currently billing</span>
         </article>
         <article className="metric-card">
@@ -146,32 +109,36 @@ export default async function DashboardPage() {
         <article className="metric-card">
           <span className="metric-label">Next Charge</span>
           <strong className="metric-value">
-            {nextCharge ? formatMoney(nextCharge.amountCents, nextCharge.currency) : "n/a"}
+            {dashboardPayload.nextCharge
+              ? formatMoney(dashboardPayload.nextCharge.amountCents, dashboardPayload.nextCharge.currency)
+              : "n/a"}
           </strong>
           <span className="metric-note">
-            {nextCharge?.nextBillingDate ? `${nextCharge.name} on ${formatDate(nextCharge.nextBillingDate)}` : "No date set"}
+            {dashboardPayload.nextCharge
+              ? `${dashboardPayload.nextCharge.name} on ${formatDate(dashboardPayload.nextCharge.nextBillingDate)}`
+              : "No date set"}
           </span>
         </article>
       </section>
 
       <DashboardSectionsClient
-        recentSubscriptions={recentSubscriptions.map((subscription) => ({
+        recentSubscriptions={dashboardPayload.recentSubscriptions.map((subscription) => ({
           id: subscription.id,
           name: subscription.name,
           isActive: subscription.isActive,
           amountCents: subscription.amountCents,
           currency: subscription.currency,
-          nextBillingDate: subscription.nextBillingDate ? subscription.nextBillingDate.toISOString() : null,
-          createdAt: subscription.createdAt.toISOString(),
+          nextBillingDate: subscription.nextBillingDate,
+          createdAt: subscription.createdAt,
         }))}
-        upcomingCharges={upcomingCharges.map((subscription) => ({
+        upcomingCharges={dashboardPayload.upcomingRenewals.map((subscription) => ({
           id: subscription.id,
           name: subscription.name,
           isActive: subscription.isActive,
           amountCents: subscription.amountCents,
           currency: subscription.currency,
-          nextBillingDate: subscription.nextBillingDate ? subscription.nextBillingDate.toISOString() : null,
-          createdAt: subscription.createdAt.toISOString(),
+          nextBillingDate: subscription.renewalDate,
+          createdAt: subscription.createdAt,
         }))}
       />
 

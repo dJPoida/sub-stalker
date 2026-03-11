@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test:invites": "dotenv -e .env.local -- node --import tsx --test tests/invites/*.test.ts",
     "test:mail": "dotenv -e .env.local -- node --import tsx --test tests/mail/*.test.ts",
+    "test:dashboard": "dotenv -e .env.local -- node --import tsx --test tests/dashboard/*.test.ts",
     "email:dev": "email dev --dir lib/mail/templates",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
