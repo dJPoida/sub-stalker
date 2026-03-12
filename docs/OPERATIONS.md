@@ -51,6 +51,8 @@ Scheduled cleanup:
 - Endpoint requires `Authorization: Bearer <CRON_SECRET>`.
 - For ad-hoc testing, use `/tools` manual actions instead of increasing cron frequency.
 - Daily maintenance marks expired pending invites as `EXPIRED`.
+- Daily maintenance dispatches due subscription reminder emails grouped per user.
+- Daily maintenance is idempotent for reminders via `SubscriptionReminderDispatch` (`userId + billingDateKey`).
 - Daily maintenance prunes `EmailDeliveryLog` rows older than the retention window.
 - Invite issuance is conservatively throttled per authenticated operator (hourly window).
 
@@ -95,6 +97,11 @@ Email service:
 6. Verify email health path:
    - trigger `Send Test Email` from `/tools` as an authenticated user.
    - confirm `EmailDeliveryLog` row is written with expected status.
+7. Verify reminder maintenance path:
+   - trigger `Run Daily Batch` from `/tools`.
+   - confirm output includes reminder due/sent/failed/deduped counters.
+   - confirm `EmailDeliveryLog` includes `templateName=subscription_reminder` for successful reminder sends.
+   - confirm rerunning the same day increments reminder dedupe count without sending duplicates.
 
 ### If deployment fails
 
@@ -130,3 +137,10 @@ Test email fails:
 - if provider is `console`, set `MAIL_PROVIDER_API_KEY` and redeploy.
 - confirm `MAIL_FROM_ADDRESS` is valid for current provider/domain setup.
 - inspect `EmailDeliveryLog` entries in Prisma Studio for recent `FAILED` rows.
+
+Reminder job appears stalled or missing sends:
+
+- run `/tools` daily maintenance and inspect reminder counters in output.
+- confirm user settings (`remindersEnabled`, `reminderDaysBefore`) and subscription `nextBillingDate` values align with today's UTC date.
+- inspect `SubscriptionReminderDispatch` for rows already created for the same `userId + billingDateKey`.
+- inspect `EmailDeliveryLog` for `templateName=subscription_reminder` status rows.

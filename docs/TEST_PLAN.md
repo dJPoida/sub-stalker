@@ -90,6 +90,8 @@ Email:
 4. In Prisma Studio, verify `EmailDeliveryLog` rows are created with expected `templateName` and `status`.
 5. From `/tools`, issue an invite and verify an `EmailDeliveryLog` entry with `templateName=invite_issuance` is created.
 6. Disable provider key (or force `MAIL_PROVIDER=console`) and issue another invite; confirm `/tools` shows fallback/manual-share status while still returning token/URL.
+7. Set a subscription with `nextBillingDate` equal to today's date plus the user's `reminderDaysBefore`, run `Run Daily Batch`, and verify an `EmailDeliveryLog` row with `templateName=subscription_reminder` is created.
+8. Run `Run Daily Batch` again on the same day and confirm reminder dedupe in output (no duplicate reminder send for the same user + billing cycle).
 
 Deploy:
 
@@ -100,6 +102,7 @@ Deploy:
 5. Confirm `/tools` manual maintenance actions run successfully for testing.
 6. Confirm maintenance output includes expired invite counts.
 7. Confirm maintenance output includes pruned email delivery log counts.
+8. Confirm maintenance output includes reminder due/sent/failed/deduped counts.
 
 ## Known gaps
 

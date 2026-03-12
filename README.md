@@ -155,13 +155,15 @@ Useful commands:
   - test email
   - invite issuance
   - registration verification (template only)
-  - subscription reminder (template only)
+  - subscription reminder
 - Manual validation workflow:
   - go to `/tools`
   - use `Send Test Email` to send to the authenticated account email
   - endpoint is rate-limited to 3 sends per user per hour
 - Delivery attempts are recorded in Prisma `EmailDeliveryLog` (`SENT`, `FAILED`, `SKIPPED`).
+- Reminder dispatch dedupe state is recorded in Prisma `SubscriptionReminderDispatch` (unique per `userId + billingDateKey`).
 - Invite issuance from `/tools` attempts immediate email delivery and falls back to manual share when provider is unavailable or send fails.
+- Daily maintenance dispatches due subscription reminder batches using each user's saved reminder settings.
 - Daily maintenance prunes stale email logs using `EMAIL_DELIVERY_LOG_RETENTION_DAYS`.
 - Local template preview command:
   - `npm run email:dev`
