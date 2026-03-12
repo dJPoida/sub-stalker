@@ -285,6 +285,7 @@ a {
   border-radius: 16px;
   box-shadow: var(--card-shadow);
   padding: 1.1rem 1.2rem;
+  min-width: 0;
 }
 
 .card h1,
@@ -312,6 +313,7 @@ a {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 0.95rem 1rem;
+  min-width: 0;
 }
 
 .metric-label {
@@ -393,6 +395,10 @@ a {
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.dashboard-card-header > * {
+  min-width: 0;
 }
 
 .dashboard-card-header h2 {
@@ -483,6 +489,15 @@ a {
 .spend-legend-value {
   color: var(--text-muted);
   font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  flex-wrap: wrap;
 }
 
 .attention-list {
@@ -691,6 +706,85 @@ a {
   margin: 0;
   color: var(--text-muted);
   font-size: 0.83rem;
+  overflow-wrap: anywhere;
+}
+
+.metric-card-skeleton,
+.attention-item-skeleton,
+.savings-opportunity-item-skeleton,
+.cost-driver-item-skeleton,
+.subscription-entry-skeleton {
+  pointer-events: none;
+}
+
+.dashboard-skeleton-line {
+  display: block;
+  width: 100%;
+  height: 0.8rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--panel-soft), var(--text) 7%) 0%,
+    color-mix(in srgb, var(--panel-soft), var(--text) 15%) 50%,
+    color-mix(in srgb, var(--panel-soft), var(--text) 7%) 100%
+  );
+  background-size: 200% 100%;
+  animation: dashboard-skeleton-shimmer 1.25s ease-in-out infinite;
+}
+
+.dashboard-skeleton-line-xs {
+  width: 34%;
+}
+
+.dashboard-skeleton-line-sm {
+  width: 52%;
+}
+
+.dashboard-skeleton-line-md {
+  width: 68%;
+}
+
+.dashboard-skeleton-line-lg {
+  width: 88%;
+}
+
+.dashboard-skeleton-swatch {
+  background: color-mix(in srgb, var(--panel-soft), var(--text) 12%);
+  box-shadow: none;
+}
+
+.spend-donut-figure-skeleton {
+  gap: 0.6rem;
+}
+
+.spend-donut-skeleton {
+  width: 160px;
+  height: 160px;
+  border-radius: 999px;
+  display: block;
+  border: 12px solid color-mix(in srgb, var(--panel-soft), var(--text) 10%);
+  animation: dashboard-skeleton-pulse 1.25s ease-in-out infinite;
+}
+
+@keyframes dashboard-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes dashboard-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.62;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 .stack {
@@ -732,6 +826,12 @@ button:disabled,
 .button:disabled {
   opacity: 0.66;
   cursor: not-allowed;
+  transform: none;
+}
+
+.button[aria-disabled="true"] {
+  opacity: 0.66;
+  pointer-events: none;
   transform: none;
 }
 
@@ -1032,6 +1132,10 @@ button:disabled,
   border-bottom: 0;
 }
 
+.upcoming-renewals-table tbody tr:last-child th {
+  border-bottom: 0;
+}
+
 .upcoming-renewals-table tbody tr:hover {
   background: color-mix(in srgb, var(--panel-soft), var(--panel) 45%);
 }
@@ -1082,6 +1186,7 @@ button:disabled,
   padding: 0;
   text-align: left;
   justify-content: flex-start;
+  overflow-wrap: anywhere;
 }
 
 .renewal-service-button:hover {
@@ -1100,6 +1205,10 @@ button:disabled,
   align-items: center;
   gap: 0.46rem;
   flex-wrap: wrap;
+}
+
+.renewal-payment-cell .text-muted {
+  overflow-wrap: anywhere;
 }
 
 .payment-indicator {
@@ -1228,6 +1337,7 @@ button:disabled,
   .upcoming-renewals-table,
   .upcoming-renewals-table tbody,
   .upcoming-renewals-table tr,
+  .upcoming-renewals-table th,
   .upcoming-renewals-table td {
     display: block;
     width: 100%;
@@ -1251,6 +1361,21 @@ button:disabled,
     align-items: center;
   }
 
+  .upcoming-renewals-table th {
+    border-bottom: 0;
+    padding: 0.42rem 0.62rem;
+    display: grid;
+    grid-template-columns: minmax(110px, 38%) minmax(0, 1fr);
+    gap: 0.4rem;
+    align-items: center;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 0.9rem;
+    color: var(--text);
+    background: transparent;
+  }
+
+  .upcoming-renewals-table th::before,
   .upcoming-renewals-table td::before {
     content: attr(data-label);
     font-size: 0.74rem;

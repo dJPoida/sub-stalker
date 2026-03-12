@@ -14,18 +14,23 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  const data = await getDashboardPayloadForUser(user.id);
+  try {
+    const data = await getDashboardPayloadForUser(user.id);
 
-  return NextResponse.json(
-    {
-      data,
-      fetchedAt: new Date().toISOString(),
-    },
-    {
-      status: 200,
-      headers: {
-        "Cache-Control": "no-store",
+    return NextResponse.json(
+      {
+        data,
+        fetchedAt: new Date().toISOString(),
       },
-    },
-  );
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  } catch (error) {
+    console.error("Failed to build dashboard payload", error);
+    return NextResponse.json({ error: "Unable to load dashboard data." }, { status: 500 });
+  }
 }
