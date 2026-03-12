@@ -41,6 +41,7 @@ Subscription Stalker is a web app that helps users keep track of recurring subsc
 - npm 9+
 - Docker Desktop (for local Postgres + migration testing)
 - GitHub MCP configured if you use AI agents for backlog/TODO handling
+- On Windows, run local project commands in Git Bash (`C:\Program Files\Git\bin\bash.exe`) instead of PowerShell to avoid script execution-policy issues with `npm`.
 
 ## Backlog and TODO workflow
 

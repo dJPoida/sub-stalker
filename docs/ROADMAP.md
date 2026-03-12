@@ -26,7 +26,7 @@ Acceptance criteria:
 - Persist display mode preferences (`DEVICE`, `LIGHT`, `DARK`).
 - Pre-fill form from DB values.
 
-## P2: Dashboard signal
+## P2: Dashboard signal (completed)
 
 Goal:
 
@@ -38,7 +38,7 @@ Acceptance criteria:
 - Active subscription count.
 - Monthly estimated spend summary.
 
-## P3: Notification baseline
+## P3: Notification baseline (completed)
 
 Goal:
 
@@ -100,3 +100,23 @@ Acceptance criteria:
 - `/tools` can issue single-use invite links for manual sharing.
 - Sign-up enforces invite token + email match when `INVITES_REQUIRED=true`.
 - Invite consumption is atomic and safe under concurrent registration attempts.
+
+## P8: Household account linking and sharing
+
+Goal:
+
+- Let users link family/spouse/partner accounts so subscriptions can be shared with clear ownership and permissions.
+
+Summary:
+
+- Introduce a household model where users can invite and link trusted accounts, choose whether each subscription is personal or shared, and enforce role-based access so shared data stays collaborative but controlled.
+- Tracking issue: #65.
+
+Acceptance criteria:
+
+- Users can create a household and invite another account through a secure linking flow.
+- Invited users can accept the invite and join the linked household.
+- Shared subscriptions are visible to authorized household members.
+- Personal subscriptions remain private to the owner account.
+- Permission rules are enforced for create/update/delete actions on shared subscriptions.
+- Shared records retain audit metadata showing who made changes.
