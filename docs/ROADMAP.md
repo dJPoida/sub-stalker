@@ -26,7 +26,7 @@ Acceptance criteria:
 - Persist display mode preferences (`DEVICE`, `LIGHT`, `DARK`).
 - Pre-fill form from DB values.
 
-## P2: Dashboard signal
+## P2: Dashboard signal (completed)
 
 Goal:
 
@@ -38,7 +38,7 @@ Acceptance criteria:
 - Active subscription count.
 - Monthly estimated spend summary.
 
-## P3: Notification baseline
+## P3: Notification baseline (completed)
 
 Goal:
 

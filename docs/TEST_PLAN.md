@@ -7,6 +7,7 @@
 3. `npm run build`
 4. `npm run test:invites` (when local Postgres is available)
 5. `npm run test:mail`
+6. `npm run test:dashboard`
 
 For migration/schema changes:
 

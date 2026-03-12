@@ -27,3 +27,4 @@ When the user asks for a task to be done, follow this sequence:
 - GitHub MCP server must be installed and authenticated before starting feature work.
 - The MCP token must include permissions required to create and update issues in this repository.
 - If MCP issue creation is unavailable, report that as a blocker in handoff notes and avoid silent backlog loss.
+- On Windows hosts, execute local repository commands via Git Bash (for example, `C:\Program Files\Git\bin\bash.exe -lc "<command>"`) instead of PowerShell.

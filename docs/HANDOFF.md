@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-03-10
+Last updated: 2026-03-13
 
 ## Current status
 
@@ -62,12 +62,18 @@ Implemented:
 - Form submit UX feedback:
   - all primary form/server-action flows use pending submit states and disabled fieldsets via shared `PendingFormControls`.
 - Dashboard:
-  - shows active subscription count, estimated monthly spend, next charge summary, and quick actions.
+  - API-driven aggregation contract exposed via `/api/dashboard`.
+  - shows active subscription count, estimated monthly spend, renewals-in-next-7-days, and category/savings signals.
   - upcoming/recent items are interactive entry points into the shared details modal.
+- Email and notification baseline:
+  - provider-agnostic mail wrapper with `resend` / `console` / `mock`.
+  - `EmailDeliveryLog` persistence for send outcomes (`SENT`, `FAILED`, `SKIPPED`).
+  - daily maintenance dispatches due subscription reminders and dedupes reruns using `SubscriptionReminderDispatch`.
+  - `/tools` supports authenticated test-email sends and manual daily-batch execution.
 
 Not implemented yet:
 
-- Email/notification workflows.
+- Registration verification email flow is still template-only and not yet wired into sign-up/sign-in gating.
 - Full end-to-end browser coverage.
 
 ## Critical deployment notes
@@ -82,7 +88,7 @@ Not implemented yet:
 
 1. Add role-based operator permissions for `/tools` invite issuance.
 2. Add optional "sign out all sessions" account control.
-3. Add notifications/reminders workflow from settings preferences.
+3. Wire registration verification email/token flow into auth lifecycle.
 
 ## Files to understand first
 
@@ -92,3 +98,4 @@ Not implemented yet:
 4. `lib/status.ts`
 5. `scripts/vercel-build.mjs`
 6. `app/auth/actions.ts`
+7. `lib/subscription-reminders.ts`
