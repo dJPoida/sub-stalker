@@ -20,7 +20,8 @@ When the user asks for a task to be done, follow this sequence:
 4. For implementation requests, create a dedicated branch before making code changes.
 5. Implement the fix.
 6. Commit the changes and push/publish the branch to remote.
-7. Open a pull request for review and merge workflow.
+7. Check for an outstanding pull request that can reasonably include the request; if one exists, add changes there instead of creating a new PR.
+8. Open a new pull request only when no suitable outstanding PR exists.
 
 ## Required setup for AI contributors
 
