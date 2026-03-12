@@ -16,6 +16,10 @@ type DashboardApiResponse = {
   error?: string;
 };
 
+type DashboardDataClientProps = {
+  initialCurrency?: string | null;
+};
+
 function buildAvailableCurrencies(payload: DashboardPayload): string[] {
   return [
     ...new Set([
@@ -61,7 +65,7 @@ async function loadDashboardPayload(signal?: AbortSignal): Promise<DashboardPayl
   return parsedResponse.data;
 }
 
-export default function DashboardDataClient() {
+export default function DashboardDataClient({ initialCurrency }: DashboardDataClientProps) {
   const [requestState, setRequestState] = useState(INITIAL_DASHBOARD_REQUEST_STATE);
 
   const refreshDashboard = useCallback(async (signal?: AbortSignal) => {
@@ -125,6 +129,7 @@ export default function DashboardDataClient() {
         currency: item.currency,
       })) ?? []}
       availableCurrencies={availableCurrencies}
+      initialCurrency={initialCurrency}
       kpis={payload?.kpis ?? null}
       loadErrorMessage={requestState.errorMessage}
       monthlySpendTotalsByCurrency={

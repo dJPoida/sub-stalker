@@ -2,17 +2,31 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import {
+  buildDashboardCurrencyOptions,
   DASHBOARD_ALL_CURRENCIES,
   DEFAULT_DASHBOARD_DATE_RANGE,
   filterDashboardRecentActivity,
   filterDashboardUpcomingRenewals,
   getDashboardCategoryColor,
   mapDashboardSpendBreakdownByCurrency,
+  resolveInitialDashboardCurrency,
 } from "../../lib/dashboard-controls";
 
 describe("dashboard controls filtering", () => {
   test("uses last 30 days as the default date range", () => {
     assert.equal(DEFAULT_DASHBOARD_DATE_RANGE, "30d");
+  });
+
+  test("resolves dashboard initial currency from user default", () => {
+    assert.equal(resolveInitialDashboardCurrency("aud"), "AUD");
+    assert.equal(resolveInitialDashboardCurrency(""), DASHBOARD_ALL_CURRENCIES);
+    assert.equal(resolveInitialDashboardCurrency("all"), DASHBOARD_ALL_CURRENCIES);
+  });
+
+  test("builds currency options with selected currency and USD priority", () => {
+    const options = buildDashboardCurrencyOptions(["aud", " eur ", "usd", "AUD"], "cad");
+
+    assert.deepEqual(options, ["USD", "AUD", "CAD", "EUR"]);
   });
 
   test("filters upcoming renewals by currency, search, and upcoming date window", () => {

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import DashboardDataClient from "@/app/DashboardDataClient";
 import { getCurrentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -47,6 +48,15 @@ export default async function DashboardPage() {
     );
   }
 
+  const settings = await db.userSettings.findUnique({
+    where: {
+      userId: user.id,
+    },
+    select: {
+      defaultCurrency: true,
+    },
+  });
+
   return (
     <section className="page-stack">
       <header className="page-header">
@@ -59,7 +69,7 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      <DashboardDataClient />
+      <DashboardDataClient initialCurrency={settings?.defaultCurrency ?? null} />
     </section>
   );
 }
