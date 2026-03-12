@@ -12,6 +12,7 @@ type SubscriptionsPageProps = {
   searchParams?: {
     error?: string;
     result?: string;
+    eventId?: string;
   };
 };
 
@@ -68,9 +69,19 @@ function getResultMessage(searchParams?: SubscriptionsPageProps["searchParams"])
   return null;
 }
 
+function getUpdateSuccessToken(searchParams?: SubscriptionsPageProps["searchParams"]): string | null {
+  if (searchParams?.result !== "updated") {
+    return null;
+  }
+
+  const eventId = searchParams.eventId?.trim();
+  return eventId && eventId.length > 0 ? eventId : "updated";
+}
+
 export default async function SubscriptionsPage({ searchParams }: SubscriptionsPageProps) {
   const user = await requireAuthenticatedUser();
   const resultMessage = getResultMessage(searchParams);
+  const updateSuccessToken = getUpdateSuccessToken(searchParams);
   const [subscriptions, paymentMethodSuggestions, signedUpBySuggestions] = await Promise.all([
     db.subscription.findMany({
       where: {
@@ -112,6 +123,7 @@ export default async function SubscriptionsPage({ searchParams }: SubscriptionsP
       createAction={createSubscriptionAction}
       deactivateAction={deactivateSubscriptionAction}
       resultMessage={resultMessage}
+      updateSuccessToken={updateSuccessToken}
       subscriptions={subscriptions.map((subscription) => ({
         id: subscription.id,
         name: subscription.name,

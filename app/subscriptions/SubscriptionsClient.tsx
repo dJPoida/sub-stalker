@@ -39,6 +39,7 @@ type SubscriptionsClientProps = {
   paymentMethodSuggestions: string[];
   signedUpBySuggestions: string[];
   resultMessage: ActionResultMessage | null;
+  updateSuccessToken: string | null;
   createAction: (formData: FormData) => Promise<void>;
   updateAction: (formData: FormData) => Promise<void>;
   deactivateAction: (formData: FormData) => Promise<void>;
@@ -114,6 +115,7 @@ export default function SubscriptionsClient({
   paymentMethodSuggestions,
   signedUpBySuggestions,
   resultMessage,
+  updateSuccessToken,
   createAction,
   updateAction,
   deactivateAction,
@@ -227,6 +229,14 @@ export default function SubscriptionsClient({
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isAddModalOpen, editingSubscriptionId]);
+
+  useEffect(() => {
+    if (!updateSuccessToken) {
+      return;
+    }
+
+    setEditingSubscriptionId(null);
+  }, [updateSuccessToken]);
 
   return (
     <section className="page-stack">
