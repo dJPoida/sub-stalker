@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { DisplayMode } from "@prisma/client";
-import "@mdxeditor/editor/style.css";
+import "easymde/dist/easymde.min.css";
 
 import { signOutAction } from "@/app/auth/actions";
 import { PendingSubmitButton } from "@/app/components/PendingFormControls";

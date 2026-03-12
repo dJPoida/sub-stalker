@@ -1,20 +1,10 @@
 "use client";
 
-import {
-  BlockTypeSelect,
-  BoldItalicUnderlineToggles,
-  CreateLink,
-  headingsPlugin,
-  linkPlugin,
-  listsPlugin,
-  ListsToggle,
-  markdownShortcutPlugin,
-  MDXEditor,
-  quotePlugin,
-  toolbarPlugin,
-  UndoRedo,
-} from "@mdxeditor/editor";
-import { useId, useState } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useId, useMemo, useState } from "react";
+import type { SimpleMDEReactProps } from "react-simplemde-editor";
+
+const MarkdownEditor = dynamic(() => import("react-simplemde-editor"), { ssr: false });
 
 type SubscriptionNotesEditorProps = {
   name: string;
@@ -29,34 +19,46 @@ export default function SubscriptionNotesEditor({
 }: SubscriptionNotesEditorProps) {
   const [value, setValue] = useState(initialValue ?? "");
   const fieldId = useId();
+  const options = useMemo<NonNullable<SimpleMDEReactProps["options"]>>(
+    () => ({
+      autofocus: false,
+      spellChecker: false,
+      status: false,
+      placeholder: "Add context, cancellation steps, or reminders...",
+      toolbar: [
+        "bold",
+        "italic",
+        "heading",
+        "|",
+        "quote",
+        "unordered-list",
+        "ordered-list",
+        "|",
+        "link",
+        "|",
+        "preview",
+        "side-by-side",
+        "|",
+        "guide",
+      ],
+    }),
+    [],
+  );
+
+  useEffect(() => {
+    setValue(initialValue ?? "");
+  }, [initialValue]);
 
   return (
     <label className="form-field">
       {label}
       <div className="notes-editor-shell" id={fieldId}>
-        <MDXEditor
+        <MarkdownEditor
           className="notes-editor"
-          markdown={value}
+          id={`${fieldId}-textarea`}
+          value={value}
           onChange={setValue}
-          placeholder="Add context, cancellation steps, or reminders..."
-          plugins={[
-            headingsPlugin(),
-            listsPlugin(),
-            linkPlugin(),
-            quotePlugin(),
-            markdownShortcutPlugin(),
-            toolbarPlugin({
-              toolbarContents: () => (
-                <>
-                  <UndoRedo />
-                  <BoldItalicUnderlineToggles />
-                  <ListsToggle />
-                  <BlockTypeSelect />
-                  <CreateLink />
-                </>
-              ),
-            }),
-          ]}
+          options={options}
         />
       </div>
       <input name={name} type="hidden" value={value} />
