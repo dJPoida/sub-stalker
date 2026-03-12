@@ -921,14 +921,49 @@ button:disabled,
   overflow: hidden;
 }
 
-.notes-editor .mdxeditor-toolbar {
+.notes-editor .editor-toolbar {
+  border: 0;
   border-bottom: 1px solid var(--border);
   background: var(--panel-soft);
+  opacity: 1;
 }
 
-.notes-editor .mdxeditor-root-contenteditable {
+.notes-editor .editor-toolbar button {
+  color: var(--text-muted);
+}
+
+.notes-editor .editor-toolbar button:hover,
+.notes-editor .editor-toolbar button.active {
+  background: color-mix(in srgb, var(--brand) 15%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--border));
+}
+
+.notes-editor .CodeMirror {
   min-height: 180px;
-  padding: 0.6rem 0.68rem;
+  color: var(--text);
+  background: var(--input-bg);
+  font-family: inherit;
+}
+
+.notes-editor .CodeMirror-gutters {
+  background: var(--input-bg);
+  border-right: 1px solid var(--border);
+}
+
+.notes-editor .CodeMirror-scroll {
+  min-height: 180px;
+}
+
+.notes-editor .CodeMirror-cursor {
+  border-left-color: var(--text);
+}
+
+.notes-editor .CodeMirror-focused {
+  outline: none;
+}
+
+.notes-editor .CodeMirror-placeholder {
+  color: color-mix(in srgb, var(--text-muted) 85%, transparent);
 }
 
 .subscription-link {
