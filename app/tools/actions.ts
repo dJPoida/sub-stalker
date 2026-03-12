@@ -197,6 +197,6 @@ export async function runDailyMaintenanceAction(): Promise<void> {
 
   const result = await runDailyMaintenanceJobs();
   redirect(
-    `/tools?job=daily_maintenance&attempts_deleted=${result.staleSignInAttemptsDeleted}&invites_expired=${result.expiredPendingInvitesMarked}&email_logs_deleted=${result.emailDeliveryLogsDeleted}`,
+    `/tools?job=daily_maintenance&attempts_deleted=${result.staleSignInAttemptsDeleted}&invites_expired=${result.expiredPendingInvitesMarked}&email_logs_deleted=${result.emailDeliveryLogsDeleted}&reminder_due_users=${result.subscriptionReminders.dueUserBatches}&reminder_sent=${result.subscriptionReminders.dispatchesSent}&reminder_failed=${result.subscriptionReminders.dispatchesFailed}&reminder_deduped=${result.subscriptionReminders.dispatchesSkippedDuplicate}`,
   );
 }

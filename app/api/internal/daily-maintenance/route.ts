@@ -34,6 +34,15 @@ export async function GET(request: NextRequest) {
       staleSignInAttemptsDeleted: result.staleSignInAttemptsDeleted,
       expiredPendingInvitesMarked: result.expiredPendingInvitesMarked,
       emailDeliveryLogsDeleted: result.emailDeliveryLogsDeleted,
+      subscriptionReminders: {
+        candidateSubscriptionsScanned: result.subscriptionReminders.candidateSubscriptionsScanned,
+        dueSubscriptions: result.subscriptionReminders.dueSubscriptions,
+        dueUserBatches: result.subscriptionReminders.dueUserBatches,
+        dispatchesAttempted: result.subscriptionReminders.dispatchesAttempted,
+        dispatchesSent: result.subscriptionReminders.dispatchesSent,
+        dispatchesFailed: result.subscriptionReminders.dispatchesFailed,
+        dispatchesSkippedDuplicate: result.subscriptionReminders.dispatchesSkippedDuplicate,
+      },
     },
     ranAt: result.ranAt,
   });

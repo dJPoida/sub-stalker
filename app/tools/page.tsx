@@ -15,6 +15,10 @@ type ToolsPageProps = {
     attempts_deleted?: string;
     invites_expired?: string;
     email_logs_deleted?: string;
+    reminder_due_users?: string;
+    reminder_sent?: string;
+    reminder_failed?: string;
+    reminder_deduped?: string;
   };
 };
 
@@ -51,7 +55,11 @@ function getResultMessage(searchParams?: ToolsPageProps["searchParams"]): string
     const attemptsDeleted = parseCount(searchParams.attempts_deleted) ?? 0;
     const invitesExpired = parseCount(searchParams.invites_expired) ?? 0;
     const emailLogsDeleted = parseCount(searchParams.email_logs_deleted) ?? 0;
-    return `Daily maintenance completed. Stale sign-in attempts deleted: ${attemptsDeleted}. Expired invites marked: ${invitesExpired}. Email delivery logs pruned: ${emailLogsDeleted}.`;
+    const reminderDueUsers = parseCount(searchParams.reminder_due_users) ?? 0;
+    const reminderSent = parseCount(searchParams.reminder_sent) ?? 0;
+    const reminderFailed = parseCount(searchParams.reminder_failed) ?? 0;
+    const reminderDeduped = parseCount(searchParams.reminder_deduped) ?? 0;
+    return `Daily maintenance completed. Stale sign-in attempts deleted: ${attemptsDeleted}. Expired invites marked: ${invitesExpired}. Email delivery logs pruned: ${emailLogsDeleted}. Reminder users due: ${reminderDueUsers}. Reminders sent: ${reminderSent}. Reminder send failures: ${reminderFailed}. Reminder duplicates skipped: ${reminderDeduped}.`;
   }
 
   return null;

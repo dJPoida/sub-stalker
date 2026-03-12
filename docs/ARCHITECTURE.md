@@ -41,6 +41,8 @@ Defined in `prisma/schema.prisma`:
 - `InviteStatus` enum (`PENDING`, `CONSUMED`, `EXPIRED`, `REVOKED`)
 - `EmailDeliveryLog` (delivery attempts with template metadata and provider outcome)
 - `EmailDeliveryStatus` enum (`SENT`, `FAILED`, `SKIPPED`)
+- `SubscriptionReminderDispatch` (idempotent reminder dispatch lock/status per `user + billing date`)
+- `ReminderDispatchStatus` enum (`PENDING`, `SENT`, `FAILED`)
 
 ## Learning fields
 
@@ -151,6 +153,8 @@ Status payload also includes email readiness:
 3. `sendEmail` logging into `EmailDeliveryLog` for all attempts.
 4. `sendInviteEmail` helper for invite issuance delivery (`invite_issuance` template) with explicit `sent`/`skipped`/`failed` outcomes.
 5. Rate-limit helper for `/api/mail/test` (3 sends per user per hour).
+6. `runSubscriptionReminderDispatchJob` selects due subscriptions based on `UserSettings`, groups by user, and sends `subscription_reminder` emails.
+7. `SubscriptionReminderDispatch` enforces idempotency for reminder reruns (`userId + billingDateKey` uniqueness).
 
 Current guarantees:
 
@@ -174,3 +178,4 @@ Additional scheduled operation:
 
 - Daily Vercel cron calls `/api/internal/daily-maintenance` (guarded by `CRON_SECRET`).
 - Daily maintenance marks expired pending invites as `EXPIRED`.
+- Daily maintenance dispatches due subscription reminder batches and reports reminder counters in run output.
