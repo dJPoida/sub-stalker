@@ -153,6 +153,7 @@ Useful commands:
   - `mock` provider for automated tests (`MAIL_PROVIDER=mock`)
 - Email templates are authored with React Email in `lib/mail/templates/`:
   - test email
+  - invite issuance
   - registration verification (template only)
   - subscription reminder (template only)
 - Manual validation workflow:
@@ -160,6 +161,7 @@ Useful commands:
   - use `Send Test Email` to send to the authenticated account email
   - endpoint is rate-limited to 3 sends per user per hour
 - Delivery attempts are recorded in Prisma `EmailDeliveryLog` (`SENT`, `FAILED`, `SKIPPED`).
+- Invite issuance from `/tools` attempts immediate email delivery and falls back to manual share when provider is unavailable or send fails.
 - Daily maintenance prunes stale email logs using `EMAIL_DELIVERY_LOG_RETENTION_DAYS`.
 - Local template preview command:
   - `npm run email:dev`
@@ -245,6 +247,7 @@ Open http://localhost:3000.
 - Optional invitation-only mode:
   - set `INVITES_REQUIRED=true` to require valid invite token on sign-up.
   - invite token must be pending, unexpired, and tied to the same normalized email.
+  - `/tools` invite issuance now issues and attempts email send in one step; if email cannot be sent, manual token/URL share remains available.
   - keep `INVITES_REQUIRED=false` for rollback to open sign-up.
 - Sign in at `/auth/sign-in`.
 - Session is stored as an HTTP-only cookie with an opaque token backed by the `Session` database table.

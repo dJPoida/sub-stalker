@@ -98,7 +98,7 @@ export default async function ToolsPage({ searchParams }: ToolsPageProps) {
           <InviteIssuanceCard issueInviteAction={issueInviteAction} />
         ) : (
           <article className="surface surface-soft">
-            <h2>Issue Invitation Link</h2>
+            <h2>Issue Invitation Email</h2>
             <p className="text-muted">
               Invitation issuance is disabled because <code>INVITES_REQUIRED=false</code>.
             </p>

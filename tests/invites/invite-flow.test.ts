@@ -10,6 +10,7 @@ import {
   hashInviteToken,
   issueInvite,
 } from "../../lib/invites";
+import { sendInviteEmail } from "../../lib/mail";
 
 const createdEmails = new Set<string>();
 
@@ -37,6 +38,14 @@ async function cleanupCreatedRecords(): Promise<void> {
   await db.user.deleteMany({
     where: {
       email: {
+        in: emails,
+      },
+    },
+  });
+
+  await db.emailDeliveryLog.deleteMany({
+    where: {
+      recipientEmail: {
         in: emails,
       },
     },
@@ -316,6 +325,65 @@ describe("invite flow", () => {
           return error.retryAfterSeconds > 0;
         },
       );
+  });
+
+  test("logs invite email sends with invite_issuance template name", async () => {
+      const previousMailProvider = process.env.MAIL_PROVIDER;
+      process.env.MAIL_PROVIDER = "mock";
+
+      try {
+        const operatorEmail = uniqueEmail("operator");
+        const targetEmail = uniqueEmail("invitee");
+
+        const operator = await db.user.create({
+          data: {
+            email: operatorEmail.toLowerCase(),
+            passwordHash: hashPassword("operator-password"),
+            settings: {
+              create: {},
+            },
+          },
+          select: { id: true },
+        });
+
+        const issued = await issueInvite({
+          email: targetEmail,
+          expiresInDays: 7,
+          createdByUserId: operator.id,
+          baseUrl: "http://localhost:3000",
+        });
+
+        const sendResult = await sendInviteEmail({
+          to: issued.email,
+          userId: operator.id,
+          inviteUrl: issued.inviteUrl,
+          expiresAt: new Date(issued.expiresAt),
+        });
+
+        assert.equal(sendResult.outcome, "sent");
+
+        const logEntry = await db.emailDeliveryLog.findFirst({
+          where: {
+            recipientEmail: issued.email,
+            templateName: "invite_issuance",
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            status: true,
+            errorMessage: true,
+            userId: true,
+          },
+        });
+
+        assert.ok(logEntry);
+        assert.equal(logEntry.status, "SENT");
+        assert.equal(logEntry.errorMessage, null);
+        assert.equal(logEntry.userId, operator.id);
+      } finally {
+        process.env.MAIL_PROVIDER = previousMailProvider;
+      }
   });
 });
 

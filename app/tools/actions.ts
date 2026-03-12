@@ -11,6 +11,7 @@ import {
   parseInviteExpiryDays,
 } from "@/lib/invites";
 import { isInvitesRequired } from "@/lib/env";
+import { sendInviteEmail } from "@/lib/mail";
 import { runDailyMaintenanceJobs } from "@/lib/maintenance";
 
 export type InviteIssuanceActionState =
@@ -29,6 +30,8 @@ export type InviteIssuanceActionState =
       inviteToken: string;
       inviteUrl: string;
       rotatedExistingInvite: boolean;
+      inviteEmailOutcome: "sent" | "skipped" | "failed";
+      inviteEmailError: string | null;
     };
 
 async function isSameOriginRequest(): Promise<boolean> {
@@ -118,17 +121,33 @@ export async function issueInviteAction(
       createdByUserId: user.id,
       baseUrl,
     });
+    const inviteEmailResult = await sendInviteEmail({
+      to: result.email,
+      userId: user.id,
+      inviteUrl: result.inviteUrl,
+      expiresAt: new Date(result.expiresAt),
+    });
+    const issuanceMessage = result.rotatedExistingInvite
+      ? "Invite issued, previous pending invite rotated."
+      : "Invite issued successfully.";
+
+    const message =
+      inviteEmailResult.outcome === "sent"
+        ? `${issuanceMessage} Invitation email sent to ${result.email}.`
+        : inviteEmailResult.outcome === "skipped"
+          ? `${issuanceMessage} Email provider is unavailable, so share the invite link manually.`
+          : `${issuanceMessage} Invite email failed, so share the invite link manually.`;
 
     return {
       status: "success",
-      message: result.rotatedExistingInvite
-        ? "Invite issued and previous pending invite was rotated."
-        : "Invite issued successfully.",
+      message,
       email: result.email,
       expiresAt: result.expiresAt,
       inviteToken: result.inviteToken,
       inviteUrl: result.inviteUrl,
       rotatedExistingInvite: result.rotatedExistingInvite,
+      inviteEmailOutcome: inviteEmailResult.outcome,
+      inviteEmailError: inviteEmailResult.error,
     };
   } catch (error) {
     if (error instanceof InviteIssuanceRateLimitError) {

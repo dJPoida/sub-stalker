@@ -19,7 +19,7 @@ Main concerns:
 - `/auth/sign-in`, `/auth/sign-up` (server-action forms; sign-up accepts optional `invite` token context).
 - `/subscriptions` (authenticated).
 - `/settings` (authenticated; action-first settings UI with inline auto-save for simple preferences and modal edit flow for account details).
-- `/tools` (authenticated maintenance + invite issuance actions).
+- `/tools` (authenticated maintenance + invite issuance and invite-email actions with manual-share fallback).
 - `/status` (human-readable operational status).
 - `/api/status` (machine-readable operational status).
 - `/api/mail/test` (authenticated test-email send, rate-limited per user).
@@ -149,7 +149,8 @@ Status payload also includes email readiness:
 1. Provider abstraction and runtime selection (`resend`, `console`, `mock`).
 2. React Email template rendering (`lib/mail/templates`).
 3. `sendEmail` logging into `EmailDeliveryLog` for all attempts.
-4. Rate-limit helper for `/api/mail/test` (3 sends per user per hour).
+4. `sendInviteEmail` helper for invite issuance delivery (`invite_issuance` template) with explicit `sent`/`skipped`/`failed` outcomes.
+5. Rate-limit helper for `/api/mail/test` (3 sends per user per hour).
 
 Current guarantees:
 

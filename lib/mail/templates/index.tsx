@@ -1,5 +1,7 @@
+import * as React from "react";
 import { render } from "@react-email/render";
 
+import InviteIssuanceEmailTemplate from "./InviteIssuanceEmail";
 import RegistrationVerificationEmailTemplate from "./RegistrationVerificationEmail";
 import SubscriptionReminderEmailTemplate, {
   type SubscriptionReminderItem,
@@ -25,6 +27,13 @@ function formatCurrency(amountCents: number, currency: string): string {
 function formatDate(value: Date): string {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
+  }).format(value);
+}
+
+function formatDateTime(value: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
   }).format(value);
 }
 
@@ -79,6 +88,30 @@ export async function renderRegistrationVerificationTemplate(input: {
     subject,
     ...rendered,
     templateName: "registration_verification",
+  };
+}
+
+export async function renderInviteIssuanceTemplate(input: {
+  appName?: string;
+  recipientEmail: string;
+  inviteUrl: string;
+  expiresAt: Date;
+}): Promise<RenderedEmailTemplate> {
+  const appName = input.appName ?? DEFAULT_APP_NAME;
+  const subject = `${appName}: your invite link`;
+  const rendered = await renderTemplate(
+    <InviteIssuanceEmailTemplate
+      appName={appName}
+      recipientEmail={input.recipientEmail}
+      inviteUrl={input.inviteUrl}
+      expiresAt={formatDateTime(input.expiresAt)}
+    />,
+  );
+
+  return {
+    subject,
+    ...rendered,
+    templateName: "invite_issuance",
   };
 }
 

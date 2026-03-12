@@ -28,8 +28,9 @@ Auth:
 7. Confirm sign-in rejects cross-origin requests (invalid request path).
 8. If `INVITES_REQUIRED=true`, confirm sign-up rejects missing invite token with safe generic error.
 9. From `/tools`, issue an invite for `invite-test@example.com`; complete sign-up using invite link and matching email.
-10. Retry sign-up with the same invite token and confirm rejection.
-11. Issue invite for one email and attempt sign-up with different email; confirm rejection.
+10. Confirm invite issuance reports email send status in `/tools`; if provider is unavailable, confirm fallback message instructs manual share.
+11. Retry sign-up with the same invite token and confirm rejection.
+12. Issue invite for one email and attempt sign-up with different email; confirm rejection.
 
 Subscriptions UX:
 
@@ -87,6 +88,8 @@ Email:
 2. Confirm success response instructs to check inbox/spam.
 3. Trigger 4 sends within one hour and confirm the fourth request is rate-limited.
 4. In Prisma Studio, verify `EmailDeliveryLog` rows are created with expected `templateName` and `status`.
+5. From `/tools`, issue an invite and verify an `EmailDeliveryLog` entry with `templateName=invite_issuance` is created.
+6. Disable provider key (or force `MAIL_PROVIDER=console`) and issue another invite; confirm `/tools` shows fallback/manual-share status while still returning token/URL.
 
 Deploy:
 
