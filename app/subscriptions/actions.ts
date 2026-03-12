@@ -251,7 +251,7 @@ export async function updateSubscriptionAction(formData: FormData): Promise<void
     redirect("/subscriptions?error=not_found");
   }
 
-  redirect("/subscriptions?result=updated");
+  redirect(`/subscriptions?result=updated&eventId=${Date.now()}`);
 }
 
 export async function deactivateSubscriptionAction(formData: FormData): Promise<void> {
