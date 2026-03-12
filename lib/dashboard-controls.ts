@@ -58,6 +58,42 @@ export type DashboardSpendBreakdownRow = {
   color: string;
 };
 
+function normalizeCurrencyCode(value: string | null | undefined): string | null {
+  const normalized = String(value ?? "").trim().toUpperCase();
+
+  if (!/^[A-Z]{3}$/.test(normalized)) {
+    return null;
+  }
+
+  return normalized;
+}
+
+export function resolveInitialDashboardCurrency(defaultCurrency: string | null | undefined): string {
+  if (String(defaultCurrency ?? "").trim().toLowerCase() === DASHBOARD_ALL_CURRENCIES) {
+    return DASHBOARD_ALL_CURRENCIES;
+  }
+
+  return normalizeCurrencyCode(defaultCurrency) ?? DASHBOARD_ALL_CURRENCIES;
+}
+
+export function buildDashboardCurrencyOptions(availableCurrencies: string[], selectedCurrency: string): string[] {
+  const normalizedCurrencies = [
+    ...new Set(availableCurrencies.map((value) => normalizeCurrencyCode(value)).filter((value): value is string => value !== null)),
+  ].sort((first, second) => first.localeCompare(second));
+  const normalizedSelectedCurrency = normalizeCurrencyCode(selectedCurrency);
+
+  if (normalizedSelectedCurrency && !normalizedCurrencies.includes(normalizedSelectedCurrency)) {
+    normalizedCurrencies.push(normalizedSelectedCurrency);
+    normalizedCurrencies.sort((first, second) => first.localeCompare(second));
+  }
+
+  if (!normalizedCurrencies.includes("USD")) {
+    return normalizedCurrencies;
+  }
+
+  return ["USD", ...normalizedCurrencies.filter((value) => value !== "USD")];
+}
+
 function toNormalizedSearchQuery(value: string): string {
   return value.trim().toLowerCase();
 }

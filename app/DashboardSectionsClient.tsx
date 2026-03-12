@@ -16,12 +16,14 @@ import type {
   DashboardUpcomingRenewalTag,
 } from "@/lib/dashboard";
 import {
+  buildDashboardCurrencyOptions,
   DASHBOARD_ALL_CURRENCIES,
   DASHBOARD_DATE_RANGE_OPTIONS,
   DEFAULT_DASHBOARD_DATE_RANGE,
   filterDashboardRecentActivity,
   mapDashboardSpendBreakdownByCurrency,
   filterDashboardUpcomingRenewals,
+  resolveInitialDashboardCurrency,
   type DashboardDateRangeValue,
 } from "@/lib/dashboard-controls";
 import type { DashboardRenderState } from "@/lib/dashboard-view-state";
@@ -111,6 +113,7 @@ type DashboardSectionsClientProps = {
       monthlyEquivalentSpendCents: number;
     }>;
   }>;
+  initialCurrency?: string | null;
   renderState?: DashboardRenderState;
   loadErrorMessage?: string | null;
   onRetryLoad?: () => void;
@@ -415,6 +418,7 @@ export default function DashboardSectionsClient({
   recentSubscriptions,
   monthlySpendTotalsByCurrency,
   spendBreakdownByCategory,
+  initialCurrency,
   renderState,
   loadErrorMessage,
   onRetryLoad,
@@ -426,7 +430,7 @@ export default function DashboardSectionsClient({
   const isLoading = resolvedRenderState === "loading";
   const isError = resolvedRenderState === "error";
   const controlsDisabled = isLoading;
-  const [currency, setCurrency] = useState<string>(DASHBOARD_ALL_CURRENCIES);
+  const [currency, setCurrency] = useState<string>(() => resolveInitialDashboardCurrency(initialCurrency));
   const [dateRange, setDateRange] = useState<DashboardDateRangeValue>(DEFAULT_DASHBOARD_DATE_RANGE);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAllUpcomingRenewals, setShowAllUpcomingRenewals] = useState(false);
@@ -586,21 +590,7 @@ export default function DashboardSectionsClient({
   const topCostDriverCurrencyCount = useMemo(() => {
     return new Set(filteredTopCostDrivers.map((driver) => driver.currency.toUpperCase())).size;
   }, [filteredTopCostDrivers]);
-  const currencyOptions = useMemo(() => {
-    const normalized = [
-      ...new Set(
-        availableCurrencies
-          .map((value) => value.trim().toUpperCase())
-          .filter((value) => value.length > 0),
-      ),
-    ].sort((first, second) => first.localeCompare(second));
-
-    if (!normalized.includes("USD")) {
-      return normalized;
-    }
-
-    return ["USD", ...normalized.filter((value) => value !== "USD")];
-  }, [availableCurrencies]);
+  const currencyOptions = useMemo(() => buildDashboardCurrencyOptions(availableCurrencies, currency), [availableCurrencies, currency]);
   const monthlyEquivalentSpend = buildSpendMetricContent(kpis?.monthlyEquivalentSpend, "monthly");
   const annualProjection = buildSpendMetricContent(kpis?.annualProjection, "annual");
   const renewalsInNextSevenDays: KpiCardContent = !kpis
