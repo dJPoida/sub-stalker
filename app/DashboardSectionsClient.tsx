@@ -24,6 +24,7 @@ import {
   filterDashboardUpcomingRenewals,
   type DashboardDateRangeValue,
 } from "@/lib/dashboard-controls";
+import type { DashboardRenderState } from "@/lib/dashboard-view-state";
 
 type DashboardUpcomingChargeListItem = {
   id: string;
@@ -110,6 +111,9 @@ type DashboardSectionsClientProps = {
       monthlyEquivalentSpendCents: number;
     }>;
   }>;
+  renderState?: DashboardRenderState;
+  loadErrorMessage?: string | null;
+  onRetryLoad?: () => void;
 };
 
 const UPCOMING_RENEWALS_VISIBLE_ROWS = 6;
@@ -397,6 +401,10 @@ function isInDateRange(value: string | null, now: Date, rangeDays: number): bool
   return deltaMs >= 0 && deltaMs <= maxMs;
 }
 
+function DashboardSkeletonLine({ className = "" }: { className?: string }) {
+  return <span aria-hidden="true" className={`dashboard-skeleton-line ${className}`.trim()} />;
+}
+
 export default function DashboardSectionsClient({
   availableCurrencies,
   kpis,
@@ -407,10 +415,17 @@ export default function DashboardSectionsClient({
   recentSubscriptions,
   monthlySpendTotalsByCurrency,
   spendBreakdownByCategory,
+  renderState,
+  loadErrorMessage,
+  onRetryLoad,
 }: DashboardSectionsClientProps) {
   const detailsModal = useSubscriptionDetailsModal();
   const spendBreakdownTitleId = useId();
   const spendBreakdownDescriptionId = useId();
+  const resolvedRenderState = renderState ?? (kpis ? "populated" : "loading");
+  const isLoading = resolvedRenderState === "loading";
+  const isError = resolvedRenderState === "error";
+  const controlsDisabled = isLoading;
   const [currency, setCurrency] = useState<string>(DASHBOARD_ALL_CURRENCIES);
   const [dateRange, setDateRange] = useState<DashboardDateRangeValue>(DEFAULT_DASHBOARD_DATE_RANGE);
   const [searchQuery, setSearchQuery] = useState("");
@@ -682,12 +697,25 @@ export default function DashboardSectionsClient({
 
   return (
     <>
-      <div className="dashboard-shell">
-        <article className="dashboard-card dashboard-controls-shell">
+      <div className="dashboard-shell" aria-busy={isLoading}>
+        <span className="visually-hidden" aria-live="polite" role="status">
+          {isLoading
+            ? "Dashboard content is loading."
+            : isError
+              ? "Dashboard failed to load."
+              : "Dashboard content loaded."}
+        </span>
+
+        <article aria-label="Dashboard filters and actions" className="dashboard-card dashboard-controls-shell">
           <div className="dashboard-control-grid">
             <label className="form-field" htmlFor="dashboard-currency-select">
               Currency
-              <select id="dashboard-currency-select" onChange={(event) => setCurrency(event.target.value)} value={currency}>
+              <select
+                disabled={controlsDisabled}
+                id="dashboard-currency-select"
+                onChange={(event) => setCurrency(event.target.value)}
+                value={currency}
+              >
                 <option value={DASHBOARD_ALL_CURRENCIES}>All currencies</option>
                 {currencyOptions.map((option) => (
                   <option key={option} value={option}>
@@ -699,6 +727,7 @@ export default function DashboardSectionsClient({
             <label className="form-field" htmlFor="dashboard-date-range-select">
               Date range
               <select
+                disabled={controlsDisabled}
                 id="dashboard-date-range-select"
                 onChange={(event) => setDateRange(event.target.value as DashboardDateRangeValue)}
                 value={dateRange}
@@ -713,6 +742,7 @@ export default function DashboardSectionsClient({
             <label className="form-field dashboard-search-control" htmlFor="dashboard-search-input">
               Search
               <input
+                disabled={controlsDisabled}
                 id="dashboard-search-input"
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search name, payment method, or currency..."
@@ -722,37 +752,60 @@ export default function DashboardSectionsClient({
             </label>
           </div>
           <div className="dashboard-control-actions">
-            <Link className="button" href="/subscriptions">
+            <Link aria-disabled={controlsDisabled} className="button" href="/subscriptions" tabIndex={controlsDisabled ? -1 : undefined}>
               Add Subscription
             </Link>
           </div>
         </article>
 
+        {isError ? (
+          <div className="notice-error dashboard-error-banner" role="alert">
+            <span>{loadErrorMessage ?? "Unable to load dashboard data. Please try again."}</span>
+            {onRetryLoad ? (
+              <button className="button button-secondary button-small" onClick={onRetryLoad} type="button">
+                Retry
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
         <section className="dashboard-grid">
           <article className="dashboard-card">
             <h2>KPI Summary</h2>
-            <div className="metric-grid dashboard-kpi-grid">
-              <article className="metric-card" aria-live="polite" aria-busy={!kpis}>
-                <span className="metric-label">Monthly equivalent spend</span>
-                <strong className="metric-value">{monthlyEquivalentSpend.value}</strong>
-                <span className="metric-note">{monthlyEquivalentSpend.note}</span>
-              </article>
-              <article className="metric-card" aria-live="polite" aria-busy={!kpis}>
-                <span className="metric-label">Annual projection</span>
-                <strong className="metric-value">{annualProjection.value}</strong>
-                <span className="metric-note">{annualProjection.note}</span>
-              </article>
-              <article className="metric-card" aria-live="polite" aria-busy={!kpis}>
-                <span className="metric-label">Renewing in next 7 days</span>
-                <strong className="metric-value">{renewalsInNextSevenDays.value}</strong>
-                <span className="metric-note">{renewalsInNextSevenDays.note}</span>
-              </article>
-              <article className="metric-card" aria-live="polite" aria-busy={!kpis}>
-                <span className="metric-label">Active vs canceled subscriptions</span>
-                <strong className="metric-value">{activeVsCanceled.value}</strong>
-                <span className="metric-note">{activeVsCanceled.note}</span>
-              </article>
-            </div>
+            {isLoading ? (
+              <div className="metric-grid dashboard-kpi-grid" aria-hidden="true">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <article className="metric-card metric-card-skeleton" key={index}>
+                    <DashboardSkeletonLine className="dashboard-skeleton-line-xs" />
+                    <DashboardSkeletonLine className="dashboard-skeleton-line-lg" />
+                    <DashboardSkeletonLine className="dashboard-skeleton-line-sm" />
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="metric-grid dashboard-kpi-grid">
+                <article className="metric-card" aria-live="polite">
+                  <span className="metric-label">Monthly equivalent spend</span>
+                  <strong className="metric-value">{monthlyEquivalentSpend.value}</strong>
+                  <span className="metric-note">{monthlyEquivalentSpend.note}</span>
+                </article>
+                <article className="metric-card" aria-live="polite">
+                  <span className="metric-label">Annual projection</span>
+                  <strong className="metric-value">{annualProjection.value}</strong>
+                  <span className="metric-note">{annualProjection.note}</span>
+                </article>
+                <article className="metric-card" aria-live="polite">
+                  <span className="metric-label">Renewing in next 7 days</span>
+                  <strong className="metric-value">{renewalsInNextSevenDays.value}</strong>
+                  <span className="metric-note">{renewalsInNextSevenDays.note}</span>
+                </article>
+                <article className="metric-card" aria-live="polite">
+                  <span className="metric-label">Active vs canceled subscriptions</span>
+                  <strong className="metric-value">{activeVsCanceled.value}</strong>
+                  <span className="metric-note">{activeVsCanceled.note}</span>
+                </article>
+              </div>
+            )}
           </article>
         </section>
 
@@ -761,10 +814,35 @@ export default function DashboardSectionsClient({
             <div className="dashboard-card-header">
               <h2>Spend Breakdown</h2>
               <span className="metric-note">
-                {spendBreakdownCurrency ? `${spendBreakdownRows.length} categories` : "Select a currency"}
+                {isLoading
+                  ? "Loading categories..."
+                  : spendBreakdownCurrency
+                    ? `${spendBreakdownRows.length} categories`
+                    : "Select a currency"}
               </span>
             </div>
-            {!spendBreakdownCurrency ? (
+            {isLoading ? (
+              <div className="spend-breakdown-layout" aria-hidden="true">
+                <figure className="spend-donut-figure spend-donut-figure-skeleton">
+                  <span className="spend-donut-skeleton" />
+                  <figcaption className="spend-donut-total">
+                    <DashboardSkeletonLine className="dashboard-skeleton-line-sm" />
+                    <DashboardSkeletonLine className="dashboard-skeleton-line-md" />
+                  </figcaption>
+                </figure>
+                <ul className="spend-legend spend-legend-skeleton">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <li className="spend-legend-item" key={index}>
+                      <span className="spend-legend-swatch dashboard-skeleton-swatch" />
+                      <div className="spend-legend-copy">
+                        <DashboardSkeletonLine className="dashboard-skeleton-line-sm" />
+                        <DashboardSkeletonLine className="dashboard-skeleton-line-lg" />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : !spendBreakdownCurrency ? (
               <p className="text-muted">
                 Choose a specific currency to compare category spend when your dashboard contains multiple currencies.
               </p>
@@ -828,10 +906,10 @@ export default function DashboardSectionsClient({
                 </ul>
               </div>
             )}
-            {spendBreakdownCurrency && spendBreakdownRows.length === 1 ? (
+            {!isLoading && spendBreakdownCurrency && spendBreakdownRows.length === 1 ? (
               <p className="text-muted">Only one category currently contributes spend for these filters.</p>
             ) : null}
-            {spendBreakdownCurrency && !spendBreakdownReconciled ? (
+            {!isLoading && spendBreakdownCurrency && !spendBreakdownReconciled ? (
               <p className="text-muted" role="status">
                 Category totals ({formatMoney(spendBreakdownTotalCents, spendBreakdownCurrency)}) differ from KPI total (
                 {formatMoney(spendBreakdownKpiTotalCents ?? 0, spendBreakdownCurrency)}).
@@ -841,9 +919,25 @@ export default function DashboardSectionsClient({
           <article className="dashboard-card">
             <div className="dashboard-card-header">
               <h2>Attention Needed</h2>
-              <span className="metric-note">{filteredAttentionNeeded.length} matching alerts</span>
+              <span className="metric-note">
+                {isLoading ? "Loading alerts..." : `${filteredAttentionNeeded.length} matching alerts`}
+              </span>
             </div>
-            {filteredAttentionNeeded.length === 0 ? (
+            {isLoading ? (
+              <div className="attention-list" aria-hidden="true">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <article className="attention-item attention-item-skeleton" key={index}>
+                    <div className="attention-item-header">
+                      <DashboardSkeletonLine className="dashboard-skeleton-line-xs" />
+                      <DashboardSkeletonLine className="dashboard-skeleton-line-sm" />
+                    </div>
+                    <DashboardSkeletonLine className="dashboard-skeleton-line-md" />
+                    <DashboardSkeletonLine className="dashboard-skeleton-line-lg" />
+                    <DashboardSkeletonLine className="dashboard-skeleton-line-sm" />
+                  </article>
+                ))}
+              </div>
+            ) : filteredAttentionNeeded.length === 0 ? (
               <p className="text-muted">No attention alerts match the current control filters.</p>
             ) : (
               <div className="attention-list">
@@ -894,9 +988,42 @@ export default function DashboardSectionsClient({
           <article className="dashboard-card">
             <div className="dashboard-card-header">
               <h2>Upcoming Renewals</h2>
-              <span className="metric-note">{filteredUpcomingCharges.length} matching rows, sorted by soonest date</span>
+              <span className="metric-note">
+                {isLoading
+                  ? "Loading renewals..."
+                  : `${filteredUpcomingCharges.length} matching rows, sorted by soonest date`}
+              </span>
             </div>
-            {filteredUpcomingCharges.length === 0 ? (
+            {isLoading ? (
+              <div className="upcoming-renewals-table-shell" aria-hidden="true">
+                <DashboardSkeletonLine className="dashboard-skeleton-line-md" />
+                <div className="upcoming-renewals-table-wrap">
+                  <table className="upcoming-renewals-table">
+                    <tbody>
+                      {Array.from({ length: 4 }).map((_, index) => (
+                        <tr key={index}>
+                          <td>
+                            <DashboardSkeletonLine className="dashboard-skeleton-line-md" />
+                          </td>
+                          <td>
+                            <DashboardSkeletonLine className="dashboard-skeleton-line-sm" />
+                          </td>
+                          <td>
+                            <DashboardSkeletonLine className="dashboard-skeleton-line-sm" />
+                          </td>
+                          <td>
+                            <DashboardSkeletonLine className="dashboard-skeleton-line-md" />
+                          </td>
+                          <td>
+                            <DashboardSkeletonLine className="dashboard-skeleton-line-xs" />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : filteredUpcomingCharges.length === 0 ? (
               <p className="text-muted">No upcoming renewals match the current control filters.</p>
             ) : (
               <div className="upcoming-renewals-table-shell">
@@ -926,7 +1053,7 @@ export default function DashboardSectionsClient({
 
                         return (
                           <tr key={subscription.id}>
-                            <td data-label="Service">
+                            <th data-label="Service" scope="row">
                               <div className="renewal-service-cell">
                                 <span aria-hidden="true" className="renewal-service-icon">
                                   {logoSrc ? (
@@ -958,7 +1085,7 @@ export default function DashboardSectionsClient({
                                   {subscription.name}
                                 </button>
                               </div>
-                            </td>
+                            </th>
                             <td data-label="Renewal Date">{formatDate(subscription.renewalDate)}</td>
                             <td data-label="Amount/Cadence">
                               {formatMoney(subscription.amountCents, subscription.currency)}{" "}
@@ -1001,49 +1128,72 @@ export default function DashboardSectionsClient({
           <article className="dashboard-card">
             <div className="dashboard-card-header">
               <h2>Potential Savings</h2>
-              <span className="metric-note">{filteredSavingsOpportunities.length} matching opportunities</span>
+              <span className="metric-note">
+                {isLoading ? "Loading opportunities..." : `${filteredSavingsOpportunities.length} matching opportunities`}
+              </span>
             </div>
-            <article className="metric-card savings-summary-card">
-              <span className="metric-label">Estimated monthly savings</span>
-              <strong className="metric-value">{potentialSavingsSummary.value}</strong>
-              <span className="metric-note">{potentialSavingsSummary.note}</span>
-            </article>
-            {filteredSavingsOpportunities.length === 0 ? (
-              <p className="text-muted mt-sm">No savings opportunities match the current control filters.</p>
-            ) : (
-              <ul className="savings-opportunity-list">
-                {filteredSavingsOpportunities.map((opportunity) => {
-                  const singleSubscriptionId =
-                    opportunity.subscriptionIds.length === 1 ? opportunity.subscriptionIds[0] : null;
-
-                  return (
-                    <li className="savings-opportunity-item" key={opportunity.id}>
-                      <div className="savings-opportunity-header">
-                        <span className="pill savings-rule-pill">{formatSavingsOpportunityType(opportunity.type)}</span>
-                        <strong>{formatMoney(opportunity.estimatedMonthlySavingsCents, opportunity.currency)}/mo</strong>
-                      </div>
-                      <h3>{opportunity.title}</h3>
-                      <p className="text-muted">{opportunity.description}</p>
-                      {singleSubscriptionId ? (
-                        <button
-                          className="button button-secondary button-small"
-                          onClick={() =>
-                            void detailsModal.openModal({
-                              subscriptionId: singleSubscriptionId,
-                              source: "subscriptions_list",
-                            })
-                          }
-                          type="button"
-                        >
-                          View subscription
-                        </button>
-                      ) : null}
+            {isLoading ? (
+              <div aria-hidden="true" className="stack">
+                <article className="metric-card metric-card-skeleton savings-summary-card">
+                  <DashboardSkeletonLine className="dashboard-skeleton-line-xs" />
+                  <DashboardSkeletonLine className="dashboard-skeleton-line-lg" />
+                  <DashboardSkeletonLine className="dashboard-skeleton-line-md" />
+                </article>
+                <ul className="savings-opportunity-list">
+                  {Array.from({ length: 2 }).map((_, index) => (
+                    <li className="savings-opportunity-item savings-opportunity-item-skeleton" key={index}>
+                      <DashboardSkeletonLine className="dashboard-skeleton-line-sm" />
+                      <DashboardSkeletonLine className="dashboard-skeleton-line-md" />
+                      <DashboardSkeletonLine className="dashboard-skeleton-line-lg" />
                     </li>
-                  );
-                })}
-              </ul>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <>
+                <article className="metric-card savings-summary-card">
+                  <span className="metric-label">Estimated monthly savings</span>
+                  <strong className="metric-value">{potentialSavingsSummary.value}</strong>
+                  <span className="metric-note">{potentialSavingsSummary.note}</span>
+                </article>
+                {filteredSavingsOpportunities.length === 0 ? (
+                  <p className="text-muted mt-sm">No savings opportunities match the current control filters.</p>
+                ) : (
+                  <ul className="savings-opportunity-list">
+                    {filteredSavingsOpportunities.map((opportunity) => {
+                      const singleSubscriptionId =
+                        opportunity.subscriptionIds.length === 1 ? opportunity.subscriptionIds[0] : null;
+
+                      return (
+                        <li className="savings-opportunity-item" key={opportunity.id}>
+                          <div className="savings-opportunity-header">
+                            <span className="pill savings-rule-pill">{formatSavingsOpportunityType(opportunity.type)}</span>
+                            <strong>{formatMoney(opportunity.estimatedMonthlySavingsCents, opportunity.currency)}/mo</strong>
+                          </div>
+                          <h3>{opportunity.title}</h3>
+                          <p className="text-muted">{opportunity.description}</p>
+                          {singleSubscriptionId ? (
+                            <button
+                              className="button button-secondary button-small"
+                              onClick={() =>
+                                void detailsModal.openModal({
+                                  subscriptionId: singleSubscriptionId,
+                                  source: "subscriptions_list",
+                                })
+                              }
+                              type="button"
+                            >
+                              View subscription
+                            </button>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
             )}
-            {potentialSavings.assumptions.length > 0 ? (
+            {!isLoading && potentialSavings.assumptions.length > 0 ? (
               <div className="savings-assumptions">
                 <span className="metric-note">Assumptions</span>
                 <ul>
@@ -1057,9 +1207,23 @@ export default function DashboardSectionsClient({
           <article className="dashboard-card">
             <div className="dashboard-card-header">
               <h2>Top Cost Drivers</h2>
-              <span className="metric-note">{filteredTopCostDrivers.length} matching rows</span>
+              <span className="metric-note">
+                {isLoading ? "Loading drivers..." : `${filteredTopCostDrivers.length} matching rows`}
+              </span>
             </div>
-            {filteredTopCostDrivers.length === 0 ? (
+            {isLoading ? (
+              <ol aria-hidden="true" className="cost-driver-list">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <li className="cost-driver-item cost-driver-item-skeleton" key={index}>
+                    <span className="cost-driver-rank" />
+                    <div className="cost-driver-copy">
+                      <DashboardSkeletonLine className="dashboard-skeleton-line-md" />
+                      <DashboardSkeletonLine className="dashboard-skeleton-line-lg" />
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : filteredTopCostDrivers.length === 0 ? (
               <p className="text-muted">No cost drivers match the current control filters.</p>
             ) : (
               <ol className="cost-driver-list">
@@ -1095,7 +1259,7 @@ export default function DashboardSectionsClient({
                 ))}
               </ol>
             )}
-            {topCostDriverCurrencyCount > 1 ? (
+            {!isLoading && topCostDriverCurrencyCount > 1 ? (
               <p className="text-muted mt-sm">Ranking is normalized to monthly amounts without FX conversion.</p>
             ) : null}
           </article>
@@ -1105,9 +1269,23 @@ export default function DashboardSectionsClient({
           <article className="dashboard-card">
             <div className="dashboard-card-header">
               <h2>Recent Activity</h2>
-              <span className="metric-note">{filteredRecentActivity.length} matching rows</span>
+              <span className="metric-note">
+                {isLoading ? "Loading activity..." : `${filteredRecentActivity.length} matching rows`}
+              </span>
             </div>
-            {filteredRecentActivity.length === 0 ? (
+            {isLoading ? (
+              <div className="stack" aria-hidden="true">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div className="status-item subscription-entry-button subscription-entry-skeleton" key={index}>
+                    <div className="subscription-header">
+                      <DashboardSkeletonLine className="dashboard-skeleton-line-md" />
+                      <DashboardSkeletonLine className="dashboard-skeleton-line-xs" />
+                    </div>
+                    <DashboardSkeletonLine className="dashboard-skeleton-line-lg" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredRecentActivity.length === 0 ? (
               <p className="text-muted">No recent subscriptions match the current control filters.</p>
             ) : (
               <div className="stack">
