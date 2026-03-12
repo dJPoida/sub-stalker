@@ -17,6 +17,7 @@ Main concerns:
 
 - `/` dashboard (auth-aware message).
 - `/auth/sign-in`, `/auth/sign-up` (server-action forms; sign-up accepts optional `invite` token context).
+- `/auth/verify`, `/auth/verify/requested` (public verification completion + resend flow).
 - `/subscriptions` (authenticated).
 - `/settings` (authenticated; action-first settings UI with inline auto-save for simple preferences and modal edit flow for account details).
 - `/tools` (authenticated maintenance + invite issuance and invite-email actions with manual-share fallback).
@@ -32,6 +33,7 @@ Main concerns:
 Defined in `prisma/schema.prisma`:
 
 - `User`
+- `User.emailVerifiedAt` tracks whether the account can enter authenticated flows.
 - `UserSettings` (1:1 with user; `defaultCurrency`, `remindersEnabled`, `reminderDaysBefore`, `displayMode`)
 - `DisplayMode` enum (`DEVICE`, `LIGHT`, `DARK`)
 - `Subscription` (many per user; includes learning fields `paymentMethod` required and `signedUpBy` optional, plus optional billing links and markdown notes)
@@ -39,6 +41,7 @@ Defined in `prisma/schema.prisma`:
 - `SignInAttempt` (rate-limit tracking by hashed email+IP key)
 - `Invite` (single-use invitation registry with token hash, status lifecycle, and audit fields)
 - `InviteStatus` enum (`PENDING`, `CONSUMED`, `EXPIRED`, `REVOKED`)
+- `EmailVerificationToken` (single-use registration verification token hash, expiry, consume/revoke timestamps)
 - `EmailDeliveryLog` (delivery attempts with template metadata and provider outcome)
 - `EmailDeliveryStatus` enum (`SENT`, `FAILED`, `SKIPPED`)
 - `SubscriptionReminderDispatch` (idempotent reminder dispatch lock/status per `user + billing date`)
@@ -99,17 +102,19 @@ Modal behavior:
 
 1. Sign-up/sign-in server action validates credentials.
 2. Passwords are stored as `scrypt` hashes.
-3. On success:
+3. Sign-up creates the user record, issues a verification token, sends `registration_verification`, and redirects to `/auth/verify/requested` instead of creating a session.
+4. Verification links land on `/auth/verify`, atomically consume the token, mark `User.emailVerifiedAt`, and revoke older outstanding verification tokens.
+5. Verified sign-in success:
    - generate random session token.
    - store HMAC-SHA256 token hash in `Session` table with `expiresAt` and `lastSeenAt`.
    - set HTTP-only cookie with raw token.
-4. Requests read cookie, hash token, look up session, enforce absolute and idle expiry.
-5. Session touch updates `lastSeenAt` at a fixed interval.
-6. Sign-in enforces rate limiting (email+IP), prunes stale attempts, and prunes expired sessions.
-7. Sign-out deletes matching session row and clears cookie.
-8. Auth actions require same-origin request validation.
-9. If `INVITES_REQUIRED=true`, sign-up additionally requires a valid invite token bound to submitted email.
-10. Invite consumption and user creation run in one DB transaction to ensure one-time use under concurrency.
+6. Requests read cookie, hash token, look up session, enforce absolute and idle expiry, and clear sessions for users whose email is still unverified.
+7. Session touch updates `lastSeenAt` at a fixed interval.
+8. Sign-in enforces rate limiting (email+IP), prunes stale attempts, and prunes expired sessions.
+9. Sign-out deletes matching session row and clears cookie.
+10. Auth actions require same-origin request validation.
+11. If `INVITES_REQUIRED=true`, sign-up additionally requires a valid invite token bound to submitted email.
+12. Invite consumption and user creation run in one DB transaction to ensure one-time use under concurrency.
 
 ## Settings flow
 
@@ -152,9 +157,11 @@ Status payload also includes email readiness:
 2. React Email template rendering (`lib/mail/templates`).
 3. `sendEmail` logging into `EmailDeliveryLog` for all attempts.
 4. `sendInviteEmail` helper for invite issuance delivery (`invite_issuance` template) with explicit `sent`/`skipped`/`failed` outcomes.
-5. Rate-limit helper for `/api/mail/test` (3 sends per user per hour).
-6. `runSubscriptionReminderDispatchJob` selects due subscriptions based on `UserSettings`, groups by user, and sends `subscription_reminder` emails.
-7. `SubscriptionReminderDispatch` enforces idempotency for reminder reruns (`userId + billingDateKey` uniqueness).
+5. `sendRegistrationVerificationEmail` helper for registration verification delivery (`registration_verification` template) with explicit `sent`/`skipped`/`failed` outcomes.
+6. Registration verification resend throttling is enforced per recipient using recent `EmailDeliveryLog` entries.
+7. Rate-limit helper for `/api/mail/test` (3 sends per user per hour).
+8. `runSubscriptionReminderDispatchJob` selects due subscriptions based on `UserSettings`, groups by user, and sends `subscription_reminder` emails.
+9. `SubscriptionReminderDispatch` enforces idempotency for reminder reruns (`userId + billingDateKey` uniqueness).
 
 Current guarantees:
 

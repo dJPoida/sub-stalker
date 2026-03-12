@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 
 import { db } from "./db";
 import { normalizeEnvValue } from "./env";
+import { isVerifiedAuthUser } from "./registration-verification";
 
 export type AuthUser = {
   id: string;
@@ -21,6 +22,17 @@ export type SignInRateLimitResult = {
   allowed: boolean;
   retryAfterSeconds: number | null;
 };
+
+export type PasswordAuthenticationResult =
+  | {
+      ok: true;
+      user: AuthUser;
+    }
+  | {
+      ok: false;
+      reason: "invalid_credentials" | "email_unverified";
+      user: AuthUser | null;
+    };
 
 const SESSION_COOKIE_NAME = "sub_stalker_session";
 const SESSION_ABSOLUTE_TTL_SECONDS = 60 * 60 * 24 * 7;
@@ -232,6 +244,48 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   return safeEqual(existingHash, hash);
 }
 
+export async function authenticateWithPassword(
+  email: string,
+  password: string,
+): Promise<PasswordAuthenticationResult> {
+  const user = await db.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      passwordHash: true,
+      emailVerifiedAt: true,
+    },
+  });
+
+  if (!user?.passwordHash || !verifyPassword(password, user.passwordHash)) {
+    return {
+      ok: false,
+      reason: "invalid_credentials",
+      user: null,
+    };
+  }
+
+  if (!isVerifiedAuthUser(user)) {
+    return {
+      ok: false,
+      reason: "email_unverified",
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    user: {
+      id: user.id,
+      email: user.email,
+    },
+  };
+}
+
 export async function setAuthSession(user: AuthUser): Promise<void> {
   const cookieStore = await cookies();
   const now = Date.now();
@@ -297,12 +351,24 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
         select: {
           id: true,
           email: true,
+          emailVerifiedAt: true,
         },
       },
     },
   });
 
   if (!session) {
+    return null;
+  }
+
+  if (!isVerifiedAuthUser(session.user)) {
+    await db.session.deleteMany({
+      where: {
+        tokenHash,
+      },
+    });
+
+    clearCookie(cookieStore);
     return null;
   }
 
@@ -330,7 +396,10 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     });
   }
 
-  return session.user;
+  return {
+    id: session.user.id,
+    email: session.user.email,
+  };
 }
 
 export async function requireAuthenticatedUser(): Promise<AuthUser> {

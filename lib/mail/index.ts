@@ -149,20 +149,38 @@ export async function sendTestEmail(input: {
   });
 }
 
+export type RegistrationVerificationEmailSendOutcome = "sent" | "skipped" | "failed";
+
+export type RegistrationVerificationEmailSendResult = {
+  outcome: RegistrationVerificationEmailSendOutcome;
+  provider: MailProviderName;
+  messageId: string | null;
+  error: string | null;
+};
+
+type SendRegistrationVerificationEmailDependencies = {
+  providerName?: MailProviderName;
+  sendEmailFn?: (payload: EmailPayload) => Promise<EmailResult>;
+};
+
 export async function sendRegistrationVerificationEmail(input: {
   to: string;
   userId?: string;
   verificationUrl: string;
   expiresInMinutes?: number;
   appName?: string;
-}): Promise<EmailResult> {
+},
+dependencies: SendRegistrationVerificationEmailDependencies = {},
+): Promise<RegistrationVerificationEmailSendResult> {
   const rendered = await renderRegistrationVerificationTemplate({
     appName: input.appName,
     verificationUrl: input.verificationUrl,
     expiresInMinutes: input.expiresInMinutes,
   });
 
-  return sendEmail({
+  const providerName = dependencies.providerName ?? getMailProvider();
+  const sendEmailFn = dependencies.sendEmailFn ?? sendEmail;
+  const result = await sendEmailFn({
     to: input.to,
     subject: rendered.subject,
     html: rendered.html,
@@ -170,6 +188,31 @@ export async function sendRegistrationVerificationEmail(input: {
     templateName: rendered.templateName,
     userId: input.userId,
   });
+
+  if (!result.success) {
+    return {
+      outcome: "failed",
+      provider: providerName,
+      messageId: result.messageId ?? null,
+      error: result.error ?? "Unknown email send failure.",
+    };
+  }
+
+  if (providerName === "console") {
+    return {
+      outcome: "skipped",
+      provider: providerName,
+      messageId: result.messageId ?? null,
+      error: null,
+    };
+  }
+
+  return {
+    outcome: "sent",
+    provider: providerName,
+    messageId: result.messageId ?? null,
+    error: null,
+  };
 }
 
 export async function sendSubscriptionReminderEmail(input: {

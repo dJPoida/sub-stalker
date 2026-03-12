@@ -5,9 +5,10 @@
 1. `npm run typecheck`
 2. `npm run lint`
 3. `npm run build`
-4. `npm run test:invites` (when local Postgres is available)
-5. `npm run test:mail`
-6. `npm run test:dashboard`
+4. `npm run test:auth` (when local Postgres is available)
+5. `npm run test:invites` (when local Postgres is available)
+6. `npm run test:mail`
+7. `npm run test:dashboard`
 
 For migration/schema changes:
 
@@ -21,17 +22,20 @@ For migration/schema changes:
 Auth:
 
 1. Sign up with new user.
-2. Sign out.
-3. Sign in with same user.
-4. Confirm `/subscriptions` loads when signed in.
-5. Confirm `/subscriptions` redirects to sign-in when signed out.
-6. Submit repeated bad credentials and confirm rate-limit response appears.
-7. Confirm sign-in rejects cross-origin requests (invalid request path).
-8. If `INVITES_REQUIRED=true`, confirm sign-up rejects missing invite token with safe generic error.
-9. From `/tools`, issue an invite for `invite-test@example.com`; complete sign-up using invite link and matching email.
-10. Confirm invite issuance reports email send status in `/tools`; if provider is unavailable, confirm fallback message instructs manual share.
-11. Retry sign-up with the same invite token and confirm rejection.
-12. Issue invite for one email and attempt sign-up with different email; confirm rejection.
+2. Confirm sign-up redirects to `/auth/verify/requested` and does not create an authenticated session yet.
+3. Open the verification email link and confirm `/auth/verify` reports success.
+4. Sign in with the same user and confirm success only after verification.
+5. Confirm `/subscriptions` loads when signed in.
+6. Confirm `/subscriptions` redirects to sign-in when signed out.
+7. Submit repeated bad credentials and confirm rate-limit response appears.
+8. Confirm sign-in with a correct password but unverified account redirects back to the verification flow.
+9. Confirm sign-in rejects cross-origin requests (invalid request path).
+10. Confirm repeated verification resends eventually show the rate-limit response.
+11. If `INVITES_REQUIRED=true`, confirm sign-up rejects missing invite token with safe generic error.
+12. From `/tools`, issue an invite for `invite-test@example.com`; complete sign-up using invite link and matching email.
+13. Confirm invite issuance reports email send status in `/tools`; if provider is unavailable, confirm fallback message instructs manual share.
+14. Retry sign-up with the same invite token and confirm rejection.
+15. Issue invite for one email and attempt sign-up with different email; confirm rejection.
 
 Subscriptions UX:
 
@@ -89,10 +93,12 @@ Email:
 2. Confirm success response instructs to check inbox/spam.
 3. Trigger 4 sends within one hour and confirm the fourth request is rate-limited.
 4. In Prisma Studio, verify `EmailDeliveryLog` rows are created with expected `templateName` and `status`.
-5. From `/tools`, issue an invite and verify an `EmailDeliveryLog` entry with `templateName=invite_issuance` is created.
-6. Disable provider key (or force `MAIL_PROVIDER=console`) and issue another invite; confirm `/tools` shows fallback/manual-share status while still returning token/URL.
-7. Set a subscription with `nextBillingDate` equal to today's date plus the user's `reminderDaysBefore`, run `Run Daily Batch`, and verify an `EmailDeliveryLog` row with `templateName=subscription_reminder` is created.
-8. Run `Run Daily Batch` again on the same day and confirm reminder dedupe in output (no duplicate reminder send for the same user + billing cycle).
+5. Sign up a fresh account and verify an `EmailDeliveryLog` entry with `templateName=registration_verification` is created.
+6. Trigger repeated resend attempts for the same account and confirm `registration_verification` rows stop increasing once rate-limited.
+7. From `/tools`, issue an invite and verify an `EmailDeliveryLog` entry with `templateName=invite_issuance` is created.
+8. Disable provider key (or force `MAIL_PROVIDER=console`) and issue another invite; confirm `/tools` shows fallback/manual-share status while still returning token/URL.
+9. Set a subscription with `nextBillingDate` equal to today's date plus the user's `reminderDaysBefore`, run `Run Daily Batch`, and verify an `EmailDeliveryLog` row with `templateName=subscription_reminder` is created.
+10. Run `Run Daily Batch` again on the same day and confirm reminder dedupe in output (no duplicate reminder send for the same user + billing cycle).
 
 Deploy:
 

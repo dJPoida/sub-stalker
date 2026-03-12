@@ -67,6 +67,7 @@ Email service:
 - Test endpoint: `POST /api/mail/test` (authenticated, 3 requests/user/hour).
 - Readiness is exposed at `/api/status` and `/status` under the `email` section.
 - Invite issuance at `/tools` sends `invite_issuance` email attempts through the same logging path; if provider is `console` or send fails, operators should manually share the one-time invite URL/token shown in UI.
+- Registration verification sends `registration_verification` email attempts during sign-up and resend requests, and resend attempts are throttled per recipient in an hourly window.
 
 ## Common runbook
 
@@ -94,10 +95,15 @@ Email service:
    - verify `/tools` invite issuance succeeds for authenticated operators and reports invite email send outcome.
    - confirm sign-up rejects missing/invalid invite tokens.
    - verify `EmailDeliveryLog` writes `invite_issuance` rows for invite send attempts.
-6. Verify email health path:
+6. Verify registration email flow:
+   - create a fresh account and confirm the app redirects to `/auth/verify/requested` instead of signing the user in.
+   - confirm `EmailDeliveryLog` writes `registration_verification` with expected status.
+   - open the emailed `/auth/verify` link and confirm sign-in succeeds only after verification.
+   - request repeated resends and confirm the flow rate-limits after the configured hourly threshold.
+7. Verify email health path:
    - trigger `Send Test Email` from `/tools` as an authenticated user.
    - confirm `EmailDeliveryLog` row is written with expected status.
-7. Verify reminder maintenance path:
+8. Verify reminder maintenance path:
    - trigger `Run Daily Batch` from `/tools`.
    - confirm output includes reminder due/sent/failed/deduped counters.
    - confirm `EmailDeliveryLog` includes `templateName=subscription_reminder` for successful reminder sends.
@@ -130,6 +136,12 @@ Invite sign-up rejects with invalid invite:
 - verify `INVITES_REQUIRED` expected value in environment.
 - confirm invite token was freshly issued from `/tools` and not previously consumed.
 - confirm submitted sign-up email exactly matches invite target email after lowercase normalization.
+
+Registration verification issues:
+
+- inspect `EmailDeliveryLog` for `templateName=registration_verification` rows and recent `FAILED`/`SKIPPED` statuses.
+- if resend attempts are unexpectedly blocked, check recent verification mail volume for the target recipient in the last hour.
+- if `/auth/verify` rejects a link, confirm the token was not already consumed, revoked by a newer resend, or expired.
 
 Test email fails:
 

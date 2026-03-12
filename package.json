@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:auth": "npx dotenv -e .env.local -- node --import tsx --test tests/auth/*.test.ts",
     "test:invites": "dotenv -e .env.local -- node --import tsx --test tests/invites/*.test.ts",
     "test:mail": "dotenv -e .env.local -- node --import tsx --test tests/mail/*.test.ts",
     "test:dashboard": "dotenv -e .env.local -- node --import tsx --test tests/dashboard/*.test.ts",
