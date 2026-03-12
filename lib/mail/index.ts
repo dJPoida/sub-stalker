@@ -9,6 +9,7 @@ import {
 } from "./config";
 import { clearMockEmailLog, createMailProvider, getMockEmailLog } from "./providers";
 import {
+  renderInviteIssuanceTemplate,
   renderRegistrationVerificationTemplate,
   renderSubscriptionReminderTemplate,
   renderTestEmailTemplate,
@@ -66,11 +67,11 @@ function resolveDeliveryStatus(provider: MailProviderName, result: EmailResult):
     return EmailDeliveryStatus.FAILED;
   }
 
-  if (provider === "resend") {
-    return EmailDeliveryStatus.SENT;
+  if (provider === "console") {
+    return EmailDeliveryStatus.SKIPPED;
   }
 
-  return EmailDeliveryStatus.SKIPPED;
+  return EmailDeliveryStatus.SENT;
 }
 
 function normalizeRecipientEmail(value: string): string {
@@ -197,6 +198,74 @@ export async function sendSubscriptionReminderEmail(input: {
     templateName: rendered.templateName,
     userId: input.userId,
   });
+}
+
+export type InviteEmailSendOutcome = "sent" | "skipped" | "failed";
+
+export type InviteEmailSendResult = {
+  outcome: InviteEmailSendOutcome;
+  provider: MailProviderName;
+  messageId: string | null;
+  error: string | null;
+};
+
+type SendInviteEmailDependencies = {
+  providerName?: MailProviderName;
+  sendEmailFn?: (payload: EmailPayload) => Promise<EmailResult>;
+};
+
+export async function sendInviteEmail(
+  input: {
+    to: string;
+    userId?: string;
+    inviteUrl: string;
+    expiresAt: Date;
+    appName?: string;
+  },
+  dependencies: SendInviteEmailDependencies = {},
+): Promise<InviteEmailSendResult> {
+  const rendered = await renderInviteIssuanceTemplate({
+    appName: input.appName,
+    recipientEmail: input.to,
+    inviteUrl: input.inviteUrl,
+    expiresAt: input.expiresAt,
+  });
+
+  const providerName = dependencies.providerName ?? getMailProvider();
+  const sendEmailFn = dependencies.sendEmailFn ?? sendEmail;
+  const result = await sendEmailFn({
+    to: input.to,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
+    templateName: rendered.templateName,
+    userId: input.userId,
+  });
+
+  if (!result.success) {
+    return {
+      outcome: "failed",
+      provider: providerName,
+      messageId: result.messageId ?? null,
+      error: result.error ?? "Unknown email send failure.",
+    };
+  }
+
+  if (providerName === "console") {
+    return {
+      outcome: "skipped",
+      provider: providerName,
+      messageId: result.messageId ?? null,
+      error: null,
+    };
+  }
+
+  return {
+    outcome: "sent",
+    provider: providerName,
+    messageId: result.messageId ?? null,
+    error: null,
+  };
 }
 
 export type TestEmailRateLimitState = {

@@ -3,10 +3,11 @@ import { Button, Heading, Link, Text } from "@react-email/components";
 
 import EmailLayout from "./Layout";
 
-type RegistrationVerificationEmailTemplateProps = {
+type InviteIssuanceEmailTemplateProps = {
   appName: string;
-  verificationUrl: string;
-  expiresInMinutes: number;
+  recipientEmail: string;
+  inviteUrl: string;
+  expiresAt: string;
 };
 
 const buttonStyle = {
@@ -20,33 +21,31 @@ const buttonStyle = {
   padding: "12px 18px",
 };
 
-export default function RegistrationVerificationEmailTemplate({
+export default function InviteIssuanceEmailTemplate({
   appName,
-  verificationUrl,
-  expiresInMinutes,
-}: RegistrationVerificationEmailTemplateProps) {
+  recipientEmail,
+  inviteUrl,
+  expiresAt,
+}: InviteIssuanceEmailTemplateProps) {
   return (
-    <EmailLayout
-      appName={appName}
-      previewText={`Verify your ${appName} account email address.`}
-    >
+    <EmailLayout appName={appName} previewText={`Your ${appName} invite is ready.`}>
       <Heading style={{ margin: "0 0 14px 0", fontSize: "24px", lineHeight: "1.3" }}>
-        Verify your email address
+        You are invited to {appName}
       </Heading>
       <Text style={{ margin: "0 0 12px 0", fontSize: "15px", lineHeight: "1.6" }}>
-        Confirm ownership of this inbox to activate your {appName} account.
+        This invite was issued for <strong>{recipientEmail}</strong>. Use the link below to complete sign-up.
       </Text>
-      <Button href={verificationUrl} style={buttonStyle}>
-        Verify email
+      <Button href={inviteUrl} style={buttonStyle}>
+        Accept invite
       </Button>
       <Text style={{ margin: "14px 0 0 0", fontSize: "14px", lineHeight: "1.6" }}>
-        This link expires in {expiresInMinutes} minutes.
+        This invite expires on {expiresAt}.
       </Text>
       <Text style={{ margin: "14px 0 0 0", fontSize: "13px", lineHeight: "1.6" }}>
         If the button does not work, open this URL:
       </Text>
       <Text style={{ margin: "4px 0 0 0", fontSize: "13px", lineHeight: "1.6" }}>
-        <Link href={verificationUrl}>{verificationUrl}</Link>
+        <Link href={inviteUrl}>{inviteUrl}</Link>
       </Text>
     </EmailLayout>
   );

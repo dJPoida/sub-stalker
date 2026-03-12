@@ -64,6 +64,7 @@ Email service:
 - Current production expectation uses Resend free-tier limits (100/day, 3,000/month); monitor volume growth before expanding automated reminder sends.
 - Test endpoint: `POST /api/mail/test` (authenticated, 3 requests/user/hour).
 - Readiness is exposed at `/api/status` and `/status` under the `email` section.
+- Invite issuance at `/tools` sends `invite_issuance` email attempts through the same logging path; if provider is `console` or send fails, operators should manually share the one-time invite URL/token shown in UI.
 
 ## Common runbook
 
@@ -88,8 +89,9 @@ Email service:
 4. Verify session cleanup endpoint health:
    - ensure cron requests succeed in Vercel logs.
 5. If invite-only onboarding is enabled:
-   - verify `/tools` invite issuance succeeds for authenticated operators.
+   - verify `/tools` invite issuance succeeds for authenticated operators and reports invite email send outcome.
    - confirm sign-up rejects missing/invalid invite tokens.
+   - verify `EmailDeliveryLog` writes `invite_issuance` rows for invite send attempts.
 6. Verify email health path:
    - trigger `Send Test Email` from `/tools` as an authenticated user.
    - confirm `EmailDeliveryLog` row is written with expected status.
