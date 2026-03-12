@@ -112,6 +112,10 @@ describe("invite flow", () => {
       assert.equal(storedInvite.email, targetEmail.toLowerCase());
       assert.notEqual(storedInvite.tokenHash, issued.inviteToken);
       assert.equal(storedInvite.tokenHash, hashInviteToken(issued.inviteToken));
+
+      const inviteUrl = new URL(issued.inviteUrl);
+      assert.equal(inviteUrl.searchParams.get("invite"), issued.inviteToken);
+      assert.equal(inviteUrl.searchParams.get("email"), targetEmail.toLowerCase());
     });
 
   test("rejects invite token when submitted email does not match invite email", async () => {

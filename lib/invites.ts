@@ -4,6 +4,8 @@ import { InviteStatus } from "@prisma/client";
 
 import { db } from "./db";
 import { normalizeEnvValue } from "./env";
+import { isValidInviteEmail, normalizeInviteEmail } from "./invite-email";
+import { buildInviteUrl } from "./invite-link";
 
 export const DEFAULT_INVITE_EXPIRY_DAYS = 7;
 export const MIN_INVITE_EXPIRY_DAYS = 1;
@@ -62,14 +64,6 @@ function getInviteSecret(): string {
   return secret;
 }
 
-export function normalizeInviteEmail(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-export function isValidInviteEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
 export function parseInviteExpiryDays(rawValue: string | null | undefined): number | null {
   const normalized = String(rawValue ?? "").trim();
 
@@ -92,11 +86,6 @@ export function parseInviteExpiryDays(rawValue: string | null | undefined): numb
 
 export function hashInviteToken(token: string): string {
   return createHmac("sha256", getInviteSecret()).update(token).digest("hex");
-}
-
-function buildInviteUrl(baseUrl: string, inviteToken: string): string {
-  const trimmedBaseUrl = baseUrl.replace(/\/$/, "");
-  return `${trimmedBaseUrl}/auth/sign-up?invite=${encodeURIComponent(inviteToken)}`;
 }
 
 function logInviteEvent(event: string, payload: Record<string, unknown>): void {
@@ -224,7 +213,7 @@ export async function issueInvite(params: {
     email: created.invite.email,
     expiresAt: created.invite.expiresAt.toISOString(),
     inviteToken,
-    inviteUrl: buildInviteUrl(params.baseUrl, inviteToken),
+    inviteUrl: buildInviteUrl(params.baseUrl, inviteToken, created.invite.email),
     rotatedExistingInvite: created.rotatedExistingInvite,
   };
 }
