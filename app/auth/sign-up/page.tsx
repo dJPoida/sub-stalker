@@ -5,11 +5,13 @@ import { signUpAction } from "@/app/auth/actions";
 import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
 import { getCurrentUser } from "@/lib/auth";
 import { isInvitesRequired } from "@/lib/env";
+import { parseInviteEmailPrefill } from "@/lib/invite-email";
 
 type SignUpPageProps = {
   searchParams?: {
     error?: string;
     invite?: string;
+    email?: string;
   };
 };
 
@@ -51,6 +53,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
   const invitesRequired = isInvitesRequired();
   const errorMessage = getErrorMessage(searchParams?.error, invitesRequired);
   const inviteToken = String(searchParams?.invite ?? "").trim();
+  const inviteEmailPrefill = parseInviteEmailPrefill(searchParams?.email);
 
   return (
     <section className="auth-wrap">
@@ -70,7 +73,14 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
             </label>
             <label className="form-field">
               Email
-              <input name="email" type="email" autoComplete="email" placeholder="name@example.com" required />
+              <input
+                name="email"
+                type="email"
+                autoComplete="email"
+                defaultValue={inviteEmailPrefill}
+                placeholder="name@example.com"
+                required
+              />
             </label>
             <label className="form-field">
               Password
