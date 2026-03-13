@@ -1,3 +1,5 @@
+import { inferSubscriptionCategory } from "@/lib/subscription-classification";
+
 export type BillingIntervalCode = "WEEKLY" | "MONTHLY" | "YEARLY" | "CUSTOM";
 
 export type SubscriptionModalOpenSource = "upcoming_charges" | "recent_activity" | "subscriptions_list";
@@ -12,6 +14,12 @@ export type SubscriptionDetailsEvent = {
   timestamp: string;
   amountCents: number | null;
   currency: string | null;
+};
+
+export type SubscriptionDetailsSpendMetric = {
+  label: string;
+  amountCents: number | null;
+  currency: string;
 };
 
 export type SubscriptionDetailsContract = {
@@ -36,6 +44,8 @@ export type SubscriptionDetailsContract = {
   cancellationEffectiveDate: string | null;
   cancellationReason: string | null;
   signedUpBy: string | null;
+  inferredCategory: string;
+  spendSummary: SubscriptionDetailsSpendMetric;
   metadataTags: string[];
   notesMarkdown: string | null;
   links: {
@@ -222,6 +232,7 @@ export function buildSubscriptionDetails(record: SubscriptionDetailsSourceRecord
   const normalizedMonthlyAmountCents = estimateNormalizedMonthlyAmountCents(record.amountCents, record.billingInterval);
   const normalizedYearlyAmountCents = estimateNormalizedYearlyAmountCents(record.amountCents, record.billingInterval);
   const nextBillingDateIso = toOptionalIsoString(record.nextBillingDate);
+  const inferredCategory = inferSubscriptionCategory(record.name);
 
   return {
     id: record.id,
@@ -245,6 +256,12 @@ export function buildSubscriptionDetails(record: SubscriptionDetailsSourceRecord
     cancellationEffectiveDate: record.isActive ? null : nextBillingDateIso,
     cancellationReason: null,
     signedUpBy: record.signedUpBy?.trim() ? record.signedUpBy.trim() : null,
+    inferredCategory,
+    spendSummary: {
+      label: "Projected annual spend",
+      amountCents: normalizedYearlyAmountCents,
+      currency: record.currency,
+    },
     metadataTags: buildMetadataTags(record),
     notesMarkdown: record.notesMarkdown,
     links: {

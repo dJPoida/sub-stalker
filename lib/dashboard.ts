@@ -1,6 +1,7 @@
 import { BillingInterval } from "@prisma/client";
 
 import { db } from "@/lib/db";
+import { inferSubscriptionCategory } from "@/lib/subscription-classification";
 
 export const DASHBOARD_RENEWALS_WINDOW_DAYS = 7;
 export const DASHBOARD_UPCOMING_RENEWALS_WINDOW_DAYS = 30;
@@ -34,14 +35,6 @@ const WORK_TAG_HINT_KEYWORDS = [
   "netlify",
 ] as const;
 const GAMING_TAG_HINT_KEYWORDS = ["xbox", "playstation", "steam", "nintendo", "epic", "game pass", "ea play"] as const;
-
-const CATEGORY_RULES: ReadonlyArray<{ category: string; keywords: readonly string[] }> = [
-  { category: "Streaming", keywords: ["netflix", "hulu", "disney", "paramount", "spotify", "youtube", "apple tv", "prime video"] },
-  { category: "Productivity", keywords: ["notion", "slack", "figma", "github", "canva", "office", "microsoft 365", "workspace"] },
-  { category: "Cloud & Hosting", keywords: ["aws", "azure", "gcp", "cloudflare", "vercel", "netlify", "digitalocean", "render"] },
-  { category: "Gaming", keywords: ["xbox", "playstation", "steam", "nintendo", "epic"] },
-  { category: "Utilities", keywords: ["vpn", "internet", "mobile", "phone", "electricity", "water", "gas"] },
-];
 
 const ATTENTION_SEVERITY_RANK: Record<DashboardAttentionSeverity, number> = {
   high: 3,
@@ -303,22 +296,6 @@ function includesAnyKeyword(value: string, keywords: readonly string[]): boolean
   return keywords.some((keyword) => lowered.includes(keyword));
 }
 
-function inferCategory(name: string): string {
-  const lowered = name.trim().toLowerCase();
-
-  if (!lowered) {
-    return "Other";
-  }
-
-  for (const rule of CATEGORY_RULES) {
-    if (rule.keywords.some((keyword) => lowered.includes(keyword))) {
-      return rule.category;
-    }
-  }
-
-  return "Other";
-}
-
 function canonicalizeServiceName(name: string): string {
   const normalized = name
     .trim()
@@ -496,7 +473,7 @@ export function buildDashboardPayload(
       monthlyEquivalentAmountCents: normalizeToMonthlyAmountCents(subscription.amountCents, subscription.billingInterval),
       annualProjectionCents: normalizeToAnnualAmountCents(subscription.amountCents, subscription.billingInterval),
       canonicalServiceKey: canonicalizeServiceName(subscription.name),
-      inferredCategory: inferCategory(subscription.name),
+      inferredCategory: inferSubscriptionCategory(subscription.name),
     };
   });
 
