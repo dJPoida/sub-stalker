@@ -155,7 +155,7 @@ Useful commands:
 - Email templates are authored with React Email in `lib/mail/templates/`:
   - test email
   - invite issuance
-  - registration verification (template only)
+  - registration verification
   - subscription reminder
 - Manual validation workflow:
   - go to `/tools`
@@ -164,6 +164,7 @@ Useful commands:
 - Delivery attempts are recorded in Prisma `EmailDeliveryLog` (`SENT`, `FAILED`, `SKIPPED`).
 - Reminder dispatch dedupe state is recorded in Prisma `SubscriptionReminderDispatch` (unique per `userId + billingDateKey`).
 - Invite issuance from `/tools` attempts immediate email delivery and falls back to manual share when provider is unavailable or send fails.
+- Registration sign-up now issues single-use verification links, logs delivery as `registration_verification`, and rate-limits resend attempts per recipient.
 - Daily maintenance dispatches due subscription reminder batches using each user's saved reminder settings.
 - Daily maintenance prunes stale email logs using `EMAIL_DELIVERY_LOG_RETENTION_DAYS`.
 - Local template preview command:
@@ -247,12 +248,14 @@ Open http://localhost:3000.
 ## Basic auth (MVP)
 
 - Sign up at `/auth/sign-up` (email + password, minimum 8 chars).
+- New accounts must verify email ownership before a session can be created.
 - Optional invitation-only mode:
   - set `INVITES_REQUIRED=true` to require valid invite token on sign-up.
   - invite token must be pending, unexpired, and tied to the same normalized email.
   - `/tools` invite issuance now issues and attempts email send in one step; if email cannot be sent, manual token/URL share remains available.
   - keep `INVITES_REQUIRED=false` for rollback to open sign-up.
 - Sign in at `/auth/sign-in`.
+- Verification completion lives at `/auth/verify`, and resend/self-service status lives at `/auth/verify/requested`.
 - Session is stored as an HTTP-only cookie with an opaque token backed by the `Session` database table.
 - Session token hashes are keyed with `AUTH_SECRET`.
 - Session policy:
@@ -261,6 +264,7 @@ Open http://localhost:3000.
   - max concurrent sessions per user: 5
   - sign-out revokes current session only
 - Sign-in is rate limited by email + IP (5 attempts per 15 minutes, then 30-minute block).
+- Unverified accounts cannot complete sign-in or keep an authenticated session until verification succeeds.
 - Auth server actions enforce same-origin request checks.
 - Expired sessions are pruned on sign-in.
 - Manual maintenance actions are available at `/tools` for test runs.

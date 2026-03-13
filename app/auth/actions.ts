@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { isInvitesRequired } from "@/lib/env";
 import { createUserWithInvite } from "@/lib/invites";
 import {
+  authenticateWithPassword,
   clearAuthSession,
   clearSignInRateLimit,
   consumeSignInRateLimit,
@@ -14,8 +15,8 @@ import {
   pruneExpiredSessions,
   pruneStaleSignInAttempts,
   setAuthSession,
-  verifyPassword,
 } from "@/lib/auth";
+import { issueRegistrationVerificationForUser } from "@/lib/registration-verification";
 
 function normalizeEmail(value: FormDataEntryValue | null): string {
   return String(value ?? "").trim().toLowerCase();
@@ -59,6 +60,46 @@ async function isSameOriginRequest(): Promise<boolean> {
   }
 }
 
+async function getRequestBaseUrl(): Promise<string> {
+  const headerStore = await headers();
+  const origin = headerStore.get("origin");
+
+  if (origin) {
+    return origin;
+  }
+
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  const proto = headerStore.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "development" ? "http" : "https");
+
+  if (host) {
+    return `${proto}://${host}`;
+  }
+
+  return "http://localhost:3000";
+}
+
+function buildVerificationRequestedRedirect(params: {
+  email: string;
+  source: "signup" | "signin" | "resend";
+  delivery?: string | null;
+  retryAfterSeconds?: number | null;
+}): string {
+  const searchParams = new URLSearchParams({
+    email: params.email,
+    source: params.source,
+  });
+
+  if (params.delivery) {
+    searchParams.set("delivery", params.delivery);
+  }
+
+  if (typeof params.retryAfterSeconds === "number" && params.retryAfterSeconds > 0) {
+    searchParams.set("retry_after", String(params.retryAfterSeconds));
+  }
+
+  return `/auth/verify/requested?${searchParams.toString()}`;
+}
+
 export async function signUpAction(formData: FormData): Promise<void> {
   if (!(await isSameOriginRequest())) {
     redirect("/auth/sign-up?error=invalid_request");
@@ -96,8 +137,20 @@ export async function signUpAction(formData: FormData): Promise<void> {
       redirect("/auth/sign-up?error=invalid_invite");
     }
 
-    await setAuthSession(registration.user);
-    redirect("/");
+    const verification = await issueRegistrationVerificationForUser({
+      userId: registration.user.id,
+      email: registration.user.email,
+      baseUrl: await getRequestBaseUrl(),
+    });
+
+    redirect(
+      buildVerificationRequestedRedirect({
+        email: registration.user.email,
+        source: "signup",
+        delivery: verification.outcome,
+        retryAfterSeconds: verification.retryAfterSeconds,
+      }),
+    );
   }
 
   const existingUser = await db.user.findUnique({
@@ -124,8 +177,20 @@ export async function signUpAction(formData: FormData): Promise<void> {
     },
   });
 
-  await setAuthSession(user);
-  redirect("/");
+  const verification = await issueRegistrationVerificationForUser({
+    userId: user.id,
+    email: user.email,
+    baseUrl: await getRequestBaseUrl(),
+  });
+
+  redirect(
+    buildVerificationRequestedRedirect({
+      email: user.email,
+      source: "signup",
+      delivery: verification.outcome,
+      retryAfterSeconds: verification.retryAfterSeconds,
+    }),
+  );
 }
 
 export async function signInAction(formData: FormData): Promise<void> {
@@ -151,22 +216,25 @@ export async function signInAction(formData: FormData): Promise<void> {
     redirect(`/auth/sign-in?error=rate_limited&retry_after=${retryAfter}`);
   }
 
-  const user = await db.user.findUnique({
-    where: { email },
-    select: {
-      id: true,
-      email: true,
-      passwordHash: true,
-    },
-  });
+  const authentication = await authenticateWithPassword(email, password);
 
-  if (!user?.passwordHash || !verifyPassword(password, user.passwordHash)) {
+  if (!authentication.ok && authentication.reason === "email_unverified") {
+    await clearSignInRateLimit(email, ipAddress);
+    redirect(
+      buildVerificationRequestedRedirect({
+        email: authentication.user?.email ?? email,
+        source: "signin",
+      }),
+    );
+  }
+
+  if (!authentication.ok) {
     redirect("/auth/sign-in?error=invalid_credentials");
   }
 
   await clearSignInRateLimit(email, ipAddress);
   await pruneExpiredSessions();
-  await setAuthSession({ id: user.id, email: user.email });
+  await setAuthSession(authentication.user);
   redirect("/");
 }
 
