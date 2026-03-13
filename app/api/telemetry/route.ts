@@ -25,7 +25,7 @@ const EVENT_NAMES: TelemetryEventName[] = [
   "subscription_details_view_full_history",
 ];
 
-const SOURCES: SubscriptionModalOpenSource[] = ["upcoming_charges", "recent_activity", "subscriptions_list"];
+const SOURCES: SubscriptionModalOpenSource[] = ["upcoming_charges", "subscriptions_list"];
 
 const CLOSE_REASONS: SubscriptionModalCloseReason[] = ["backdrop", "escape_key", "close_button", "unknown"];
 

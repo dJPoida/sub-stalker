@@ -30,7 +30,6 @@ function buildAvailableCurrencies(payload: DashboardPayload): string[] {
       ...payload.topCostDrivers.map((entry) => entry.currency),
       ...payload.potentialSavings.totalsByCurrency.map((entry) => entry.currency),
       ...payload.potentialSavings.opportunities.map((entry) => entry.currency),
-      ...payload.recentSubscriptions.map((entry) => entry.currency),
     ]),
   ];
 }
@@ -161,16 +160,6 @@ export default function DashboardDataClient({ initialCurrency }: DashboardDataCl
           })) ?? [],
         assumptions: payload?.potentialSavings.assumptions ?? [],
       }}
-      recentSubscriptions={
-        payload?.recentSubscriptions.map((subscription) => ({
-          id: subscription.id,
-          name: subscription.name,
-          isActive: subscription.isActive,
-          amountCents: subscription.amountCents,
-          currency: subscription.currency,
-          createdAt: subscription.createdAt,
-        })) ?? []
-      }
       renderState={renderState}
       spendBreakdownByCategory={
         payload?.spendBreakdownByCategory.map((category) => ({

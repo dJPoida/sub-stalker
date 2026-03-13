@@ -46,7 +46,6 @@ describe("buildDashboardPayload", () => {
     assert.deepEqual(payload.upcomingRenewals, []);
     assert.deepEqual(payload.topCostDrivers, []);
     assert.deepEqual(payload.potentialSavings.opportunities, []);
-    assert.deepEqual(payload.recentSubscriptions, []);
     assert.equal(payload.nextCharge, null);
   });
 

@@ -63,10 +63,9 @@ Subscriptions UX:
 Dashboard details modal UX:
 
 1. Open `/` while signed in and click an item in `Upcoming Charges`; confirm `Subscription Details` modal opens.
-2. Open an item from `Recent Activity`; confirm the same modal component opens with the selected subscription.
-3. While opening modal, confirm loading state is visible and details render after request.
-4. Temporarily break the details request (for example, by forcing `401/404`) and confirm error/empty state copy is shown.
-5. In browser devtools network tab, confirm telemetry source values are `upcoming_charges` and `recent_activity`.
+2. While opening modal, confirm loading state is visible and details render after request.
+3. Temporarily break the details request (for example, by forcing `401/404`) and confirm error/empty state copy is shown.
+4. In browser devtools network tab, confirm telemetry source value is `upcoming_charges`.
 
 Settings UX:
 

@@ -9,7 +9,6 @@ export const DASHBOARD_UPCOMING_RENEWALS_WINDOW_DAYS = 30;
 const DAYS_TO_MILLISECONDS = 24 * 60 * 60 * 1000;
 const WEEKLY_TO_MONTHLY_FACTOR = 4.33;
 const TOP_COST_DRIVERS_LIMIT = 5;
-const RECENT_SUBSCRIPTIONS_LIMIT = 5;
 const ATTENTION_PROMO_WINDOW_DAYS = 7;
 const ATTENTION_PROMO_MAX_ACCOUNT_AGE_DAYS = 45;
 const ATTENTION_UNUSED_MIN_ACCOUNT_AGE_DAYS = 120;
@@ -154,16 +153,6 @@ export type DashboardPotentialSavings = {
   assumptions: string[];
 };
 
-export type DashboardRecentSubscription = {
-  id: string;
-  name: string;
-  isActive: boolean;
-  amountCents: number;
-  currency: string;
-  nextBillingDate: string | null;
-  createdAt: string;
-};
-
 export type DashboardNextCharge = {
   id: string;
   name: string;
@@ -186,7 +175,6 @@ export type DashboardPayload = {
   topCostDrivers: DashboardTopCostDriver[];
   potentialSavings: DashboardPotentialSavings;
   nextCharge: DashboardNextCharge;
-  recentSubscriptions: DashboardRecentSubscription[];
 };
 
 type NormalizedSubscription = DashboardSubscriptionSourceRecord & {
@@ -821,21 +809,6 @@ export function buildDashboardPayload(
       }
     : null;
 
-  const recentSubscriptions: DashboardRecentSubscription[] = [...normalizedSubscriptions]
-    .sort((first, second) => {
-      return second.createdAtDate.getTime() - first.createdAtDate.getTime() || first.name.localeCompare(second.name);
-    })
-    .slice(0, RECENT_SUBSCRIPTIONS_LIMIT)
-    .map((subscription) => ({
-      id: subscription.id,
-      name: subscription.name,
-      isActive: subscription.isActive,
-      amountCents: subscription.amountCents,
-      currency: subscription.currency,
-      nextBillingDate: subscription.nextBillingDateDate ? subscription.nextBillingDateDate.toISOString() : null,
-      createdAt: subscription.createdAtDate.toISOString(),
-    }));
-
   return {
     generatedAt: now.toISOString(),
     dateWindows: {
@@ -850,7 +823,6 @@ export function buildDashboardPayload(
     topCostDrivers,
     potentialSavings,
     nextCharge,
-    recentSubscriptions,
   };
 }
 

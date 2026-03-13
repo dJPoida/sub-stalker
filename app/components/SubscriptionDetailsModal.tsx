@@ -81,8 +81,6 @@ function sourceLabel(value: SubscriptionModalOpenSource | null): string {
   switch (value) {
     case "upcoming_charges":
       return "Opened from upcoming charges";
-    case "recent_activity":
-      return "Opened from recent activity";
     case "subscriptions_list":
       return "Opened from subscriptions list";
     default:
