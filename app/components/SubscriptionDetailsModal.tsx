@@ -90,6 +90,25 @@ function sourceLabel(value: SubscriptionModalOpenSource | null): string {
   }
 }
 
+function getNotesPreview(notesMarkdown: string | null): { preview: string | null; truncated: boolean } {
+  const normalized = notesMarkdown?.trim() ?? "";
+
+  if (!normalized) {
+    return { preview: null, truncated: false };
+  }
+
+  const condensed = normalized.replace(/\n{3,}/g, "\n\n");
+
+  if (condensed.length <= 220) {
+    return { preview: condensed, truncated: false };
+  }
+
+  return {
+    preview: `${condensed.slice(0, 217).trimEnd()}...`,
+    truncated: true,
+  };
+}
+
 export default function SubscriptionDetailsModal({
   isOpen,
   loadState,
@@ -180,6 +199,7 @@ export default function SubscriptionDetailsModal({
   }, [details]);
 
   const historyIsExternal = historyHref.startsWith("http://") || historyHref.startsWith("https://");
+  const notesPreview = getNotesPreview(details?.notesMarkdown ?? null);
 
   async function handleCopySubscriptionId(): Promise<void> {
     if (!details) {
@@ -263,68 +283,118 @@ export default function SubscriptionDetailsModal({
               </div>
             </article>
 
-            <article className="surface details-section">
-              <h3>Billing Snapshot</h3>
-              <dl className="details-definition-list">
-                <div>
-                  <dt>Amount and cadence</dt>
-                  <dd>
-                    {formatMoney(details.amountCents, details.currency)} / {details.billingIntervalLabel.toLowerCase()}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Next charge date</dt>
-                  <dd>
-                    {details.status === "CANCELED"
-                      ? formatDate(details.cancellationEffectiveDate)
-                      : formatDate(details.nextBillingDate)}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Last charge</dt>
-                  <dd>
-                    {formatDate(details.lastChargeDate)}{" "}
-                    {details.lastChargeAmountCents !== null
-                      ? `(${formatMoney(details.lastChargeAmountCents, details.currency)})`
-                      : ""}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Payment method</dt>
-                  <dd>{details.paymentMethodMasked}</dd>
-                </div>
-                <div>
-                  <dt>Trial end date</dt>
-                  <dd>{formatDate(details.trialEndDate)}</dd>
-                </div>
-              </dl>
-            </article>
+            <div className="details-card-grid">
+              <article className="surface details-section">
+                <h3>Billing Details</h3>
+                <dl className="details-definition-list">
+                  <div>
+                    <dt>Billing date</dt>
+                    <dd>
+                      {details.status === "CANCELED"
+                        ? formatDate(details.cancellationEffectiveDate)
+                        : formatDate(details.nextBillingDate)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Billing cadence</dt>
+                    <dd>{details.billingIntervalLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>Payment method</dt>
+                    <dd>{details.paymentMethodMasked}</dd>
+                  </div>
+                  <div>
+                    <dt>{details.spendSummary.label}</dt>
+                    <dd>{formatMoney(details.spendSummary.amountCents, details.spendSummary.currency)}</dd>
+                  </div>
+                  <div>
+                    <dt>Current status</dt>
+                    <dd>
+                      <span className={details.status === "ACTIVE" ? "pill pill-ok" : "pill pill-fail"}>{details.status}</span>
+                    </dd>
+                  </div>
+                </dl>
+              </article>
 
-            <article className="surface details-section">
-              <h3>Plan and Lifecycle</h3>
-              <dl className="details-definition-list">
-                <div>
-                  <dt>Plan / tier</dt>
-                  <dd>{details.planName ?? "Not captured"}</dd>
+              <article className="surface details-section">
+                <div className="details-section-heading">
+                  <h3>Notes & Category</h3>
+                  <span className="pill">{details.inferredCategory}</span>
                 </div>
-                <div>
-                  <dt>Start date</dt>
-                  <dd>{formatDate(details.startDate)}</dd>
+                <p className="text-muted details-card-caption">
+                  Signed up by: {details.signedUpBy ?? "Not captured"}
+                </p>
+                {notesPreview.preview ? (
+                  <>
+                    <pre className="details-notes details-notes-preview">{notesPreview.preview}</pre>
+                    {notesPreview.truncated ? (
+                      <p className="text-muted details-card-caption">Showing a preview of the saved notes.</p>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="text-muted details-card-empty">No notes saved for this subscription.</p>
+                )}
+              </article>
+            </div>
+
+            <div className="details-card-grid">
+              <article className="surface details-section">
+                <h3>Plan and Lifecycle</h3>
+                <dl className="details-definition-list">
+                  <div>
+                    <dt>Plan / tier</dt>
+                    <dd>{details.planName ?? "Not captured"}</dd>
+                  </div>
+                  <div>
+                    <dt>Start date</dt>
+                    <dd>{formatDate(details.startDate)}</dd>
+                  </div>
+                  <div>
+                    <dt>Renewal date</dt>
+                    <dd>{formatDate(details.renewalDate)}</dd>
+                  </div>
+                  <div>
+                    <dt>Auto-renew</dt>
+                    <dd>{details.autoRenew ? "On" : "Off"}</dd>
+                  </div>
+                  <div>
+                    <dt>Cancellation details</dt>
+                    <dd>{details.cancellationReason ?? (details.status === "CANCELED" ? "Cancellation recorded" : "None")}</dd>
+                  </div>
+                </dl>
+              </article>
+
+              <article className="surface details-section">
+                <div className="details-section-heading">
+                  <h3>Account References</h3>
+                  <div className="inline-actions details-tag-list" aria-label="Subscription metadata tags">
+                    {details.metadataTags.map((tag) => (
+                      <span className="pill" key={tag}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <dt>Renewal date</dt>
-                  <dd>{formatDate(details.renewalDate)}</dd>
-                </div>
-                <div>
-                  <dt>Auto-renew</dt>
-                  <dd>{details.autoRenew ? "On" : "Off"}</dd>
-                </div>
-                <div>
-                  <dt>Cancellation details</dt>
-                  <dd>{details.cancellationReason ?? (details.status === "CANCELED" ? "Cancellation recorded" : "None")}</dd>
-                </div>
-              </dl>
-            </article>
+                <dl className="details-definition-list">
+                  <div>
+                    <dt>Subscription ID</dt>
+                    <dd>{details.internalIdentifiers.subscriptionId}</dd>
+                  </div>
+                  <div>
+                    <dt>Provider reference</dt>
+                    <dd>{details.internalIdentifiers.providerReference ?? "Not captured"}</dd>
+                  </div>
+                  <div>
+                    <dt>Billing console URL</dt>
+                    <dd>{details.links.billingConsoleUrl ?? "Not captured"}</dd>
+                  </div>
+                  <div>
+                    <dt>Cancel URL</dt>
+                    <dd>{details.links.cancelSubscriptionUrl ?? "Not captured"}</dd>
+                  </div>
+                </dl>
+              </article>
+            </div>
 
             <article className="surface details-section">
               <h3>Recent Activity Timeline</h3>
@@ -348,34 +418,6 @@ export default function SubscriptionDetailsModal({
                   ))}
                 </ol>
               )}
-            </article>
-
-            <article className="surface details-section">
-              <h3>Subscription Metadata</h3>
-              <p className="text-muted">
-                Tags: {details.metadataTags.length > 0 ? details.metadataTags.join(", ") : "No tags available"}
-              </p>
-              <p className="text-muted">Signed up by: {details.signedUpBy ?? "Not captured"}</p>
-              <p className="text-muted">Notes: {details.notesMarkdown?.trim() ? "Available below" : "Not captured"}</p>
-              {details.notesMarkdown?.trim() ? <pre className="details-notes">{details.notesMarkdown}</pre> : null}
-              <dl className="details-definition-list">
-                <div>
-                  <dt>Subscription ID</dt>
-                  <dd>{details.internalIdentifiers.subscriptionId}</dd>
-                </div>
-                <div>
-                  <dt>Provider reference</dt>
-                  <dd>{details.internalIdentifiers.providerReference ?? "Not captured"}</dd>
-                </div>
-                <div>
-                  <dt>Billing console URL</dt>
-                  <dd>{details.links.billingConsoleUrl ?? "Not captured"}</dd>
-                </div>
-                <div>
-                  <dt>Cancel URL</dt>
-                  <dd>{details.links.cancelSubscriptionUrl ?? "Not captured"}</dd>
-                </div>
-              </dl>
             </article>
 
             <footer className="inline-actions details-action-row">
