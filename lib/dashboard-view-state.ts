@@ -50,10 +50,6 @@ export function hasDashboardContent(data: DashboardPayload): boolean {
     return true;
   }
 
-  if (data.recentSubscriptions.length > 0) {
-    return true;
-  }
-
   if (data.spendBreakdownByCategory.some((category) => category.totalsByCurrency.length > 0)) {
     return true;
   }

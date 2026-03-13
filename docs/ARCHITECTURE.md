@@ -88,8 +88,7 @@ UI behavior:
 Current modal coverage:
 
 1. Dashboard `Upcoming Charges`
-2. Dashboard `Recent Activity`
-3. `/subscriptions` subscription row cards
+2. `/subscriptions` subscription row cards
 
 Modal behavior:
 

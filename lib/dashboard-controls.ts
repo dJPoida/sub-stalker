@@ -36,12 +36,6 @@ type DashboardUpcomingRenewalRecord = {
   renewalDate: string;
 };
 
-type DashboardRecentActivityRecord = {
-  name: string;
-  currency: string;
-  createdAt: string;
-};
-
 type DashboardSpendBreakdownCategoryRecord = {
   category: string;
   subscriptionCount: number;
@@ -153,19 +147,6 @@ function isWithinUpcomingWindow(dateValue: string, now: Date, rangeDays: number)
   return deltaMs >= 0 && deltaMs <= maxMs;
 }
 
-function isWithinRecentWindow(dateValue: string, now: Date, rangeDays: number): boolean {
-  const parsedDate = new Date(dateValue);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return false;
-  }
-
-  const deltaMs = now.getTime() - parsedDate.getTime();
-  const maxMs = rangeDays * 24 * 60 * 60 * 1000;
-
-  return deltaMs >= 0 && deltaMs <= maxMs;
-}
-
 export function filterDashboardUpcomingRenewals<T extends DashboardUpcomingRenewalRecord>(
   records: T[],
   controls: DashboardControlState,
@@ -184,27 +165,6 @@ export function filterDashboardUpcomingRenewals<T extends DashboardUpcomingRenew
     }
 
     return matchesSearchFilter([record.name, record.paymentMethod, record.currency], normalizedQuery);
-  });
-}
-
-export function filterDashboardRecentActivity<T extends DashboardRecentActivityRecord>(
-  records: T[],
-  controls: DashboardControlState,
-  now: Date,
-): T[] {
-  const rangeDays = toDateRangeDays(controls.dateRange);
-  const normalizedQuery = toNormalizedSearchQuery(controls.searchQuery);
-
-  return records.filter((record) => {
-    if (!matchesCurrencyFilter(record.currency, controls.currency)) {
-      return false;
-    }
-
-    if (!isWithinRecentWindow(record.createdAt, now, rangeDays)) {
-      return false;
-    }
-
-    return matchesSearchFilter([record.name, record.currency], normalizedQuery);
   });
 }
 

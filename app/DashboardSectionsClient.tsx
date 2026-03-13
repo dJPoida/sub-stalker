@@ -20,7 +20,6 @@ import {
   DASHBOARD_ALL_CURRENCIES,
   DASHBOARD_DATE_RANGE_OPTIONS,
   DEFAULT_DASHBOARD_DATE_RANGE,
-  filterDashboardRecentActivity,
   mapDashboardSpendBreakdownByCurrency,
   filterDashboardUpcomingRenewals,
   resolveInitialDashboardCurrency,
@@ -39,15 +38,6 @@ type DashboardUpcomingChargeListItem = {
   renewalDate: string;
   createdAt: string;
   tag: DashboardUpcomingRenewalTag;
-};
-
-type DashboardRecentActivityListItem = {
-  id: string;
-  name: string;
-  isActive: boolean;
-  amountCents: number;
-  currency: string;
-  createdAt: string;
 };
 
 type DashboardAttentionListItem = {
@@ -100,7 +90,6 @@ type DashboardSectionsClientProps = {
   topCostDrivers: DashboardTopCostDriverListItem[];
   potentialSavings: DashboardPotentialSavingsData;
   upcomingCharges: DashboardUpcomingChargeListItem[];
-  recentSubscriptions: DashboardRecentActivityListItem[];
   monthlySpendTotalsByCurrency: Array<{
     currency: string;
     monthlyEquivalentSpendCents: number;
@@ -415,7 +404,6 @@ export default function DashboardSectionsClient({
   topCostDrivers,
   potentialSavings,
   upcomingCharges,
-  recentSubscriptions,
   monthlySpendTotalsByCurrency,
   spendBreakdownByCategory,
   initialCurrency,
@@ -464,19 +452,6 @@ export default function DashboardSectionsClient({
   }, [filteredUpcomingCharges, showAllUpcomingRenewals]);
   const hasClippedUpcomingRenewals = filteredUpcomingCharges.length > UPCOMING_RENEWALS_VISIBLE_ROWS;
   const hiddenUpcomingRenewalsCount = Math.max(filteredUpcomingCharges.length - visibleUpcomingCharges.length, 0);
-  const filteredRecentActivity = useMemo(
-    () =>
-      filterDashboardRecentActivity(
-        recentSubscriptions,
-        {
-          currency,
-          dateRange,
-          searchQuery,
-        },
-        now,
-      ),
-    [currency, dateRange, now, recentSubscriptions, searchQuery],
-  );
   const filteredAttentionNeeded = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
     const selectedCurrency = currency.toUpperCase();
@@ -1255,58 +1230,6 @@ export default function DashboardSectionsClient({
           </article>
         </section>
 
-        <section className="dashboard-grid">
-          <article className="dashboard-card">
-            <div className="dashboard-card-header">
-              <h2>Recent Activity</h2>
-              <span className="metric-note">
-                {isLoading ? "Loading activity..." : `${filteredRecentActivity.length} matching rows`}
-              </span>
-            </div>
-            {isLoading ? (
-              <div className="stack" aria-hidden="true">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div className="status-item subscription-entry-button subscription-entry-skeleton" key={index}>
-                    <div className="subscription-header">
-                      <DashboardSkeletonLine className="dashboard-skeleton-line-md" />
-                      <DashboardSkeletonLine className="dashboard-skeleton-line-xs" />
-                    </div>
-                    <DashboardSkeletonLine className="dashboard-skeleton-line-lg" />
-                  </div>
-                ))}
-              </div>
-            ) : filteredRecentActivity.length === 0 ? (
-              <p className="text-muted">No recent subscriptions match the current control filters.</p>
-            ) : (
-              <div className="stack">
-                {filteredRecentActivity.map((subscription) => (
-                  <button
-                    aria-label={`View details for ${subscription.name}`}
-                    className="status-item subscription-entry-button"
-                    key={subscription.id}
-                    onClick={() =>
-                      void detailsModal.openModal({
-                        subscriptionId: subscription.id,
-                        source: "recent_activity",
-                      })
-                    }
-                    type="button"
-                  >
-                    <div className="subscription-header">
-                      <h2>{subscription.name}</h2>
-                      <span className={subscription.isActive ? "pill pill-ok" : "pill pill-fail"}>
-                        {subscription.isActive ? "ACTIVE" : "INACTIVE"}
-                      </span>
-                    </div>
-                    <p className="subscription-meta">
-                      Added {formatDate(subscription.createdAt)} - {formatMoney(subscription.amountCents, subscription.currency)}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </article>
-        </section>
       </div>
 
       <SubscriptionDetailsModal

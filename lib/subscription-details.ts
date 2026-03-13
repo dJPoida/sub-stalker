@@ -2,7 +2,7 @@ import { inferSubscriptionCategory } from "@/lib/subscription-classification";
 
 export type BillingIntervalCode = "WEEKLY" | "MONTHLY" | "YEARLY" | "CUSTOM";
 
-export type SubscriptionModalOpenSource = "upcoming_charges" | "recent_activity" | "subscriptions_list";
+export type SubscriptionModalOpenSource = "upcoming_charges" | "subscriptions_list";
 
 export type SubscriptionModalCloseReason = "backdrop" | "escape_key" | "close_button" | "unknown";
 
