@@ -471,11 +471,16 @@ export default function SubscriptionsClient({
       )}
 
       <SubscriptionDetailsModal
+        deactivateAction={deactivateAction}
         details={detailsModal.details}
         errorMessage={detailsModal.errorMessage}
         isOpen={detailsModal.isOpen}
         loadState={detailsModal.fetchState}
         onClose={detailsModal.closeModal}
+        onEditSubscription={(subscriptionId) => {
+          detailsModal.closeModal("close_button");
+          setEditingSubscriptionId(subscriptionId);
+        }}
         onViewFullHistoryClick={detailsModal.trackViewFullHistory}
         source={detailsModal.source}
       />

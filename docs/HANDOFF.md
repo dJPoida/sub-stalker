@@ -35,11 +35,12 @@ Implemented:
 - Subscription CRUD:
   - authenticated users can create, list, update, and deactivate subscriptions from `/subscriptions`.
   - subscriptions page now supports modal add/edit flows plus client-side search, status filtering, and sorting.
-  - shared read-only `Subscription Details` modal now opens from:
+  - shared `Subscription Details` modal now opens from:
     - dashboard `Upcoming Charges`
     - `/subscriptions` card rows (click + keyboard Enter/Space)
   - details modal data is served by `/api/subscriptions/[subscriptionId]/details` using a shared contract in `lib/subscription-details.ts`.
-  - details modal includes loading/empty/error states, focus trap, `Esc` close, and non-edit actions (`View Full History`, `Copy Subscription ID`, `Close`).
+  - details modal includes loading/empty/error states, focus trap, `Esc` close, V2 hero/summary rendering, and action buttons with deterministic disabled/pending states.
+  - from `/subscriptions`, modal header actions can launch `Edit` and submit `Mark Cancelled`; dashboard entry points keep those lifecycle actions disabled.
   - modal interaction telemetry posts to `/api/telemetry` with source context (`upcoming_charges`, `subscriptions_list`).
   - `paymentMethod` is now required and acts as a learning field (suggests prior values entered by the same user).
   - `signedUpBy` is optional and also acts as a learning field (suggests prior user-entered values).

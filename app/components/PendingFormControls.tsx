@@ -6,6 +6,7 @@ type PendingSubmitButtonProps = {
   idleLabel: string;
   pendingLabel: string;
   className?: string;
+  disabled?: boolean;
 };
 
 type PendingFieldsetProps = {
@@ -17,11 +18,12 @@ export function PendingSubmitButton({
   idleLabel,
   pendingLabel,
   className,
+  disabled = false,
 }: PendingSubmitButtonProps): JSX.Element {
   const { pending } = useFormStatus();
 
   return (
-    <button className={className} disabled={pending} type="submit">
+    <button className={className} disabled={pending || disabled} type="submit">
       {pending ? pendingLabel : idleLabel}
     </button>
   );
