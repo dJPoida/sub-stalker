@@ -48,6 +48,16 @@ export async function GET(_request: Request, context: SubscriptionDetailsRouteCo
       isActive: true,
       createdAt: true,
       updatedAt: true,
+      user: {
+        select: {
+          settings: {
+            select: {
+              remindersEnabled: true,
+              reminderDaysBefore: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -55,7 +65,11 @@ export async function GET(_request: Request, context: SubscriptionDetailsRouteCo
     return NextResponse.json({ error: "Subscription not found." }, { status: 404 });
   }
 
-  const data = buildSubscriptionDetails(subscription);
+  const data = buildSubscriptionDetails({
+    ...subscription,
+    remindersEnabled: subscription.user.settings?.remindersEnabled ?? true,
+    reminderDaysBefore: subscription.user.settings?.reminderDaysBefore ?? 3,
+  });
 
   return NextResponse.json(
     {

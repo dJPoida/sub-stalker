@@ -84,6 +84,7 @@ UI behavior:
 1. `/api/subscriptions/[subscriptionId]/details` (server response builder).
 2. Dashboard + subscriptions modal consumers (single read-only component).
 3. Shared timeline and normalized-cost formatting logic.
+4. The nested `v2` operational modal contract described in `docs/SUBSCRIPTION_DETAILS_V2_CONTRACT.md`.
 
 Current modal coverage:
 
@@ -96,6 +97,13 @@ Modal behavior:
 2. Includes loading, empty, and error states.
 3. Uses keyboard accessible dialog behavior (focus trap + `Esc` close).
 4. Supports contextual actions without editing controls (view history, copy ID, close).
+
+V2 contract notes:
+
+1. Legacy flat fields remain in place for the current modal.
+2. The nested `v2` payload adds section-level `ready` / `partial` / `empty` states.
+3. Alert derivation returns both rendered items and rule-evaluation outcomes.
+4. Action capability payloads define permission, confirmation, and required server validation rules before UI wiring.
 
 ## Auth flow
 
