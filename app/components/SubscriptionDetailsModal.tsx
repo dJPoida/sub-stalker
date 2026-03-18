@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { PendingSubmitButton } from "@/app/components/PendingFormControls";
 import type {
+  SubscriptionDetailsActionCapability,
+  SubscriptionDetailsChip,
+  SubscriptionDetailsChipTone,
   SubscriptionDetailsContract,
   SubscriptionModalCloseReason,
   SubscriptionModalOpenSource,
@@ -17,6 +21,8 @@ type SubscriptionDetailsModalProps = {
   errorMessage: string | null;
   onClose: (reason: SubscriptionModalCloseReason) => void;
   onViewFullHistoryClick: () => void;
+  onEditSubscription?: ((subscriptionId: string) => void) | null;
+  deactivateAction?: ((formData: FormData) => Promise<void>) | null;
 };
 
 const FOCUSABLE_SELECTOR =
@@ -107,6 +113,133 @@ function getNotesPreview(notesMarkdown: string | null): { preview: string | null
   };
 }
 
+function chipClassName(tone: SubscriptionDetailsChipTone): string {
+  switch (tone) {
+    case "success":
+      return "pill pill-ok";
+    case "warning":
+      return "pill details-chip-warning";
+    case "danger":
+      return "pill pill-fail";
+    default:
+      return "pill";
+  }
+}
+
+function renderHeaderChip(chip: SubscriptionDetailsChip): JSX.Element {
+  return (
+    <span className={chipClassName(chip.tone)} key={chip.key}>
+      {chip.label}
+    </span>
+  );
+}
+
+function formatMonthlyEquivalent(amountCents: number | null, currency: string): string {
+  if (amountCents === null) {
+    return "Monthly equivalent unavailable";
+  }
+
+  return `${formatMoney(amountCents, currency)}/mo equivalent`;
+}
+
+function formatAnnualizedSpend(amountCents: number | null, currency: string): string {
+  if (amountCents === null) {
+    return "Annualized spend unavailable";
+  }
+
+  return `Annualized spend ${formatMoney(amountCents, currency)}/yr`;
+}
+
+function formatPaymentMethodSummary(signedUpBy: string | null): string {
+  return signedUpBy ? `Signed up by ${signedUpBy}` : "Signed up by not captured";
+}
+
+function getActionByKey(
+  actions: SubscriptionDetailsActionCapability[],
+  key: SubscriptionDetailsActionCapability["key"],
+): SubscriptionDetailsActionCapability | null {
+  return actions.find((action) => action.key === key) ?? null;
+}
+
+function resolveActionState(
+  action: SubscriptionDetailsActionCapability | null,
+  fallbackLabel: string,
+  fallbackUnavailableReason: string,
+): {
+  label: string;
+  disabled: boolean;
+  unavailableReason: string | null;
+} {
+  if (!action) {
+    return {
+      label: fallbackLabel,
+      disabled: true,
+      unavailableReason: fallbackUnavailableReason,
+    };
+  }
+
+  if (action.availability === "disabled") {
+    return {
+      label: action.label,
+      disabled: true,
+      unavailableReason: action.unavailableReason,
+    };
+  }
+
+  return {
+    label: action.label,
+    disabled: false,
+    unavailableReason: null,
+  };
+}
+
+function ModalDeactivateButton({
+  subscriptionId,
+  label,
+  unavailableReason,
+  deactivateAction,
+}: {
+  subscriptionId: string;
+  label: string;
+  unavailableReason: string | null;
+  deactivateAction: ((formData: FormData) => Promise<void>) | null;
+}): JSX.Element {
+  if (!deactivateAction) {
+    return (
+      <button
+        className="button-danger button-small"
+        disabled
+        title={unavailableReason ?? "Cancellation controls are unavailable from this view."}
+        type="button"
+      >
+        {label}
+      </button>
+    );
+  }
+
+  return (
+    <form
+      action={deactivateAction}
+      className="details-action-form"
+      onSubmit={(event) => {
+        const confirmed = window.confirm("Mark this subscription as cancelled?");
+
+        if (!confirmed) {
+          event.preventDefault();
+        }
+      }}
+    >
+      <input name="subscriptionId" type="hidden" value={subscriptionId} />
+      <PendingSubmitButton
+        className="button-danger button-small"
+        disabled={Boolean(unavailableReason)}
+        idleLabel={label}
+        pendingLabel="Marking..."
+      />
+    </form>
+  );
+}
+
 export default function SubscriptionDetailsModal({
   isOpen,
   loadState,
@@ -115,6 +248,8 @@ export default function SubscriptionDetailsModal({
   errorMessage,
   onClose,
   onViewFullHistoryClick,
+  onEditSubscription = null,
+  deactivateAction = null,
 }: SubscriptionDetailsModalProps) {
   const panelRef = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -188,16 +323,36 @@ export default function SubscriptionDetailsModal({
     setCopyMessage(null);
   }, [details?.id, isOpen]);
 
+  const historyAction = details ? getActionByKey(details.v2.actionBar.footer, "view_billing_history") : null;
   const historyHref = useMemo(() => {
-    if (!details) {
+    if (!historyAction?.href) {
       return "/subscriptions";
     }
 
-    return details.links.billingHistoryUrl ?? "/subscriptions";
-  }, [details]);
+    return historyAction.href;
+  }, [historyAction]);
 
   const historyIsExternal = historyHref.startsWith("http://") || historyHref.startsWith("https://");
   const notesPreview = getNotesPreview(details?.notesMarkdown ?? null);
+  const headerChips = details ? details.v2.header.chips.filter((chip) => chip.key !== "category") : [];
+  const editAction = details ? getActionByKey(details.v2.actionBar.header, "edit_subscription") : null;
+  const markCancelledAction = details ? getActionByKey(details.v2.actionBar.header, "mark_cancelled") : null;
+  const editActionState = resolveActionState(editAction, "Edit", "Edit controls are unavailable from this view.");
+  const markCancelledActionState = resolveActionState(
+    markCancelledAction,
+    "Mark Cancelled",
+    "Cancellation controls are unavailable from this view.",
+  );
+  const editUnavailableReason =
+    editActionState.unavailableReason ??
+    (onEditSubscription ? null : "Open this subscription from the subscriptions page to edit it.");
+  const markCancelledUnavailableReason =
+    markCancelledActionState.unavailableReason ??
+    (deactivateAction ? null : "Open this subscription from the subscriptions page to update cancellation state.");
+  const lifecycleActionHint =
+    details && !onEditSubscription && !deactivateAction
+      ? "Manage edit and cancellation actions from the subscriptions page."
+      : null;
 
   async function handleCopySubscriptionId(): Promise<void> {
     if (!details) {
@@ -228,7 +383,6 @@ export default function SubscriptionDetailsModal({
           <div className="stack">
             <p className="eyebrow">{sourceLabel(source)}</p>
             <h2 id="subscription-details-title">Subscription Details</h2>
-            {details ? <p className="text-muted">Last updated: {formatDateTime(details.lastUpdatedAt)}</p> : null}
           </div>
           <button
             className="button button-secondary button-small details-modal-close"
@@ -263,21 +417,92 @@ export default function SubscriptionDetailsModal({
 
         {loadState === "ready" && details ? (
           <div className="details-grid">
-            <article className="surface surface-soft details-section">
-              <div className="details-title-row">
-                <div className="details-logo">{getInitials(details.name)}</div>
-                <div>
-                  <h3>{details.name}</h3>
-                  <p className="text-muted">
-                    {formatMoney(details.amountCents, details.currency)} every {details.billingIntervalLabel.toLowerCase()}
-                  </p>
+            <article className="surface surface-soft details-section details-hero">
+              <div className="details-hero-row">
+                <div className="details-hero-main">
+                  <div className="details-title-row details-hero-identity">
+                    <div className="details-logo details-hero-logo">{getInitials(details.v2.header.title)}</div>
+                    <div className="details-title-copy">
+                      <h3>{details.v2.header.title}</h3>
+                      <p className="text-muted details-hero-subtitle">{details.v2.header.subtitle}</p>
+                      <p className="text-muted details-hero-updated">Last updated: {formatDateTime(details.lastUpdatedAt)}</p>
+                    </div>
+                  </div>
+                  <div className="inline-actions details-hero-badges" aria-label="Subscription status and category">
+                    <span className="pill">{details.v2.header.categoryLabel}</span>
+                    {headerChips.map((chip) => renderHeaderChip(chip))}
+                  </div>
+                </div>
+
+                <div className="details-hero-actions">
+                  <div className="details-hero-action-row">
+                    <button
+                      className="button button-secondary button-small"
+                      disabled={editActionState.disabled || !onEditSubscription}
+                      onClick={() => {
+                        if (onEditSubscription) {
+                          onEditSubscription(details.id);
+                        }
+                      }}
+                      title={editUnavailableReason ?? undefined}
+                      type="button"
+                    >
+                      {editActionState.label}
+                    </button>
+
+                    <ModalDeactivateButton
+                      deactivateAction={deactivateAction}
+                      label={markCancelledActionState.label}
+                      subscriptionId={details.id}
+                      unavailableReason={markCancelledUnavailableReason}
+                    />
+                  </div>
+
+                  {lifecycleActionHint ? <p className="text-muted details-hero-actions-hint">{lifecycleActionHint}</p> : null}
                 </div>
               </div>
-              <div className="inline-actions">
-                <span className={details.status === "ACTIVE" ? "pill pill-ok" : "pill pill-fail"}>{details.status}</span>
-                <span className="pill">
-                  Monthly estimate: {formatMoney(details.normalizedMonthlyAmountCents, details.currency)}
-                </span>
+
+              <div className="details-summary-grid" aria-label="Subscription summary">
+                <article className="details-summary-card">
+                  <span className="details-summary-label">Current price</span>
+                  <strong className="details-summary-value">
+                    {formatMoney(details.v2.summaryStrip.currentPrice.amountCents, details.v2.summaryStrip.currentPrice.currency)}
+                  </strong>
+                  <p className="text-muted details-summary-meta">
+                    {details.v2.summaryStrip.currentPrice.intervalLabel} billing ·{" "}
+                    {formatMonthlyEquivalent(
+                      details.v2.summaryStrip.currentPrice.monthlyEquivalentAmountCents,
+                      details.v2.summaryStrip.currentPrice.currency,
+                    )}
+                  </p>
+                </article>
+
+                <article className="details-summary-card">
+                  <span className="details-summary-label">Renewal</span>
+                  <strong className="details-summary-value">{formatDate(details.v2.summaryStrip.renewal.date)}</strong>
+                  <p className="text-muted details-summary-meta">
+                    {formatAnnualizedSpend(
+                      details.v2.summaryStrip.renewal.annualizedSpendCents,
+                      details.v2.summaryStrip.renewal.currency,
+                    )}
+                  </p>
+                </article>
+
+                <article className="details-summary-card">
+                  <span className="details-summary-label">Payment method</span>
+                  <strong className="details-summary-value">{details.v2.summaryStrip.paymentMethod.masked}</strong>
+                  <p className="text-muted details-summary-meta">
+                    {formatPaymentMethodSummary(details.v2.summaryStrip.paymentMethod.signedUpBy)}
+                  </p>
+                </article>
+
+                <article className="details-summary-card">
+                  <span className="details-summary-label">Reminder</span>
+                  <strong className="details-summary-value">{details.v2.summaryStrip.reminders.statusLabel}</strong>
+                  <p className="text-muted details-summary-meta">
+                    {details.v2.summaryStrip.reminders.enabled ? "Reminder emails enabled" : "Reminder emails disabled"}
+                  </p>
+                </article>
               </div>
             </article>
 
@@ -419,21 +644,33 @@ export default function SubscriptionDetailsModal({
             </article>
 
             <footer className="inline-actions details-action-row">
-              {historyIsExternal ? (
-                <a
-                  className="button button-secondary"
-                  href={historyHref}
-                  onClick={onViewFullHistoryClick}
-                  rel="noreferrer noopener"
-                  target="_blank"
-                >
-                  View Full History
-                </a>
+              {historyAction?.availability === "enabled" ? (
+                historyIsExternal ? (
+                  <a
+                    className="button button-secondary"
+                    href={historyHref}
+                    onClick={onViewFullHistoryClick}
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    {historyAction.label}
+                  </a>
+                ) : (
+                  <Link className="button button-secondary" href={historyHref} onClick={onViewFullHistoryClick}>
+                    {historyAction.label}
+                  </Link>
+                )
               ) : (
-                <Link className="button button-secondary" href={historyHref} onClick={onViewFullHistoryClick}>
-                  View Full History
-                </Link>
+                <button
+                  className="button button-secondary"
+                  disabled
+                  title={historyAction?.unavailableReason ?? "Billing history is unavailable for this subscription."}
+                  type="button"
+                >
+                  {historyAction?.label ?? "View billing history"}
+                </button>
               )}
+
               <button className="button button-secondary" onClick={() => void handleCopySubscriptionId()} type="button">
                 Copy Subscription ID
               </button>

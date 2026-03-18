@@ -1509,7 +1509,7 @@ button:disabled,
 
 .details-grid {
   display: grid;
-  gap: 0.85rem;
+  gap: 1rem;
 }
 
 .details-card-grid {
@@ -1528,6 +1528,28 @@ button:disabled,
   font-size: 1rem;
 }
 
+.details-hero {
+  gap: 0.95rem;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--brand), transparent 84%), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--panel-soft), white 20%), var(--panel-soft));
+}
+
+.details-hero-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.details-hero-main {
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+  flex: 1 1 440px;
+}
+
 .details-section-heading {
   display: flex;
   align-items: flex-start;
@@ -1542,6 +1564,33 @@ button:disabled,
   gap: 0.75rem;
 }
 
+.details-hero-identity {
+  align-items: flex-start;
+}
+
+.details-title-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.details-hero-subtitle,
+.details-hero-updated,
+.details-hero-actions-hint,
+.details-summary-meta {
+  margin: 0;
+}
+
+.details-hero-subtitle {
+  font-size: 0.92rem;
+}
+
+.details-hero-updated,
+.details-hero-actions-hint,
+.details-summary-meta {
+  font-size: 0.82rem;
+}
+
 .details-logo {
   width: 2.4rem;
   height: 2.4rem;
@@ -1554,6 +1603,71 @@ button:disabled,
   font-weight: 700;
   border: 1px solid var(--border);
   background: var(--panel);
+}
+
+.details-hero-logo {
+  width: 3rem;
+  height: 3rem;
+  font-size: 0.92rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.details-hero-badges {
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.details-hero-actions {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: end;
+  flex: 0 0 auto;
+}
+
+.details-hero-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.details-action-form {
+  margin: 0;
+}
+
+.details-summary-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.details-summary-card {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel), transparent 8%);
+  padding: 0.8rem 0.9rem;
+}
+
+.details-summary-label {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.details-summary-value {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.details-chip-warning {
+  color: #9a5b08;
+  border-color: rgba(184, 119, 20, 0.28);
+  background: #fff6e7;
 }
 
 .details-definition-list {
@@ -1690,6 +1804,10 @@ ul {
     grid-template-columns: 1fr;
   }
 
+  .details-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .dashboard-control-grid {
     grid-template-columns: 1fr;
     width: 100%;
@@ -1729,5 +1847,24 @@ ul {
 
   .setting-field {
     min-width: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .details-hero-actions {
+    justify-items: stretch;
+    width: 100%;
+  }
+
+  .details-hero-action-row {
+    justify-content: stretch;
+  }
+
+  .details-hero-action-row > * {
+    flex: 1 1 100%;
+  }
+
+  .details-summary-grid {
+    grid-template-columns: 1fr;
   }
 }

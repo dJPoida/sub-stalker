@@ -22,6 +22,7 @@ When the user asks for a task to be done, follow this sequence:
 6. Commit the changes and push/publish the branch to remote.
 7. Check for an outstanding pull request that can reasonably include the request; if one exists, add changes there instead of creating a new PR.
 8. Open a new pull request only when no suitable outstanding PR exists.
+9. Make sure that merging the pull request will automatically close any associated issues (when appropriate), by referencing them correctly in the PR description.
 
 ## Required setup for AI contributors
 

@@ -56,9 +56,12 @@ Subscriptions UX:
 15. Use global search with text that appears only in notes or URL fields and confirm matching subscriptions are returned.
 16. Click a subscription card body (not Edit/Deactivate buttons) and confirm `Subscription Details` modal opens.
 17. Focus a subscription card and press `Enter`, then `Space`; confirm modal opens from keyboard.
-18. Inside the modal, confirm focus remains trapped, `Esc` closes it, and there are no editing controls.
+18. Inside the modal, confirm focus remains trapped and `Esc` closes it.
 19. In the modal, click `Copy Subscription ID` and confirm clipboard copy succeeds.
 20. In browser devtools network tab, confirm modal interaction telemetry posts to `POST /api/telemetry` with source `subscriptions_list`.
+21. In the `/subscriptions` details modal, confirm the hero shows category/lifecycle badges plus four summary cards for price, renewal, payment method, and reminder status.
+22. In the `/subscriptions` details modal, click `Edit` and confirm the edit modal opens for the same record.
+23. In the `/subscriptions` details modal for an active record, click `Mark Cancelled`, confirm the confirmation prompt appears, then verify pending state and success message after submit.
 
 Dashboard details modal UX:
 
@@ -66,6 +69,7 @@ Dashboard details modal UX:
 2. While opening modal, confirm loading state is visible and details render after request.
 3. Temporarily break the details request (for example, by forcing `401/404`) and confirm error/empty state copy is shown.
 4. In browser devtools network tab, confirm telemetry source value is `upcoming_charges`.
+5. Confirm dashboard-opened modal still shows the hero/summary strip, and that `Edit` / `Mark Cancelled` are disabled from that context.
 
 Settings UX:
 

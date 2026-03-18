@@ -272,10 +272,12 @@ Open http://localhost:3000.
 - `/tools` includes a `Send Test Email` action for operational email verification.
 - `/subscriptions` and `/settings` require authentication.
 - `/subscriptions` provides modal add/edit flows with client-side search, status filtering, and sort controls.
-- subscription details are available in a shared read-only modal opened from:
+- subscription details are available in a shared modal opened from:
   - dashboard -> `Upcoming Charges`
   - subscriptions list -> subscription card row (click, Enter, or Space)
 - the details modal fetches fresh data on open via `/api/subscriptions/[subscriptionId]/details` and includes loading, empty, and error states.
+- the details modal hero now renders V2 header/summary data with service identity, lifecycle/category badges, and summary metrics.
+- from `/subscriptions`, the details modal also exposes `Edit` and `Mark Cancelled` header actions with deterministic disabled/pending states.
 - modal telemetry events are posted to `/api/telemetry` for open/close/view-history interactions with source context.
 - `/subscriptions` learning fields:
   - required `payment method` (free-text + learned suggestions)
