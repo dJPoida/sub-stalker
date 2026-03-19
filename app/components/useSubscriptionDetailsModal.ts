@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { trackTelemetryEvent } from "@/app/components/telemetry";
 import type {
+  SubscriptionDetailsActionCapability,
   SubscriptionDetailsContract,
   SubscriptionModalCloseReason,
   SubscriptionModalOpenSource,
@@ -11,6 +13,7 @@ import type {
 
 type DetailsResponsePayload = {
   data?: SubscriptionDetailsContract;
+  error?: string;
 };
 
 type ModalFetchState = "idle" | "loading" | "ready" | "empty" | "error";
@@ -20,13 +23,34 @@ type OpenModalArgs = {
   source: SubscriptionModalOpenSource;
 };
 
+type ModalActionMessage = {
+  type: "error" | "success";
+  text: string;
+};
+
+type SubscriptionDetailsMutationAction = Extract<
+  SubscriptionDetailsActionCapability["key"],
+  "mark_cancelled" | "mark_for_review"
+>;
+
+function actionSuccessMessage(actionKey: SubscriptionDetailsMutationAction): string {
+  if (actionKey === "mark_cancelled") {
+    return "Subscription marked as cancelled.";
+  }
+
+  return "Subscription marked for review.";
+}
+
 export function useSubscriptionDetailsModal() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [source, setSource] = useState<SubscriptionModalOpenSource | null>(null);
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState<string | null>(null);
   const [fetchState, setFetchState] = useState<ModalFetchState>("idle");
   const [details, setDetails] = useState<SubscriptionDetailsContract | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pendingActionKey, setPendingActionKey] = useState<SubscriptionDetailsMutationAction | null>(null);
+  const [actionMessage, setActionMessage] = useState<ModalActionMessage | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -42,6 +66,8 @@ export function useSubscriptionDetailsModal() {
     setFetchState("loading");
     setDetails(null);
     setErrorMessage(null);
+    setPendingActionKey(null);
+    setActionMessage(null);
 
     trackTelemetryEvent({
       eventName: "subscription_details_modal_open",
@@ -94,6 +120,8 @@ export function useSubscriptionDetailsModal() {
       abortRef.current?.abort();
       abortRef.current = null;
       setIsOpen(false);
+      setPendingActionKey(null);
+      setActionMessage(null);
 
       if (source && selectedSubscriptionId) {
         trackTelemetryEvent({
@@ -105,6 +133,60 @@ export function useSubscriptionDetailsModal() {
       }
     },
     [source, selectedSubscriptionId],
+  );
+
+  const runMutationAction = useCallback(
+    async (actionKey: SubscriptionDetailsMutationAction): Promise<boolean> => {
+      if (!selectedSubscriptionId) {
+        return false;
+      }
+
+      setPendingActionKey(actionKey);
+      setActionMessage(null);
+
+      try {
+        const response = await fetch(`/api/subscriptions/${encodeURIComponent(selectedSubscriptionId)}/actions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: actionKey,
+          }),
+        });
+
+        const payload = (await response.json().catch(() => ({}))) as DetailsResponsePayload;
+
+        if (payload.data) {
+          setDetails(payload.data);
+          setFetchState("ready");
+        }
+
+        if (!response.ok) {
+          setActionMessage({
+            type: "error",
+            text: payload.error ?? "Could not update this subscription.",
+          });
+          return false;
+        }
+
+        setActionMessage({
+          type: "success",
+          text: actionSuccessMessage(actionKey),
+        });
+        router.refresh();
+        return true;
+      } catch (error) {
+        setActionMessage({
+          type: "error",
+          text: error instanceof Error ? error.message : "Could not update this subscription.",
+        });
+        return false;
+      } finally {
+        setPendingActionKey(null);
+      }
+    },
+    [router, selectedSubscriptionId],
   );
 
   const trackViewFullHistory = useCallback(() => {
@@ -126,6 +208,8 @@ export function useSubscriptionDetailsModal() {
   }, []);
 
   return {
+    actionMessage,
+    pendingActionKey,
     isOpen,
     source,
     fetchState,
@@ -133,6 +217,7 @@ export function useSubscriptionDetailsModal() {
     errorMessage,
     openModal,
     closeModal,
+    runMutationAction,
     trackViewFullHistory,
   };
 }

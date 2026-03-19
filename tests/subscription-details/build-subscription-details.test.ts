@@ -86,6 +86,7 @@ describe("buildSubscriptionDetails", () => {
         name: "Streaming Trial Promo",
         amountCents: 1299,
         createdAt: new Date("2026-02-20T00:00:00.000Z"),
+        markedForReview: false,
         updatedAt: new Date("2026-03-01T00:00:00.000Z"),
         nextBillingDate: new Date("2026-03-14T00:00:00.000Z"),
       }),
@@ -100,7 +101,9 @@ describe("buildSubscriptionDetails", () => {
     assert.equal(details.v2.attentionNeeded.ruleOutcomes[0]?.status, "matched");
     assert.equal(details.v2.header.status.stage, "active");
     assert.equal(details.v2.actionBar.quickActions.find((action) => action.key === "open_management_page")?.availability, "enabled");
-    assert.equal(details.v2.actionBar.quickActions.find((action) => action.key === "mark_for_review")?.availability, "disabled");
+    assert.equal(details.v2.actionBar.quickActions.find((action) => action.key === "change_alert")?.href, "/settings#reminders");
+    assert.equal(details.v2.actionBar.quickActions.find((action) => action.key === "mark_for_review")?.availability, "enabled");
+    assert.equal(details.v2.actionBar.quickActions.find((action) => action.key === "cancel_soon")?.requiresConfirmation, true);
   });
 
   test("derives cancel-scheduled lifecycle and disables cancel actions for inactive subscriptions", () => {
@@ -170,5 +173,6 @@ describe("buildSubscriptionDetails", () => {
     assert.equal(details.v2.lifecycle.reviewState.isMarked, true);
     assert.equal(details.v2.lifecycle.reviewState.canPersist, true);
     assert.equal(details.v2.lifecycle.reviewState.unavailableReason, null);
+    assert.equal(details.v2.actionBar.quickActions.find((action) => action.key === "mark_for_review")?.availability, "disabled");
   });
 });

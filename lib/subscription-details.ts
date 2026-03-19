@@ -789,16 +789,16 @@ function buildActionBar(
       key: "change_alert",
       label: "Change alert",
       placement: "quick_actions",
-      kind: "client",
-      availability: "disabled",
-      unavailableReason: "Alert tuning is currently account-level only and has no per-subscription persistence.",
-      href: null,
+      kind: "navigate",
+      availability: "enabled",
+      unavailableReason: null,
+      href: "/settings#reminders",
       permission: "owner_write",
       requiresConfirmation: false,
       confirmationLabel: null,
       serverValidation: [
-        "Validate authenticated ownership before writing reminder preferences.",
-        "Validate reminder lead time as an integer between 0 and 30.",
+        "Require authenticated access to account settings before rendering reminder-management navigation.",
+        "Validate reminder lead time as an integer between 0 and 30 on the settings write path.",
       ],
     },
     {
@@ -806,15 +806,29 @@ function buildActionBar(
       label: "Mark for review",
       placement: "quick_actions",
       kind: "mutate",
-      availability: "disabled",
-      unavailableReason: "Review-state persistence is not implemented yet.",
+      availability:
+        record.markedForReview === undefined || record.markedForReview === null
+          ? "disabled"
+          : !record.isActive
+            ? "disabled"
+            : record.markedForReview
+              ? "disabled"
+              : "enabled",
+      unavailableReason:
+        record.markedForReview === undefined || record.markedForReview === null
+          ? "Review-state persistence is unavailable for this subscription."
+          : !record.isActive
+            ? "Inactive subscriptions do not need review triage."
+            : record.markedForReview
+              ? "Subscription is already marked for review."
+              : null,
       href: null,
       permission: "owner_write",
       requiresConfirmation: false,
       confirmationLabel: null,
       serverValidation: [
         "Validate authenticated ownership before writing review state.",
-        "Reject review-state writes until a dedicated persistence field exists.",
+        "Reject duplicate review-state writes when a subscription is already marked.",
       ],
     },
     {
@@ -831,8 +845,8 @@ function buildActionBar(
             : "Inactive subscriptions cannot start a new cancel flow.",
       href: record.isActive ? links.cancelSubscriptionUrl : null,
       permission: "owner_write",
-      requiresConfirmation: false,
-      confirmationLabel: null,
+      requiresConfirmation: true,
+      confirmationLabel: "Open the provider cancellation flow in a new tab?",
       serverValidation: [
         "Validate stored cancellation URLs as http/https before rendering navigation affordances.",
         "Require an active subscription before surfacing cancel-start flows.",

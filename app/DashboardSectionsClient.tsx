@@ -1233,12 +1233,15 @@ export default function DashboardSectionsClient({
       </div>
 
       <SubscriptionDetailsModal
+        actionMessage={detailsModal.actionMessage}
         details={detailsModal.details}
         errorMessage={detailsModal.errorMessage}
         isOpen={detailsModal.isOpen}
         loadState={detailsModal.fetchState}
         onClose={detailsModal.closeModal}
+        onRunMutationAction={detailsModal.runMutationAction}
         onViewFullHistoryClick={detailsModal.trackViewFullHistory}
+        pendingActionKey={detailsModal.pendingActionKey}
         source={detailsModal.source}
       />
     </>
