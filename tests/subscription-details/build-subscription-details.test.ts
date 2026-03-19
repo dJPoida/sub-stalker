@@ -147,7 +147,28 @@ describe("buildSubscriptionDetails", () => {
       details.v2.attentionNeeded.items.map((item) => item.code),
       ["price_increase_imminent", "higher_price_renewal"],
     );
+    assert.equal(details.v2.attentionNeeded.items[0]?.message.includes("Mar"), true);
+    assert.equal(details.v2.attentionNeeded.items[0]?.message.includes("$32.00"), true);
+    assert.equal(details.v2.attentionNeeded.items[0]?.message.includes("$12.00"), true);
+    assert.equal(details.v2.attentionNeeded.items[1]?.message.includes("Mar"), true);
+    assert.equal(details.v2.attentionNeeded.items[1]?.message.includes("$24.00"), true);
+    assert.equal(details.v2.attentionNeeded.items[1]?.message.includes("$8.00"), true);
     assert.equal(details.v2.paymentHistory.upcomingRenewal.projectedAmountCents, 3200);
     assert.equal(details.v2.attentionNeeded.ruleOutcomes.find((outcome) => outcome.code === "higher_price_renewal")?.status, "matched");
+  });
+
+  test("surfaces persisted review state in lifecycle metadata when supplied", () => {
+    const details = buildSubscriptionDetails(
+      makeRecord({
+        id: "reviewed-subscription",
+        name: "Video Suite",
+        markedForReview: true,
+      }),
+    );
+
+    assert.equal(details.v2.lifecycle.state, "ready");
+    assert.equal(details.v2.lifecycle.reviewState.isMarked, true);
+    assert.equal(details.v2.lifecycle.reviewState.canPersist, true);
+    assert.equal(details.v2.lifecycle.reviewState.unavailableReason, null);
   });
 });

@@ -404,6 +404,10 @@ function formatDateForCopy(value: Date): string {
   }).format(value);
 }
 
+function formatPositiveDeltaForCopy(currentAmountCents: number, projectedAmountCents: number, currency: string): string {
+  return formatCurrencyForCopy(Math.max(0, projectedAmountCents - currentAmountCents), currency);
+}
+
 function hasPromoHint(name: string): boolean {
   const lowered = name.trim().toLowerCase();
   return PROMO_HINT_KEYWORDS.some((keyword) => lowered.includes(keyword));
@@ -680,7 +684,7 @@ function buildAlertItems(
             severity: "high",
             title: "Promo ending soon",
             message: nextBillingDateValue
-              ? `Renewal on ${formatDateForCopy(nextBillingDateValue)} may roll to the standard ${formatCurrencyForCopy(record.amountCents, currency)} rate.`
+              ? `Renewal on ${formatDateForCopy(nextBillingDateValue)} may roll off promo pricing onto the standard ${formatCurrencyForCopy(record.amountCents, currency)} rate.`
               : "Renewal may roll to a higher standard rate soon.",
             effectiveDate: nextBillingDate,
             currentAmountCents: record.amountCents,
@@ -695,7 +699,9 @@ function buildAlertItems(
             message:
               record.projectedNextChargeAmountCents === null || record.projectedNextChargeAmountCents === undefined
                 ? "Projected renewal pricing is unavailable."
-                : `Next renewal is projected at ${formatCurrencyForCopy(record.projectedNextChargeAmountCents, currency)}.`,
+                : nextBillingDateValue
+                  ? `Renewal on ${formatDateForCopy(nextBillingDateValue)} is projected at ${formatCurrencyForCopy(record.projectedNextChargeAmountCents, currency)}, up ${formatPositiveDeltaForCopy(record.amountCents, record.projectedNextChargeAmountCents, currency)} from the current ${formatCurrencyForCopy(record.amountCents, currency)} price.`
+                  : `Next renewal is projected at ${formatCurrencyForCopy(record.projectedNextChargeAmountCents, currency)}, up ${formatPositiveDeltaForCopy(record.amountCents, record.projectedNextChargeAmountCents, currency)} from the current ${formatCurrencyForCopy(record.amountCents, currency)} price.`,
             effectiveDate: nextBillingDate,
             currentAmountCents: record.amountCents,
             projectedAmountCents: record.projectedNextChargeAmountCents ?? null,
@@ -712,7 +718,9 @@ function buildAlertItems(
               record.lastChargedAmountCents === null ||
               record.lastChargedAmountCents === undefined
                 ? "Renewal comparison data is unavailable."
-                : `Last charge was ${formatCurrencyForCopy(record.lastChargedAmountCents, currency)} and the next renewal is projected at ${formatCurrencyForCopy(record.projectedNextChargeAmountCents, currency)}.`,
+                : nextBillingDateValue
+                  ? `Renewal on ${formatDateForCopy(nextBillingDateValue)} is projected at ${formatCurrencyForCopy(record.projectedNextChargeAmountCents, currency)}, up ${formatPositiveDeltaForCopy(record.lastChargedAmountCents, record.projectedNextChargeAmountCents, currency)} from the last ${formatCurrencyForCopy(record.lastChargedAmountCents, currency)} charge.`
+                  : `The next renewal is projected at ${formatCurrencyForCopy(record.projectedNextChargeAmountCents, currency)}, up ${formatPositiveDeltaForCopy(record.lastChargedAmountCents, record.projectedNextChargeAmountCents, currency)} from the last ${formatCurrencyForCopy(record.lastChargedAmountCents, currency)} charge.`,
             effectiveDate: nextBillingDate,
             currentAmountCents: record.lastChargedAmountCents ?? null,
             projectedAmountCents: record.projectedNextChargeAmountCents ?? null,
