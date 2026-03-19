@@ -4,7 +4,6 @@ import Link from "next/link";
 import React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { PendingSubmitButton } from "@/app/components/PendingFormControls";
 import type {
   SubscriptionDetailsActionCapability,
   SubscriptionDetailsAlertItem,
@@ -16,16 +15,28 @@ import type {
   SubscriptionModalOpenSource,
 } from "@/lib/subscription-details";
 
+type SubscriptionDetailsMutationAction = Extract<
+  SubscriptionDetailsActionCapability["key"],
+  "mark_cancelled" | "mark_for_review"
+>;
+
+type SubscriptionDetailsModalActionMessage = {
+  type: "error" | "success";
+  text: string;
+};
+
 type SubscriptionDetailsModalProps = {
   isOpen: boolean;
   loadState: "idle" | "loading" | "ready" | "empty" | "error";
   details: SubscriptionDetailsContract | null;
   source: SubscriptionModalOpenSource | null;
   errorMessage: string | null;
+  actionMessage?: SubscriptionDetailsModalActionMessage | null;
+  pendingActionKey?: SubscriptionDetailsMutationAction | null;
   onClose: (reason: SubscriptionModalCloseReason) => void;
   onViewFullHistoryClick: () => void;
   onEditSubscription?: ((subscriptionId: string) => void) | null;
-  deactivateAction?: ((formData: FormData) => Promise<void>) | null;
+  onRunMutationAction?: ((actionKey: SubscriptionDetailsMutationAction) => Promise<boolean>) | null;
 };
 
 const FOCUSABLE_SELECTOR =
@@ -207,6 +218,18 @@ function formatAlertImpactCopy(item: SubscriptionDetailsAlertItem): string | nul
   return null;
 }
 
+function isExternalHref(value: string): boolean {
+  return value.startsWith("http://") || value.startsWith("https://");
+}
+
+function pendingActionLabel(actionKey: SubscriptionDetailsMutationAction): string {
+  if (actionKey === "mark_cancelled") {
+    return "Marking...";
+  }
+
+  return "Saving...";
+}
+
 function getActionByKey(
   actions: SubscriptionDetailsActionCapability[],
   key: SubscriptionDetailsActionCapability["key"],
@@ -246,63 +269,18 @@ function resolveActionState(
   };
 }
 
-function ModalDeactivateButton({
-  subscriptionId,
-  label,
-  unavailableReason,
-  deactivateAction,
-}: {
-  subscriptionId: string;
-  label: string;
-  unavailableReason: string | null;
-  deactivateAction: ((formData: FormData) => Promise<void>) | null;
-}): JSX.Element {
-  if (!deactivateAction) {
-    return (
-      <button
-        className="button-danger button-small"
-        disabled
-        title={unavailableReason ?? "Cancellation controls are unavailable from this view."}
-        type="button"
-      >
-        {label}
-      </button>
-    );
-  }
-
-  return (
-    <form
-      action={deactivateAction}
-      className="details-action-form"
-      onSubmit={(event) => {
-        const confirmed = window.confirm("Mark this subscription as cancelled?");
-
-        if (!confirmed) {
-          event.preventDefault();
-        }
-      }}
-    >
-      <input name="subscriptionId" type="hidden" value={subscriptionId} />
-      <PendingSubmitButton
-        className="button-danger button-small"
-        disabled={Boolean(unavailableReason)}
-        idleLabel={label}
-        pendingLabel="Marking..."
-      />
-    </form>
-  );
-}
-
 export default function SubscriptionDetailsModal({
   isOpen,
   loadState,
   details,
   source,
   errorMessage,
+  actionMessage = null,
+  pendingActionKey = null,
   onClose,
   onViewFullHistoryClick,
   onEditSubscription = null,
-  deactivateAction = null,
+  onRunMutationAction = null,
 }: SubscriptionDetailsModalProps) {
   const panelRef = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -385,10 +363,11 @@ export default function SubscriptionDetailsModal({
     return historyAction.href;
   }, [historyAction]);
 
-  const historyIsExternal = historyHref.startsWith("http://") || historyHref.startsWith("https://");
+  const historyIsExternal = isExternalHref(historyHref);
   const notesPreview = getNotesPreview(details?.notesMarkdown ?? null);
   const headerChips = details ? details.v2.header.chips.filter((chip) => chip.key !== "category") : [];
   const attentionItems = details?.v2.attentionNeeded.items ?? [];
+  const quickActions = details?.v2.actionBar.quickActions ?? [];
   const reviewState = details?.v2.lifecycle.reviewState ?? null;
   const editAction = details ? getActionByKey(details.v2.actionBar.header, "edit_subscription") : null;
   const markCancelledAction = details ? getActionByKey(details.v2.actionBar.header, "mark_cancelled") : null;
@@ -402,12 +381,9 @@ export default function SubscriptionDetailsModal({
     editActionState.unavailableReason ??
     (onEditSubscription ? null : "Open this subscription from the subscriptions page to edit it.");
   const markCancelledUnavailableReason =
-    markCancelledActionState.unavailableReason ??
-    (deactivateAction ? null : "Open this subscription from the subscriptions page to update cancellation state.");
-  const lifecycleActionHint =
-    details && !onEditSubscription && !deactivateAction
-      ? "Manage edit and cancellation actions from the subscriptions page."
-      : null;
+    markCancelledActionState.unavailableReason ?? (onRunMutationAction ? null : "Cancellation controls are unavailable.");
+  const lifecycleActionHint = details && !onEditSubscription ? "Open this subscription from the subscriptions page to edit it." : null;
+  const isMutationPending = pendingActionKey !== null;
 
   async function handleCopySubscriptionId(): Promise<void> {
     if (!details) {
@@ -419,6 +395,48 @@ export default function SubscriptionDetailsModal({
       setCopyMessage("Subscription ID copied.");
     } catch {
       setCopyMessage("Could not copy subscription ID.");
+    }
+  }
+
+  async function handleActionClick(action: SubscriptionDetailsActionCapability): Promise<void> {
+    if (!details || action.availability === "disabled") {
+      return;
+    }
+
+    if (action.requiresConfirmation) {
+      const confirmed = window.confirm(action.confirmationLabel ?? `Continue with ${action.label.toLowerCase()}?`);
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    if (action.kind === "mutate") {
+      if (!onRunMutationAction || (action.key !== "mark_cancelled" && action.key !== "mark_for_review")) {
+        return;
+      }
+
+      await onRunMutationAction(action.key);
+      return;
+    }
+
+    if (action.kind === "navigate") {
+      if (!action.href) {
+        return;
+      }
+
+      if (isExternalHref(action.href)) {
+        window.open(action.href, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      onClose("close_button");
+      window.location.assign(action.href);
+      return;
+    }
+
+    if (action.key === "edit_subscription" && onEditSubscription) {
+      onEditSubscription(details.id);
     }
   }
 
@@ -490,7 +508,7 @@ export default function SubscriptionDetailsModal({
                 </div>
 
                 <div className="details-hero-actions">
-                  <div className="details-hero-action-row">
+                  <div aria-busy={isMutationPending} className="details-hero-action-row">
                     <button
                       className="button button-secondary button-small"
                       disabled={editActionState.disabled || !onEditSubscription}
@@ -505,12 +523,21 @@ export default function SubscriptionDetailsModal({
                       {editActionState.label}
                     </button>
 
-                    <ModalDeactivateButton
-                      deactivateAction={deactivateAction}
-                      label={markCancelledActionState.label}
-                      subscriptionId={details.id}
-                      unavailableReason={markCancelledUnavailableReason}
-                    />
+                    <button
+                      className="button-danger button-small"
+                      disabled={markCancelledActionState.disabled || !onRunMutationAction || isMutationPending}
+                      onClick={() => {
+                        if (markCancelledAction) {
+                          void handleActionClick(markCancelledAction);
+                        }
+                      }}
+                      title={markCancelledUnavailableReason ?? undefined}
+                      type="button"
+                    >
+                      {pendingActionKey === "mark_cancelled"
+                        ? pendingActionLabel("mark_cancelled")
+                        : markCancelledActionState.label}
+                    </button>
                   </div>
 
                   {lifecycleActionHint ? <p className="text-muted details-hero-actions-hint">{lifecycleActionHint}</p> : null}
@@ -616,6 +643,54 @@ export default function SubscriptionDetailsModal({
               {details.v2.attentionNeeded.state === "partial" ? (
                 <p className="text-muted details-card-caption">
                   Some pricing signals are still missing, so additional review items may appear when more billing history is captured.
+                </p>
+              ) : null}
+            </article>
+
+            <article className="surface details-section details-quick-actions-panel">
+              <div className="details-section-heading">
+                <div className="stack">
+                  <h3>Quick Actions</h3>
+                  <p className="text-muted details-card-caption">
+                    Open provider pages, tune reminder settings, or flag the subscription without leaving this modal.
+                  </p>
+                </div>
+              </div>
+
+              <div aria-busy={isMutationPending} className="details-quick-actions-grid" role="group" aria-label="Subscription quick actions">
+                {quickActions.map((action) => {
+                  const isMutationAction = action.key === "mark_cancelled" || action.key === "mark_for_review";
+                  const isPending = isMutationAction && pendingActionKey === action.key;
+                  const isDisabled =
+                    action.availability === "disabled" || (action.kind === "mutate" && (!onRunMutationAction || isMutationPending));
+                  const label =
+                    isPending && action.key === "mark_cancelled"
+                      ? pendingActionLabel("mark_cancelled")
+                      : isPending && action.key === "mark_for_review"
+                        ? pendingActionLabel("mark_for_review")
+                        : action.label;
+
+                  return (
+                    <button
+                      className="button button-secondary details-quick-action-button"
+                      disabled={isDisabled}
+                      key={action.key}
+                      onClick={() => void handleActionClick(action)}
+                      title={action.availability === "disabled" ? action.unavailableReason ?? undefined : undefined}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {actionMessage ? (
+                <p
+                  aria-live="polite"
+                  className={actionMessage.type === "error" ? "status-error details-quick-actions-status" : "status-help details-quick-actions-status"}
+                >
+                  {actionMessage.text}
                 </p>
               ) : null}
             </article>

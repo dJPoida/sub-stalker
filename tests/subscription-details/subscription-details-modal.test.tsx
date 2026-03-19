@@ -38,7 +38,6 @@ function renderModalHtml(record: SubscriptionDetailsSourceRecord): string {
 
   return renderToStaticMarkup(
     <SubscriptionDetailsModal
-      deactivateAction={null}
       details={details}
       errorMessage={null}
       isOpen
@@ -69,6 +68,10 @@ describe("SubscriptionDetailsModal attention panel", () => {
     assert.match(html, /Price increase imminent/);
     assert.match(html, /Renewal higher than last charge/);
     assert.match(html, /Projected increase: \$12\.00 over the current price/);
+    assert.match(html, /Quick Actions/);
+    assert.match(html, /Open management page/);
+    assert.match(html, /Change alert/);
+    assert.match(html, /Cancel soon/);
   });
 
   test("renders an empty state when no alerts are active", () => {

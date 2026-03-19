@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { buildSubscriptionDetails } from "@/lib/subscription-details";
+import { buildSubscriptionDetailsFromRecord, findFirstSubscriptionDetailsRecord } from "@/lib/subscription-details-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,49 +27,16 @@ export async function GET(_request: Request, context: SubscriptionDetailsRouteCo
     return NextResponse.json({ error: "Invalid subscription id." }, { status: 400 });
   }
 
-  const subscription = await db.subscription.findFirst({
-    where: {
-      id: subscriptionId,
-      userId: user.id,
-    },
-    select: {
-      id: true,
-      name: true,
-      paymentMethod: true,
-      signedUpBy: true,
-      billingConsoleUrl: true,
-      cancelSubscriptionUrl: true,
-      billingHistoryUrl: true,
-      notesMarkdown: true,
-      amountCents: true,
-      currency: true,
-      billingInterval: true,
-      nextBillingDate: true,
-      isActive: true,
-      createdAt: true,
-      updatedAt: true,
-      user: {
-        select: {
-          settings: {
-            select: {
-              remindersEnabled: true,
-              reminderDaysBefore: true,
-            },
-          },
-        },
-      },
-    },
+  const subscription = await findFirstSubscriptionDetailsRecord(db, {
+    id: subscriptionId,
+    userId: user.id,
   });
 
   if (!subscription) {
     return NextResponse.json({ error: "Subscription not found." }, { status: 404 });
   }
 
-  const data = buildSubscriptionDetails({
-    ...subscription,
-    remindersEnabled: subscription.user.settings?.remindersEnabled ?? true,
-    reminderDaysBefore: subscription.user.settings?.reminderDaysBefore ?? 3,
-  });
+  const data = buildSubscriptionDetailsFromRecord(subscription);
 
   return NextResponse.json(
     {

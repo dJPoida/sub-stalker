@@ -140,7 +140,7 @@ export default function SettingsClient({
       ) : null}
 
       <section className="settings-list">
-        <article className="surface setting-item">
+        <article className="surface setting-item" id="reminders">
           <div className="setting-main">
             <h2>Display mode</h2>
             <p className="text-muted">{displayModeSummary}</p>

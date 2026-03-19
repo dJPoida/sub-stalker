@@ -471,7 +471,7 @@ export default function SubscriptionsClient({
       )}
 
       <SubscriptionDetailsModal
-        deactivateAction={deactivateAction}
+        actionMessage={detailsModal.actionMessage}
         details={detailsModal.details}
         errorMessage={detailsModal.errorMessage}
         isOpen={detailsModal.isOpen}
@@ -481,7 +481,9 @@ export default function SubscriptionsClient({
           detailsModal.closeModal("close_button");
           setEditingSubscriptionId(subscriptionId);
         }}
+        onRunMutationAction={detailsModal.runMutationAction}
         onViewFullHistoryClick={detailsModal.trackViewFullHistory}
+        pendingActionKey={detailsModal.pendingActionKey}
         source={detailsModal.source}
       />
 

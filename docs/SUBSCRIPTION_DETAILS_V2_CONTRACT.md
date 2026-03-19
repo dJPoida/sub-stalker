@@ -85,9 +85,9 @@ Current policy:
 - `edit_subscription`: client-triggered, owner-write, no confirmation
 - `mark_cancelled`: mutating, owner-write, confirmation required
 - `open_management_page`: navigate-only, owner-read, requires a valid stored management URL
-- `change_alert`: currently disabled because alerts are only persisted at account level
-- `mark_for_review`: currently disabled because no review-state field exists yet
-- `cancel_soon`: navigate-only, owner-write, requires an active subscription plus a valid cancel URL
+- `change_alert`: navigate-only to account reminder settings because alert tuning remains account-level
+- `mark_for_review`: mutating, owner-write, enabled only for active subscriptions that are not already marked
+- `cancel_soon`: navigate-only, owner-write, requires confirmation plus an active subscription and valid cancel URL
 - `view_billing_history`: navigate-only, owner-read, requires a valid history URL
 
 ## Partial-data expectations

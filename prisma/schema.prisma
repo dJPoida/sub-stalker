@@ -85,6 +85,7 @@ model Subscription {
   billingInterval       BillingInterval @default(MONTHLY)
   nextBillingDate       DateTime?
   isActive              Boolean         @default(true)
+  markedForReview       Boolean         @default(false)
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
   user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)

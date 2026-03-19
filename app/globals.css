@@ -1685,6 +1685,10 @@ button:disabled,
   gap: 0.8rem;
 }
 
+.details-quick-actions-panel {
+  gap: 0.85rem;
+}
+
 .details-attention-review-note {
   margin: 0;
   padding: 0.75rem 0.9rem;
@@ -1724,6 +1728,20 @@ button:disabled,
 .details-attention-impact {
   font-size: 0.84rem;
   color: var(--text-muted);
+}
+
+.details-quick-actions-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.details-quick-action-button {
+  min-height: 2.75rem;
+}
+
+.details-quick-actions-status {
+  margin: 0;
 }
 
 .details-definition-list {
@@ -1864,6 +1882,10 @@ ul {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .details-quick-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .dashboard-control-grid {
     grid-template-columns: 1fr;
     width: 100%;
@@ -1921,6 +1943,10 @@ ul {
   }
 
   .details-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .details-quick-actions-grid {
     grid-template-columns: 1fr;
   }
 }
