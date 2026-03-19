@@ -1528,6 +1528,11 @@ button:disabled,
   font-size: 1rem;
 }
 
+.details-section h4 {
+  margin: 0;
+  font-size: 0.94rem;
+}
+
 .details-hero {
   gap: 0.95rem;
   background:
@@ -1668,6 +1673,57 @@ button:disabled,
   color: #9a5b08;
   border-color: rgba(184, 119, 20, 0.28);
   background: #fff6e7;
+}
+
+.details-review-pill {
+  color: color-mix(in srgb, var(--brand), var(--text) 18%);
+  border-color: color-mix(in srgb, var(--brand) 44%, var(--border));
+  background: color-mix(in srgb, var(--brand) 12%, var(--panel));
+}
+
+.details-attention-panel {
+  gap: 0.8rem;
+}
+
+.details-attention-review-note {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--brand) 34%, var(--border));
+  background: color-mix(in srgb, var(--brand) 8%, var(--panel));
+  color: color-mix(in srgb, var(--brand), var(--text) 22%);
+}
+
+.details-attention-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.details-attention-item {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--panel-soft), transparent 14%), color-mix(in srgb, var(--panel), transparent 4%));
+}
+
+.details-attention-item p {
+  margin: 0;
+}
+
+.details-attention-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.details-attention-impact {
+  font-size: 0.84rem;
+  color: var(--text-muted);
 }
 
 .details-definition-list {

@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PendingSubmitButton } from "@/app/components/PendingFormControls";
 import type {
   SubscriptionDetailsActionCapability,
+  SubscriptionDetailsAlertItem,
+  SubscriptionDetailsAlertSeverity,
   SubscriptionDetailsChip,
   SubscriptionDetailsChipTone,
   SubscriptionDetailsContract,
@@ -152,6 +155,56 @@ function formatAnnualizedSpend(amountCents: number | null, currency: string): st
 
 function formatPaymentMethodSummary(signedUpBy: string | null): string {
   return signedUpBy ? `Signed up by ${signedUpBy}` : "Signed up by not captured";
+}
+
+function formatAttentionSeverityLabel(severity: SubscriptionDetailsAlertSeverity): string {
+  if (severity === "high") {
+    return "High";
+  }
+
+  if (severity === "medium") {
+    return "Medium";
+  }
+
+  return "Low";
+}
+
+function attentionSeverityClassName(severity: SubscriptionDetailsAlertSeverity): string {
+  return `attention-severity attention-severity-${severity}`;
+}
+
+function attentionSeverityGlyph(severity: SubscriptionDetailsAlertSeverity): string {
+  if (severity === "high") {
+    return "!";
+  }
+
+  if (severity === "medium") {
+    return "~";
+  }
+
+  return "i";
+}
+
+function formatAlertImpactCopy(item: SubscriptionDetailsAlertItem): string | null {
+  if (!item.currency) {
+    return null;
+  }
+
+  if (item.currentAmountCents !== null && item.projectedAmountCents !== null && item.projectedAmountCents > item.currentAmountCents) {
+    const baselineLabel = item.code === "higher_price_renewal" ? "last charge" : "current price";
+
+    return `Projected increase: ${formatMoney(item.projectedAmountCents - item.currentAmountCents, item.currency)} over the ${baselineLabel} (${formatMoney(item.currentAmountCents, item.currency)}).`;
+  }
+
+  if (item.projectedAmountCents !== null) {
+    return `Projected renewal amount: ${formatMoney(item.projectedAmountCents, item.currency)}.`;
+  }
+
+  if (item.currentAmountCents !== null && item.code === "promo_ending_soon") {
+    return `Standard rate shown: ${formatMoney(item.currentAmountCents, item.currency)} after the promo window.`;
+  }
+
+  return null;
 }
 
 function getActionByKey(
@@ -335,6 +388,8 @@ export default function SubscriptionDetailsModal({
   const historyIsExternal = historyHref.startsWith("http://") || historyHref.startsWith("https://");
   const notesPreview = getNotesPreview(details?.notesMarkdown ?? null);
   const headerChips = details ? details.v2.header.chips.filter((chip) => chip.key !== "category") : [];
+  const attentionItems = details?.v2.attentionNeeded.items ?? [];
+  const reviewState = details?.v2.lifecycle.reviewState ?? null;
   const editAction = details ? getActionByKey(details.v2.actionBar.header, "edit_subscription") : null;
   const markCancelledAction = details ? getActionByKey(details.v2.actionBar.header, "mark_cancelled") : null;
   const editActionState = resolveActionState(editAction, "Edit", "Edit controls are unavailable from this view.");
@@ -504,6 +559,65 @@ export default function SubscriptionDetailsModal({
                   </p>
                 </article>
               </div>
+            </article>
+
+            <article className="surface details-section details-attention-panel">
+              <div className="details-section-heading">
+                <div className="stack">
+                  <h3>Attention Needed</h3>
+                  <p className="text-muted details-card-caption">
+                    Promo and price-change risks derived from this subscription&apos;s current billing metadata.
+                  </p>
+                </div>
+                {reviewState ? (
+                  <span className={reviewState.isMarked ? "pill details-review-pill" : "pill"} role="status">
+                    {reviewState.isMarked ? "Marked for review" : "Not marked for review"}
+                  </span>
+                ) : null}
+              </div>
+
+              {reviewState?.isMarked ? (
+                <p className="details-attention-review-note">
+                  This subscription has been flagged for review before the next billing event.
+                </p>
+              ) : null}
+
+              {reviewState && !reviewState.canPersist && reviewState.unavailableReason ? (
+                <p className="text-muted details-card-caption">{reviewState.unavailableReason}</p>
+              ) : null}
+
+              {attentionItems.length === 0 ? (
+                <p className="text-muted details-card-empty">No promo or price-change alerts are active for this subscription.</p>
+              ) : (
+                <div className="details-attention-list">
+                  {attentionItems.map((item) => {
+                    const impactCopy = formatAlertImpactCopy(item);
+
+                    return (
+                      <article className="details-attention-item" key={item.code}>
+                        <div className="details-attention-item-header">
+                          <span className={attentionSeverityClassName(item.severity)}>
+                            <span aria-hidden="true" className="attention-severity-glyph">
+                              {attentionSeverityGlyph(item.severity)}
+                            </span>
+                            {formatAttentionSeverityLabel(item.severity)}
+                          </span>
+                          {item.effectiveDate ? <span className="metric-note">Effective {formatDate(item.effectiveDate)}</span> : null}
+                        </div>
+                        <h4>{item.title}</h4>
+                        <p className="text-muted">{item.message}</p>
+                        {impactCopy ? <p className="details-attention-impact">{impactCopy}</p> : null}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+
+              {details.v2.attentionNeeded.state === "partial" ? (
+                <p className="text-muted details-card-caption">
+                  Some pricing signals are still missing, so additional review items may appear when more billing history is captured.
+                </p>
+              ) : null}
             </article>
 
             <div className="details-card-grid">

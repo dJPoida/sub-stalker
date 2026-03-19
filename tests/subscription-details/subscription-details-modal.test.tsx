@@ -1,0 +1,87 @@
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import SubscriptionDetailsModal from "../../app/components/SubscriptionDetailsModal";
+import { buildSubscriptionDetails, type SubscriptionDetailsSourceRecord } from "../../lib/subscription-details";
+
+function makeRecord(
+  overrides: Partial<SubscriptionDetailsSourceRecord> & Pick<SubscriptionDetailsSourceRecord, "id" | "name">,
+): SubscriptionDetailsSourceRecord {
+  const { id, name, ...rest } = overrides;
+
+  return {
+    id,
+    name,
+    paymentMethod: "Visa 4242",
+    signedUpBy: "Alex",
+    billingConsoleUrl: "https://example.com/manage",
+    cancelSubscriptionUrl: "https://example.com/cancel",
+    billingHistoryUrl: "https://example.com/history",
+    notesMarkdown: "Primary workspace subscription.",
+    amountCents: 2000,
+    currency: "USD",
+    billingInterval: "MONTHLY",
+    nextBillingDate: new Date("2026-03-20T12:00:00.000Z"),
+    isActive: true,
+    createdAt: new Date("2026-01-10T08:00:00.000Z"),
+    updatedAt: new Date("2026-03-10T09:30:00.000Z"),
+    ...rest,
+  };
+}
+
+function renderModalHtml(record: SubscriptionDetailsSourceRecord): string {
+  const details = buildSubscriptionDetails(record, {
+    now: new Date("2026-03-11T00:00:00.000Z"),
+  });
+
+  return renderToStaticMarkup(
+    <SubscriptionDetailsModal
+      deactivateAction={null}
+      details={details}
+      errorMessage={null}
+      isOpen
+      loadState="ready"
+      onClose={() => undefined}
+      onEditSubscription={null}
+      onViewFullHistoryClick={() => undefined}
+      source="subscriptions_list"
+    />,
+  );
+}
+
+describe("SubscriptionDetailsModal attention panel", () => {
+  test("renders alert items with review-state copy", () => {
+    const html = renderModalHtml(
+      makeRecord({
+        id: "reviewed-price-rise",
+        name: "AI Workspace",
+        nextBillingDate: new Date("2026-03-14T00:00:00.000Z"),
+        projectedNextChargeAmountCents: 3200,
+        lastChargedAmountCents: 2400,
+        markedForReview: true,
+      }),
+    );
+
+    assert.match(html, /Attention Needed/);
+    assert.match(html, /Marked for review/);
+    assert.match(html, /Price increase imminent/);
+    assert.match(html, /Renewal higher than last charge/);
+    assert.match(html, /Projected increase: \$12\.00 over the current price/);
+  });
+
+  test("renders an empty state when no alerts are active", () => {
+    const html = renderModalHtml(
+      makeRecord({
+        id: "steady-plan",
+        name: "Back Office Suite",
+        createdAt: new Date("2025-10-10T08:00:00.000Z"),
+      }),
+    );
+
+    assert.match(html, /Attention Needed/);
+    assert.match(html, /Not marked for review/);
+    assert.match(html, /No promo or price-change alerts are active for this subscription\./);
+  });
+});
