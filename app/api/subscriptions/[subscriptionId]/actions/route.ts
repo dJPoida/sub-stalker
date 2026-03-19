@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { buildSubscriptionDetailsFromRecord, subscriptionDetailsRecordSelect } from "@/lib/subscription-details-data";
+import {
+  buildSubscriptionDetailsFromRecord,
+  findFirstSubscriptionDetailsRecord,
+  isReviewStateUnavailableError,
+  updateSubscriptionDetailsRecord,
+} from "@/lib/subscription-details-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,12 +52,9 @@ function isSameOriginRequest(request: Request): boolean {
 }
 
 async function getOwnedSubscriptionRecord(subscriptionId: string, userId: string) {
-  return db.subscription.findFirst({
-    where: {
-      id: subscriptionId,
-      userId,
-    },
-    select: subscriptionDetailsRecordSelect,
+  return findFirstSubscriptionDetailsRecord(db, {
+    id: subscriptionId,
+    userId,
   });
 }
 
@@ -113,11 +115,12 @@ export async function POST(request: Request, context: SubscriptionActionsRouteCo
     );
   }
 
-  const updatedSubscription = await db.subscription.update({
-    where: {
-      id: subscriptionId,
-    },
-    data:
+  let updatedSubscription;
+
+  try {
+    updatedSubscription = await updateSubscriptionDetailsRecord(
+      db,
+      subscriptionId,
       action === "mark_cancelled"
         ? {
             isActive: false,
@@ -125,8 +128,20 @@ export async function POST(request: Request, context: SubscriptionActionsRouteCo
         : {
             markedForReview: true,
           },
-    select: subscriptionDetailsRecordSelect,
-  });
+    );
+  } catch (error) {
+    if (action === "mark_for_review" && isReviewStateUnavailableError(error)) {
+      return NextResponse.json(
+        {
+          error: "Review-state persistence is unavailable until the latest database migration is applied.",
+          data: buildSubscriptionDetailsFromRecord(existingSubscription),
+        },
+        { status: 409 },
+      );
+    }
+
+    throw error;
+  }
 
   return NextResponse.json(
     {

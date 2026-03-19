@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { buildSubscriptionDetailsFromRecord, subscriptionDetailsRecordSelect } from "@/lib/subscription-details-data";
+import { buildSubscriptionDetailsFromRecord, findFirstSubscriptionDetailsRecord } from "@/lib/subscription-details-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,12 +27,9 @@ export async function GET(_request: Request, context: SubscriptionDetailsRouteCo
     return NextResponse.json({ error: "Invalid subscription id." }, { status: 400 });
   }
 
-  const subscription = await db.subscription.findFirst({
-    where: {
-      id: subscriptionId,
-      userId: user.id,
-    },
-    select: subscriptionDetailsRecordSelect,
+  const subscription = await findFirstSubscriptionDetailsRecord(db, {
+    id: subscriptionId,
+    userId: user.id,
   });
 
   if (!subscription) {

@@ -1,5 +1,6 @@
 import { requireAuthenticatedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { subscriptionListRecordSelect } from "@/lib/subscription-details-data";
 
 import {
   createSubscriptionAction,
@@ -87,6 +88,7 @@ export default async function SubscriptionsPage({ searchParams }: SubscriptionsP
       where: {
         userId: user.id,
       },
+      select: subscriptionListRecordSelect,
       orderBy: [{ isActive: "desc" }, { nextBillingDate: "asc" }, { createdAt: "desc" }],
     }),
     db.subscription.findMany({
