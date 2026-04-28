@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import DashboardSectionsClient from "@/app/DashboardSectionsClient";
 import type { DashboardPayload } from "@/lib/dashboard";
@@ -19,20 +19,6 @@ type DashboardApiResponse = {
 type DashboardDataClientProps = {
   initialCurrency?: string | null;
 };
-
-function buildAvailableCurrencies(payload: DashboardPayload): string[] {
-  return [
-    ...new Set([
-      ...payload.kpis.monthlyEquivalentSpend.totalsByCurrency.map((entry) => entry.currency),
-      ...payload.spendBreakdownByCategory.flatMap((entry) => entry.totalsByCurrency.map((total) => total.currency)),
-      ...payload.attentionNeeded.map((entry) => entry.currency).filter((value): value is string => value !== null),
-      ...payload.upcomingRenewals.map((entry) => entry.currency),
-      ...payload.topCostDrivers.map((entry) => entry.currency),
-      ...payload.potentialSavings.totalsByCurrency.map((entry) => entry.currency),
-      ...payload.potentialSavings.opportunities.map((entry) => entry.currency),
-    ]),
-  ];
-}
 
 async function loadDashboardPayload(signal?: AbortSignal): Promise<DashboardPayload> {
   const response = await fetch("/api/dashboard", {
@@ -106,14 +92,6 @@ export default function DashboardDataClient({ initialCurrency }: DashboardDataCl
   const renderState = getDashboardRenderState(requestState);
   const payload = requestState.data;
 
-  const availableCurrencies = useMemo(() => {
-    if (!payload) {
-      return [];
-    }
-
-    return buildAvailableCurrencies(payload);
-  }, [payload]);
-
   return (
     <DashboardSectionsClient
       attentionNeeded={payload?.attentionNeeded.map((item) => ({
@@ -127,7 +105,7 @@ export default function DashboardDataClient({ initialCurrency }: DashboardDataCl
         estimatedMonthlyImpactCents: item.estimatedMonthlyImpactCents,
         currency: item.currency,
       })) ?? []}
-      availableCurrencies={availableCurrencies}
+      currencyConversion={payload?.currencyConversion ?? null}
       initialCurrency={initialCurrency}
       kpis={payload?.kpis ?? null}
       loadErrorMessage={requestState.errorMessage}

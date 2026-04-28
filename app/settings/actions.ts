@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { DisplayMode } from "@prisma/client";
 
 import { requireAuthenticatedUser } from "@/lib/auth";
+import { normalizeCurrencyCode } from "@/lib/currencies";
 import { db } from "@/lib/db";
 
 function normalizeText(value: FormDataEntryValue | null): string {
@@ -12,13 +13,7 @@ function normalizeText(value: FormDataEntryValue | null): string {
 }
 
 function parseDefaultCurrency(value: FormDataEntryValue | null): string | null {
-  const normalized = normalizeText(value).toUpperCase();
-
-  if (!/^[A-Z]{3}$/.test(normalized)) {
-    return null;
-  }
-
-  return normalized;
+  return normalizeCurrencyCode(normalizeText(value));
 }
 
 function parseReminderDaysBefore(value: FormDataEntryValue | null): number | null {

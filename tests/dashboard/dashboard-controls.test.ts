@@ -2,88 +2,17 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import {
-  buildDashboardCurrencyOptions,
-  DASHBOARD_ALL_CURRENCIES,
-  DEFAULT_DASHBOARD_DATE_RANGE,
-  filterDashboardUpcomingRenewals,
   getDashboardCategoryColor,
   mapDashboardSpendBreakdownByCurrency,
-  resolveInitialDashboardCurrency,
 } from "../../lib/dashboard-controls";
+import { normalizeCurrencyCode, resolvePreferredCurrency } from "../../lib/currencies";
 
-describe("dashboard controls filtering", () => {
-  test("uses last 30 days as the default date range", () => {
-    assert.equal(DEFAULT_DASHBOARD_DATE_RANGE, "30d");
-  });
-
-  test("resolves dashboard initial currency from user default", () => {
-    assert.equal(resolveInitialDashboardCurrency("aud"), "AUD");
-    assert.equal(resolveInitialDashboardCurrency(""), DASHBOARD_ALL_CURRENCIES);
-    assert.equal(resolveInitialDashboardCurrency("all"), DASHBOARD_ALL_CURRENCIES);
-  });
-
-  test("builds currency options with selected currency and USD priority", () => {
-    const options = buildDashboardCurrencyOptions(["aud", " eur ", "usd", "AUD"], "cad");
-
-    assert.deepEqual(options, ["USD", "AUD", "CAD", "EUR"]);
-  });
-
-  test("filters upcoming renewals by currency, search, and upcoming date window", () => {
-    const now = new Date("2026-03-11T00:00:00.000Z");
-    const records = [
-      {
-        name: "GitHub Team",
-        currency: "USD",
-        paymentMethod: "Visa 1234",
-        renewalDate: "2026-03-20T00:00:00.000Z",
-      },
-      {
-        name: "Canva Pro",
-        currency: "AUD",
-        paymentMethod: "Mastercard 9876",
-        renewalDate: "2026-03-18T00:00:00.000Z",
-      },
-      {
-        name: "Legacy Service",
-        currency: "USD",
-        paymentMethod: "Visa 1234",
-        renewalDate: "2026-04-20T00:00:00.000Z",
-      },
-      {
-        name: "Past Renewal",
-        currency: "USD",
-        paymentMethod: "Visa 1234",
-        renewalDate: "2026-03-01T00:00:00.000Z",
-      },
-    ];
-
-    const allResults = filterDashboardUpcomingRenewals(
-      records,
-      {
-        currency: DASHBOARD_ALL_CURRENCIES,
-        dateRange: DEFAULT_DASHBOARD_DATE_RANGE,
-        searchQuery: "",
-      },
-      now,
-    );
-    const filteredUsdVisa = filterDashboardUpcomingRenewals(
-      records,
-      {
-        currency: "usd",
-        dateRange: DEFAULT_DASHBOARD_DATE_RANGE,
-        searchQuery: "visa",
-      },
-      now,
-    );
-
-    assert.deepEqual(
-      allResults.map((record) => record.name),
-      ["GitHub Team", "Canva Pro"],
-    );
-    assert.deepEqual(
-      filteredUsdVisa.map((record) => record.name),
-      ["GitHub Team"],
-    );
+describe("dashboard controls", () => {
+  test("resolves preferred currency from user default", () => {
+    assert.equal(normalizeCurrencyCode("aud"), "AUD");
+    assert.equal(resolvePreferredCurrency("gbp"), "GBP");
+    assert.equal(resolvePreferredCurrency(""), "USD");
+    assert.equal(resolvePreferredCurrency("invalid"), "USD");
   });
 
   test("maps spend breakdown rows by currency and search query", () => {

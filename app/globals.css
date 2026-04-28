@@ -365,28 +365,19 @@ a {
   min-height: 8.5rem;
 }
 
-.dashboard-controls-shell {
+.dashboard-header-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   gap: 0.9rem;
 }
 
-.dashboard-control-grid {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  flex: 1;
-  min-width: 0;
+.dashboard-currency-form {
+  min-width: 8rem;
 }
 
-.dashboard-search-control {
-  min-width: min(320px, 100%);
-}
-
-.dashboard-control-actions {
-  display: inline-flex;
-  align-items: center;
+.dashboard-currency-field {
+  gap: 0.25rem;
 }
 
 .dashboard-card-header {
@@ -1886,16 +1877,12 @@ ul {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .dashboard-control-grid {
-    grid-template-columns: 1fr;
+  .dashboard-header-actions {
     width: 100%;
   }
 
-  .dashboard-control-actions {
-    width: 100%;
-  }
-
-  .dashboard-control-actions .button {
+  .dashboard-header-actions .button,
+  .dashboard-currency-form {
     width: 100%;
   }
 
