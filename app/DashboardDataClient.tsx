@@ -87,7 +87,7 @@ export default function DashboardDataClient({ initialCurrency }: DashboardDataCl
     return () => {
       controller.abort();
     };
-  }, [refreshDashboard]);
+  }, [initialCurrency, refreshDashboard]);
 
   const renderState = getDashboardRenderState(requestState);
   const payload = requestState.data;
