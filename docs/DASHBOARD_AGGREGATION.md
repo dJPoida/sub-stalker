@@ -20,22 +20,23 @@ The dashboard aggregation contract is built in `lib/dashboard.ts` and exposed th
 
 ## Currency handling
 
-- No FX conversion is applied.
-- Normalized KPI totals return a single `amountCents` only when all contributing subscriptions share one currency.
-- When multiple currencies are present, KPI totals are returned in `totalsByCurrency` and single-currency fields are `null`.
+- Dashboard summary totals use the user's `UserSettings.defaultCurrency` as the reporting currency.
+- Source subscription currencies remain unchanged for individual subscription records and upcoming renewal rows.
+- Cross-currency summaries use exchange rates when available. Missing rates are reported in `currencyConversion.missingRates` and excluded from converted totals instead of being silently mixed.
+- `normalizationPolicy` is `preferred_currency_with_fx_conversion`.
 
 ## Potential savings rules
 
 - Rule 1 (`duplicate_overlap`): for active subscriptions sharing canonical service name and currency, keep the lowest monthly-equivalent entry and treat the remaining entries as overlap savings.
 - Rule 2 (`potentially_unused_subscription`): active subscriptions are flagged when they have an upcoming renewal in 30 days, account age is at least 120 days, and last update is at least 90 days old.
 - To avoid double counting, subscriptions that are part of duplicate groups are excluded from the potentially-unused rule.
-- Savings totals are grouped by currency with no FX conversion.
+- Savings totals are converted to the reporting currency when exchange rates are available.
 - `CUSTOM` cadence subscriptions are excluded from savings opportunities because monthly normalization is undefined.
 
 ## Deterministic ordering
 
 - `upcomingRenewals`: renewal date ascending, then name ascending.
 - `attentionNeeded`: severity descending, then due date ascending, then title ascending.
-- `topCostDrivers`: monthly equivalent descending, then currency ascending, then name ascending.
+- `topCostDrivers`: converted monthly equivalent descending, then source currency ascending, then name ascending.
 - `spendBreakdownByCategory`: max category monthly total descending, then subscription count descending, then category ascending.
 - `potentialSavings.opportunities`: estimated monthly savings descending, then title ascending.

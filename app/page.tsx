@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import DashboardDataClient from "@/app/DashboardDataClient";
 import { getCurrentUser } from "@/lib/auth";
+import { resolvePreferredCurrency } from "@/lib/currencies";
 import { db } from "@/lib/db";
 
 export default async function DashboardPage() {
@@ -57,6 +58,8 @@ export default async function DashboardPage() {
     },
   });
 
+  const defaultCurrency = resolvePreferredCurrency(settings?.defaultCurrency);
+
   return (
     <section className="page-stack">
       <header className="page-header">
@@ -64,12 +67,17 @@ export default async function DashboardPage() {
           <p className="eyebrow">Dashboard</p>
           <h1>Subscription overview</h1>
           <p className="page-lead">
-            Signed in as {user.email}. Use the control bar to scope dashboard sections by currency, date range, and search.
+            Signed in as {user.email}. Overview totals and comparisons use your site currency.
           </p>
+        </div>
+        <div className="inline-actions dashboard-header-actions">
+          <Link className="button" href="/subscriptions">
+            Add Subscription
+          </Link>
         </div>
       </header>
 
-      <DashboardDataClient initialCurrency={settings?.defaultCurrency ?? null} />
+      <DashboardDataClient initialCurrency={defaultCurrency} />
     </section>
   );
 }

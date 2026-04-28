@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useId, useMemo, useState } from "react";
 
@@ -9,22 +8,14 @@ import { useSubscriptionDetailsModal } from "@/app/components/useSubscriptionDet
 import type {
   DashboardAttentionSeverity,
   DashboardAttentionType,
+  DashboardCurrencyConversion,
   DashboardCurrencyTotal,
   DashboardKpis,
   DashboardMetricAmount,
   DashboardSavingsOpportunity,
   DashboardUpcomingRenewalTag,
 } from "@/lib/dashboard";
-import {
-  buildDashboardCurrencyOptions,
-  DASHBOARD_ALL_CURRENCIES,
-  DASHBOARD_DATE_RANGE_OPTIONS,
-  DEFAULT_DASHBOARD_DATE_RANGE,
-  mapDashboardSpendBreakdownByCurrency,
-  filterDashboardUpcomingRenewals,
-  resolveInitialDashboardCurrency,
-  type DashboardDateRangeValue,
-} from "@/lib/dashboard-controls";
+import { mapDashboardSpendBreakdownByCurrency } from "@/lib/dashboard-controls";
 import type { DashboardRenderState } from "@/lib/dashboard-view-state";
 
 type DashboardUpcomingChargeListItem = {
@@ -84,7 +75,6 @@ type DashboardPotentialSavingsData = {
 };
 
 type DashboardSectionsClientProps = {
-  availableCurrencies: string[];
   kpis?: DashboardKpis | null;
   attentionNeeded: DashboardAttentionListItem[];
   topCostDrivers: DashboardTopCostDriverListItem[];
@@ -103,6 +93,7 @@ type DashboardSectionsClientProps = {
     }>;
   }>;
   initialCurrency?: string | null;
+  currencyConversion?: DashboardCurrencyConversion | null;
   renderState?: DashboardRenderState;
   loadErrorMessage?: string | null;
   onRetryLoad?: () => void;
@@ -376,29 +367,11 @@ function attentionSeverityGlyph(severity: DashboardAttentionSeverity): string {
   return "i";
 }
 
-function isInDateRange(value: string | null, now: Date, rangeDays: number): boolean {
-  if (!value) {
-    return true;
-  }
-
-  const parsedDate = new Date(value);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return false;
-  }
-
-  const deltaMs = parsedDate.getTime() - now.getTime();
-  const maxMs = rangeDays * 24 * 60 * 60 * 1000;
-
-  return deltaMs >= 0 && deltaMs <= maxMs;
-}
-
 function DashboardSkeletonLine({ className = "" }: { className?: string }) {
   return <span aria-hidden="true" className={`dashboard-skeleton-line ${className}`.trim()} />;
 }
 
 export default function DashboardSectionsClient({
-  availableCurrencies,
   kpis,
   attentionNeeded,
   topCostDrivers,
@@ -407,6 +380,7 @@ export default function DashboardSectionsClient({
   monthlySpendTotalsByCurrency,
   spendBreakdownByCategory,
   initialCurrency,
+  currencyConversion,
   renderState,
   loadErrorMessage,
   onRetryLoad,
@@ -417,32 +391,12 @@ export default function DashboardSectionsClient({
   const resolvedRenderState = renderState ?? (kpis ? "populated" : "loading");
   const isLoading = resolvedRenderState === "loading";
   const isError = resolvedRenderState === "error";
-  const controlsDisabled = isLoading;
-  const [currency, setCurrency] = useState<string>(() => resolveInitialDashboardCurrency(initialCurrency));
-  const [dateRange, setDateRange] = useState<DashboardDateRangeValue>(DEFAULT_DASHBOARD_DATE_RANGE);
-  const [searchQuery, setSearchQuery] = useState("");
   const [showAllUpcomingRenewals, setShowAllUpcomingRenewals] = useState(false);
-  const now = useMemo(() => new Date(), []);
-  const dateRangeDays = useMemo(() => {
-    return DASHBOARD_DATE_RANGE_OPTIONS.find((option) => option.value === dateRange)?.days ?? 30;
-  }, [dateRange]);
-
-  const filteredUpcomingCharges = useMemo(
-    () =>
-      filterDashboardUpcomingRenewals(
-        upcomingCharges,
-        {
-          currency,
-          dateRange,
-          searchQuery,
-        },
-        now,
-      ),
-    [currency, dateRange, now, searchQuery, upcomingCharges],
-  );
+  const reportingCurrency = currencyConversion?.targetCurrency ?? kpis?.monthlyEquivalentSpend.currency ?? initialCurrency ?? "USD";
+  const filteredUpcomingCharges = upcomingCharges;
   useEffect(() => {
     setShowAllUpcomingRenewals(false);
-  }, [currency, dateRange, searchQuery]);
+  }, [upcomingCharges]);
   const visibleUpcomingCharges = useMemo(() => {
     if (showAllUpcomingRenewals) {
       return filteredUpcomingCharges;
@@ -452,72 +406,9 @@ export default function DashboardSectionsClient({
   }, [filteredUpcomingCharges, showAllUpcomingRenewals]);
   const hasClippedUpcomingRenewals = filteredUpcomingCharges.length > UPCOMING_RENEWALS_VISIBLE_ROWS;
   const hiddenUpcomingRenewalsCount = Math.max(filteredUpcomingCharges.length - visibleUpcomingCharges.length, 0);
-  const filteredAttentionNeeded = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const selectedCurrency = currency.toUpperCase();
-
-    return attentionNeeded.filter((alert) => {
-      if (
-        currency !== DASHBOARD_ALL_CURRENCIES &&
-        alert.currency !== null &&
-        alert.currency.toUpperCase() !== selectedCurrency
-      ) {
-        return false;
-      }
-
-      if (!isInDateRange(alert.dueDate, now, dateRangeDays)) {
-        return false;
-      }
-
-      if (!normalizedQuery) {
-        return true;
-      }
-
-      return [alert.title, alert.message, alert.currency ?? "", alert.type].some((value) =>
-        value.toLowerCase().includes(normalizedQuery),
-      );
-    });
-  }, [attentionNeeded, currency, dateRangeDays, now, searchQuery]);
-  const filteredTopCostDrivers = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const selectedCurrency = currency.toUpperCase();
-
-    return topCostDrivers.filter((driver) => {
-      if (currency !== DASHBOARD_ALL_CURRENCIES && driver.currency.toUpperCase() !== selectedCurrency) {
-        return false;
-      }
-
-      if (!isInDateRange(driver.nextBillingDate, now, dateRangeDays)) {
-        return false;
-      }
-
-      if (!normalizedQuery) {
-        return true;
-      }
-
-      return [driver.name, driver.currency, driver.billingInterval].some((value) =>
-        value.toLowerCase().includes(normalizedQuery),
-      );
-    });
-  }, [currency, dateRangeDays, now, searchQuery, topCostDrivers]);
-  const filteredSavingsOpportunities = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const selectedCurrency = currency.toUpperCase();
-
-    return potentialSavings.opportunities.filter((opportunity) => {
-      if (currency !== DASHBOARD_ALL_CURRENCIES && opportunity.currency.toUpperCase() !== selectedCurrency) {
-        return false;
-      }
-
-      if (!normalizedQuery) {
-        return true;
-      }
-
-      return [opportunity.title, opportunity.description, opportunity.currency, opportunity.type].some((value) =>
-        value.toLowerCase().includes(normalizedQuery),
-      );
-    });
-  }, [currency, potentialSavings.opportunities, searchQuery]);
+  const filteredAttentionNeeded = attentionNeeded;
+  const filteredTopCostDrivers = topCostDrivers;
+  const filteredSavingsOpportunities = potentialSavings.opportunities;
   const filteredSavingsTotalsByCurrency = useMemo(() => {
     const totalsMap = new Map<string, number>();
 
@@ -544,7 +435,7 @@ export default function DashboardSectionsClient({
     if (filteredSavingsTotalsByCurrency.length === 0) {
       return {
         value: "No opportunities",
-        note: "No savings candidates match the current control filters.",
+        note: "No savings candidates currently qualify.",
       };
     }
 
@@ -562,10 +453,6 @@ export default function DashboardSectionsClient({
       note: formatSavingsCurrencyTotalsSummary(filteredSavingsTotalsByCurrency),
     };
   }, [filteredSavingsOpportunities.length, filteredSavingsTotalsByCurrency]);
-  const topCostDriverCurrencyCount = useMemo(() => {
-    return new Set(filteredTopCostDrivers.map((driver) => driver.currency.toUpperCase())).size;
-  }, [filteredTopCostDrivers]);
-  const currencyOptions = useMemo(() => buildDashboardCurrencyOptions(availableCurrencies, currency), [availableCurrencies, currency]);
   const monthlyEquivalentSpend = buildSpendMetricContent(kpis?.monthlyEquivalentSpend, "monthly");
   const annualProjection = buildSpendMetricContent(kpis?.annualProjection, "annual");
   const renewalsInNextSevenDays: KpiCardContent = !kpis
@@ -596,20 +483,14 @@ export default function DashboardSectionsClient({
           value: `${formatCountLabel(kpis.subscriptions.active, "active", "active")}`,
           note: `${formatCountLabel(kpis.subscriptions.canceled, "canceled", "canceled")} · ${kpis.subscriptions.total} total`,
         };
-  const spendBreakdownCurrency = useMemo(() => {
-    if (currency !== DASHBOARD_ALL_CURRENCIES) {
-      return currency.toUpperCase();
-    }
-
-    return monthlySpendTotalsByCurrency.length === 1 ? monthlySpendTotalsByCurrency[0].currency : null;
-  }, [currency, monthlySpendTotalsByCurrency]);
+  const spendBreakdownCurrency = monthlySpendTotalsByCurrency.length > 0 ? reportingCurrency : null;
   const spendBreakdownRows = useMemo(() => {
     if (!spendBreakdownCurrency) {
       return [];
     }
 
-    return mapDashboardSpendBreakdownByCurrency(spendBreakdownByCategory, spendBreakdownCurrency, searchQuery);
-  }, [searchQuery, spendBreakdownByCategory, spendBreakdownCurrency]);
+    return mapDashboardSpendBreakdownByCurrency(spendBreakdownByCategory, spendBreakdownCurrency, "");
+  }, [spendBreakdownByCategory, spendBreakdownCurrency]);
   const spendBreakdownTotalCents = useMemo(() => {
     return spendBreakdownRows.reduce((total, row) => total + row.monthlyEquivalentSpendCents, 0);
   }, [spendBreakdownRows]);
@@ -671,58 +552,6 @@ export default function DashboardSectionsClient({
               : "Dashboard content loaded."}
         </span>
 
-        <article aria-label="Dashboard filters and actions" className="dashboard-card dashboard-controls-shell">
-          <div className="dashboard-control-grid">
-            <label className="form-field" htmlFor="dashboard-currency-select">
-              Currency
-              <select
-                disabled={controlsDisabled}
-                id="dashboard-currency-select"
-                onChange={(event) => setCurrency(event.target.value)}
-                value={currency}
-              >
-                <option value={DASHBOARD_ALL_CURRENCIES}>All currencies</option>
-                {currencyOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="form-field" htmlFor="dashboard-date-range-select">
-              Date range
-              <select
-                disabled={controlsDisabled}
-                id="dashboard-date-range-select"
-                onChange={(event) => setDateRange(event.target.value as DashboardDateRangeValue)}
-                value={dateRange}
-              >
-                {DASHBOARD_DATE_RANGE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="form-field dashboard-search-control" htmlFor="dashboard-search-input">
-              Search
-              <input
-                disabled={controlsDisabled}
-                id="dashboard-search-input"
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search name, payment method, or currency..."
-                type="search"
-                value={searchQuery}
-              />
-            </label>
-          </div>
-          <div className="dashboard-control-actions">
-            <Link aria-disabled={controlsDisabled} className="button" href="/subscriptions" tabIndex={controlsDisabled ? -1 : undefined}>
-              Add Subscription
-            </Link>
-          </div>
-        </article>
-
         {isError ? (
           <div className="notice-error dashboard-error-banner" role="alert">
             <span>{loadErrorMessage ?? "Unable to load dashboard data. Please try again."}</span>
@@ -732,6 +561,12 @@ export default function DashboardSectionsClient({
               </button>
             ) : null}
           </div>
+        ) : null}
+        {!isLoading && currencyConversion && currencyConversion.missingRates.length > 0 ? (
+          <p className="status-help" role="status">
+            Some source currencies could not be converted to {currencyConversion.targetCurrency}:{" "}
+            {currencyConversion.missingRates.join(", ")}.
+          </p>
         ) : null}
 
         <section className="dashboard-grid">
@@ -783,7 +618,7 @@ export default function DashboardSectionsClient({
                   ? "Loading categories..."
                   : spendBreakdownCurrency
                     ? `${spendBreakdownRows.length} categories`
-                    : "Select a currency"}
+                    : `No ${reportingCurrency} data`}
               </span>
             </div>
             {isLoading ? (
@@ -808,11 +643,9 @@ export default function DashboardSectionsClient({
                 </ul>
               </div>
             ) : !spendBreakdownCurrency ? (
-              <p className="text-muted">
-                Choose a specific currency to compare category spend when your dashboard contains multiple currencies.
-              </p>
+              <p className="text-muted">No categorized spend is available in {reportingCurrency}.</p>
             ) : spendBreakdownRows.length === 0 || spendBreakdownTotalCents <= 0 ? (
-              <p className="text-muted">No categorized spend exists for the current filters.</p>
+              <p className="text-muted">No categorized spend exists yet.</p>
             ) : (
               <div className="spend-breakdown-layout">
                 <figure className="spend-donut-figure">
@@ -872,7 +705,7 @@ export default function DashboardSectionsClient({
               </div>
             )}
             {!isLoading && spendBreakdownCurrency && spendBreakdownRows.length === 1 ? (
-              <p className="text-muted">Only one category currently contributes spend for these filters.</p>
+              <p className="text-muted">Only one category currently contributes spend.</p>
             ) : null}
             {!isLoading && spendBreakdownCurrency && !spendBreakdownReconciled ? (
               <p className="text-muted" role="status">
@@ -885,7 +718,7 @@ export default function DashboardSectionsClient({
             <div className="dashboard-card-header">
               <h2>Attention Needed</h2>
               <span className="metric-note">
-                {isLoading ? "Loading alerts..." : `${filteredAttentionNeeded.length} matching alerts`}
+                {isLoading ? "Loading alerts..." : `${filteredAttentionNeeded.length} alerts`}
               </span>
             </div>
             {isLoading ? (
@@ -903,7 +736,7 @@ export default function DashboardSectionsClient({
                 ))}
               </div>
             ) : filteredAttentionNeeded.length === 0 ? (
-              <p className="text-muted">No attention alerts match the current control filters.</p>
+              <p className="text-muted">No attention alerts right now.</p>
             ) : (
               <div className="attention-list">
                 {filteredAttentionNeeded.map((alert) => {
@@ -956,7 +789,7 @@ export default function DashboardSectionsClient({
               <span className="metric-note">
                 {isLoading
                   ? "Loading renewals..."
-                  : `${filteredUpcomingCharges.length} matching rows, sorted by soonest date`}
+                  : `${filteredUpcomingCharges.length} renewals, sorted by soonest date`}
               </span>
             </div>
             {isLoading ? (
@@ -989,7 +822,7 @@ export default function DashboardSectionsClient({
                 </div>
               </div>
             ) : filteredUpcomingCharges.length === 0 ? (
-              <p className="text-muted">No upcoming renewals match the current control filters.</p>
+              <p className="text-muted">No upcoming renewals in the current summary window.</p>
             ) : (
               <div className="upcoming-renewals-table-shell">
                 <p className="text-muted" role="status">
@@ -1094,7 +927,7 @@ export default function DashboardSectionsClient({
             <div className="dashboard-card-header">
               <h2>Potential Savings</h2>
               <span className="metric-note">
-                {isLoading ? "Loading opportunities..." : `${filteredSavingsOpportunities.length} matching opportunities`}
+                {isLoading ? "Loading opportunities..." : `${filteredSavingsOpportunities.length} opportunities`}
               </span>
             </div>
             {isLoading ? (
@@ -1122,7 +955,7 @@ export default function DashboardSectionsClient({
                   <span className="metric-note">{potentialSavingsSummary.note}</span>
                 </article>
                 {filteredSavingsOpportunities.length === 0 ? (
-                  <p className="text-muted mt-sm">No savings opportunities match the current control filters.</p>
+                  <p className="text-muted mt-sm">No savings opportunities currently qualify.</p>
                 ) : (
                   <ul className="savings-opportunity-list">
                     {filteredSavingsOpportunities.map((opportunity) => {
@@ -1173,7 +1006,7 @@ export default function DashboardSectionsClient({
             <div className="dashboard-card-header">
               <h2>Top Cost Drivers</h2>
               <span className="metric-note">
-                {isLoading ? "Loading drivers..." : `${filteredTopCostDrivers.length} matching rows`}
+                {isLoading ? "Loading drivers..." : `${filteredTopCostDrivers.length} drivers`}
               </span>
             </div>
             {isLoading ? (
@@ -1189,7 +1022,7 @@ export default function DashboardSectionsClient({
                 ))}
               </ol>
             ) : filteredTopCostDrivers.length === 0 ? (
-              <p className="text-muted">No cost drivers match the current control filters.</p>
+              <p className="text-muted">No cost drivers are available yet.</p>
             ) : (
               <ol className="cost-driver-list">
                 {filteredTopCostDrivers.map((driver, index) => (
@@ -1224,9 +1057,7 @@ export default function DashboardSectionsClient({
                 ))}
               </ol>
             )}
-            {!isLoading && topCostDriverCurrencyCount > 1 ? (
-              <p className="text-muted mt-sm">Ranking is normalized to monthly amounts without FX conversion.</p>
-            ) : null}
+            {!isLoading ? <p className="text-muted mt-sm">Ranking is normalized to monthly amounts in {reportingCurrency}.</p> : null}
           </article>
         </section>
 

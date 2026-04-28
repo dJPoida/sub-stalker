@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DisplayMode } from "@prisma/client";
 import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
+import { CURRENCY_OPTIONS } from "@/lib/currencies";
 
 type ResultMessage = {
   type: "error" | "success";
@@ -24,7 +25,6 @@ type SettingsClientProps = {
   updateAccountDetailsAction: (formData: FormData) => Promise<void>;
 };
 
-const CURRENCY_OPTIONS = ["USD", "EUR", "GBP", "JPY", "CAD", "AUD"];
 const DISPLAY_MODE_OPTIONS: Array<{ value: DisplayMode; label: string }> = [
   { value: "DEVICE", label: "Device" },
   { value: "LIGHT", label: "Light" },
@@ -53,7 +53,7 @@ export default function SettingsClient({
   const [reminderDaysBefore, setReminderDaysBefore] = useState(initialReminderDaysBefore);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const currencyOptions = useMemo(() => {
-    if (CURRENCY_OPTIONS.includes(initialDefaultCurrency)) {
+    if (CURRENCY_OPTIONS.some((currency) => currency === initialDefaultCurrency)) {
       return CURRENCY_OPTIONS;
     }
 

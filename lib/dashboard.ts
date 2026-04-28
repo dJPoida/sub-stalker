@@ -1,5 +1,6 @@
 import { BillingInterval } from "@prisma/client";
 
+import { normalizeCurrencyCode, resolvePreferredCurrency } from "@/lib/currencies";
 import { db } from "@/lib/db";
 import { inferSubscriptionCategory } from "@/lib/subscription-classification";
 
@@ -59,6 +60,13 @@ export type DashboardCurrencyTotal = {
   currency: string;
   monthlyEquivalentSpendCents: number;
   annualProjectionCents: number;
+};
+
+export type DashboardCurrencyConversion = {
+  targetCurrency: string;
+  generatedAt: string | null;
+  source: "not_required" | "frankfurter" | "provided_rates";
+  missingRates: string[];
 };
 
 export type DashboardMetricAmount = {
@@ -167,7 +175,8 @@ export type DashboardPayload = {
     renewalsNextDays: typeof DASHBOARD_RENEWALS_WINDOW_DAYS;
     upcomingRenewalsDays: typeof DASHBOARD_UPCOMING_RENEWALS_WINDOW_DAYS;
   };
-  normalizationPolicy: "single_currency_totals_without_fx_conversion";
+  normalizationPolicy: "preferred_currency_with_fx_conversion";
+  currencyConversion: DashboardCurrencyConversion;
   kpis: DashboardKpis;
   spendBreakdownByCategory: DashboardSpendCategory[];
   attentionNeeded: DashboardAttentionItem[];
@@ -184,6 +193,8 @@ type NormalizedSubscription = DashboardSubscriptionSourceRecord & {
   nextBillingDateDate: Date | null;
   monthlyEquivalentAmountCents: number | null;
   annualProjectionCents: number | null;
+  preferredMonthlyEquivalentAmountCents: number | null;
+  preferredAnnualProjectionCents: number | null;
   canonicalServiceKey: string;
   inferredCategory: string;
 };
@@ -193,6 +204,20 @@ type DuplicateGroup = {
   currency: string;
   displayName: string;
   subscriptions: NormalizedSubscription[];
+};
+
+export type DashboardExchangeRateMap = Record<string, number>;
+
+export type DashboardPayloadOptions = {
+  preferredCurrency?: string | null;
+  exchangeRates?: DashboardExchangeRateMap;
+  exchangeRateSource?: DashboardCurrencyConversion["source"];
+  exchangeRateGeneratedAt?: string | null;
+};
+
+type FrankfurterLatestResponse = {
+  date?: string;
+  rates?: Record<string, number>;
 };
 
 function toDate(value: Date | string): Date {
@@ -242,6 +267,118 @@ export function normalizeToAnnualAmountCents(amountCents: number, billingInterva
     default:
       return null;
   }
+}
+
+function normalizeExchangeRates(exchangeRates: DashboardExchangeRateMap | undefined): Map<string, number> {
+  const normalizedRates = new Map<string, number>();
+
+  for (const [currency, rate] of Object.entries(exchangeRates ?? {})) {
+    const normalizedCurrency = normalizeCurrencyCode(currency);
+
+    if (!normalizedCurrency || !Number.isFinite(rate) || rate <= 0) {
+      continue;
+    }
+
+    normalizedRates.set(normalizedCurrency, rate);
+  }
+
+  return normalizedRates;
+}
+
+function convertCurrencyAmountCents(
+  amountCents: number | null,
+  sourceCurrency: string,
+  targetCurrency: string,
+  exchangeRates: Map<string, number>,
+  missingRates: Set<string>,
+): number | null {
+  if (amountCents === null) {
+    return null;
+  }
+
+  if (sourceCurrency === targetCurrency) {
+    return amountCents;
+  }
+
+  const rate = exchangeRates.get(sourceCurrency);
+
+  if (rate === undefined) {
+    missingRates.add(sourceCurrency);
+    return null;
+  }
+
+  return Math.round(amountCents * rate);
+}
+
+async function fetchExchangeRatesToCurrency(
+  sourceCurrencies: string[],
+  targetCurrency: string,
+): Promise<{ rates: DashboardExchangeRateMap; generatedAt: string | null }> {
+  const currenciesNeedingRates = [...new Set(sourceCurrencies)]
+    .map((currency) => normalizeCurrencyCode(currency))
+    .filter((currency): currency is string => currency !== null && currency !== targetCurrency);
+
+  if (currenciesNeedingRates.length === 0) {
+    return {
+      rates: {},
+      generatedAt: null,
+    };
+  }
+
+  const results = await Promise.all(
+    currenciesNeedingRates.map(async (sourceCurrency) => {
+      const url = new URL("https://api.frankfurter.app/latest");
+      url.searchParams.set("from", sourceCurrency);
+      url.searchParams.set("to", targetCurrency);
+
+      try {
+        const response = await fetch(url, {
+          next: {
+            revalidate: 60 * 60 * 6,
+          },
+        });
+
+        if (!response.ok) {
+          return null;
+        }
+
+        const payload = (await response.json()) as FrankfurterLatestResponse;
+        const rate = payload.rates?.[targetCurrency];
+
+        if (!Number.isFinite(rate) || !rate || rate <= 0) {
+          return null;
+        }
+
+        return {
+          sourceCurrency,
+          rate,
+          date: payload.date ?? null,
+        };
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  const rates: DashboardExchangeRateMap = {};
+  const generatedDates = new Set<string>();
+
+  for (const result of results) {
+    if (!result) {
+      continue;
+    }
+
+    rates[result.sourceCurrency] = result.rate;
+
+    if (result.date) {
+      generatedDates.add(result.date);
+    }
+  }
+
+  return {
+    rates,
+    generatedAt: generatedDates.size === 1 ? [...generatedDates][0] : null,
+  };
 }
 
 function isWithinNextDays(value: Date, now: Date, days: number): boolean {
@@ -294,26 +431,26 @@ function canonicalizeServiceName(name: string): string {
   return normalized || "unknown";
 }
 
-function makeCurrencyTotals(records: Iterable<NormalizedSubscription>): DashboardCurrencyTotal[] {
+function makeCurrencyTotals(records: Iterable<NormalizedSubscription>, preferredCurrency: string): DashboardCurrencyTotal[] {
   const totals = new Map<string, DashboardCurrencyTotal>();
 
   for (const record of records) {
-    if (record.monthlyEquivalentAmountCents === null || record.annualProjectionCents === null) {
+    if (record.preferredMonthlyEquivalentAmountCents === null || record.preferredAnnualProjectionCents === null) {
       continue;
     }
 
-    const existing = totals.get(record.currency);
+    const existing = totals.get(preferredCurrency);
 
     if (existing) {
-      existing.monthlyEquivalentSpendCents += record.monthlyEquivalentAmountCents;
-      existing.annualProjectionCents += record.annualProjectionCents;
+      existing.monthlyEquivalentSpendCents += record.preferredMonthlyEquivalentAmountCents;
+      existing.annualProjectionCents += record.preferredAnnualProjectionCents;
       continue;
     }
 
-    totals.set(record.currency, {
-      currency: record.currency,
-      monthlyEquivalentSpendCents: record.monthlyEquivalentAmountCents,
-      annualProjectionCents: record.annualProjectionCents,
+    totals.set(preferredCurrency, {
+      currency: preferredCurrency,
+      monthlyEquivalentSpendCents: record.preferredMonthlyEquivalentAmountCents,
+      annualProjectionCents: record.preferredAnnualProjectionCents,
     });
   }
 
@@ -445,12 +582,18 @@ function findDuplicateGroups(records: NormalizedSubscription[]): DuplicateGroup[
 export function buildDashboardPayload(
   subscriptions: DashboardSubscriptionSourceRecord[],
   now: Date = new Date(),
+  options: DashboardPayloadOptions = {},
 ): DashboardPayload {
+  const preferredCurrency = resolvePreferredCurrency(options.preferredCurrency);
+  const exchangeRates = normalizeExchangeRates(options.exchangeRates);
+  const missingRates = new Set<string>();
   const normalizedSubscriptions: NormalizedSubscription[] = subscriptions.map((subscription) => {
     const createdAtDate = toDate(subscription.createdAt);
     const updatedAtDate = toDate(subscription.updatedAt);
     const nextBillingDateDate = toOptionalDate(subscription.nextBillingDate);
     const currency = normalizeCurrency(subscription.currency);
+    const monthlyEquivalentAmountCents = normalizeToMonthlyAmountCents(subscription.amountCents, subscription.billingInterval);
+    const annualProjectionCents = normalizeToAnnualAmountCents(subscription.amountCents, subscription.billingInterval);
 
     return {
       ...subscription,
@@ -458,8 +601,22 @@ export function buildDashboardPayload(
       createdAtDate,
       updatedAtDate,
       nextBillingDateDate,
-      monthlyEquivalentAmountCents: normalizeToMonthlyAmountCents(subscription.amountCents, subscription.billingInterval),
-      annualProjectionCents: normalizeToAnnualAmountCents(subscription.amountCents, subscription.billingInterval),
+      monthlyEquivalentAmountCents,
+      annualProjectionCents,
+      preferredMonthlyEquivalentAmountCents: convertCurrencyAmountCents(
+        monthlyEquivalentAmountCents,
+        currency,
+        preferredCurrency,
+        exchangeRates,
+        missingRates,
+      ),
+      preferredAnnualProjectionCents: convertCurrencyAmountCents(
+        annualProjectionCents,
+        currency,
+        preferredCurrency,
+        exchangeRates,
+        missingRates,
+      ),
       canonicalServiceKey: canonicalizeServiceName(subscription.name),
       inferredCategory: inferSubscriptionCategory(subscription.name),
     };
@@ -471,7 +628,7 @@ export function buildDashboardPayload(
     (subscription) => subscription.monthlyEquivalentAmountCents === null || subscription.annualProjectionCents === null,
   ).length;
 
-  const totalsByCurrency = makeCurrencyTotals(activeSubscriptions);
+  const totalsByCurrency = makeCurrencyTotals(activeSubscriptions, preferredCurrency);
 
   const kpis: DashboardKpis = {
     monthlyEquivalentSpend: metricAmountFromCurrencyTotals(totalsByCurrency, excludedCustomCadenceCount, "monthly"),
@@ -519,7 +676,7 @@ export function buildDashboardPayload(
 
   const spendBreakdownByCategory: DashboardSpendCategory[] = [...categoryGroups.values()]
     .map((group) => {
-      const categoryTotals = makeCurrencyTotals(group.records);
+      const categoryTotals = makeCurrencyTotals(group.records, preferredCurrency);
 
       return {
         category: group.category,
@@ -592,8 +749,8 @@ export function buildDashboardPayload(
           message: `Potential charge of ${formatCurrencyCents(subscription.amountCents, subscription.currency)} on ${formatAttentionDate(dueDate)} (${daysUntilDue} day(s)).`,
           dueDate: dueDate.toISOString(),
           subscriptionIds: [subscription.id],
-          estimatedMonthlyImpactCents: subscription.monthlyEquivalentAmountCents,
-          currency: subscription.currency,
+          estimatedMonthlyImpactCents: subscription.preferredMonthlyEquivalentAmountCents,
+          currency: subscription.preferredMonthlyEquivalentAmountCents === null ? null : preferredCurrency,
         };
       }),
     ...activeSubscriptions
@@ -610,8 +767,8 @@ export function buildDashboardPayload(
           message: `No subscription updates in ${staleDays} day(s). Next charge ${formatCurrencyCents(subscription.amountCents, subscription.currency)} on ${formatAttentionDate(dueDate)}.`,
           dueDate: dueDate.toISOString(),
           subscriptionIds: [subscription.id],
-          estimatedMonthlyImpactCents: subscription.monthlyEquivalentAmountCents,
-          currency: subscription.currency,
+          estimatedMonthlyImpactCents: subscription.preferredMonthlyEquivalentAmountCents,
+          currency: subscription.preferredMonthlyEquivalentAmountCents === null ? null : preferredCurrency,
         };
       }),
     ...activeSubscriptions
@@ -634,14 +791,14 @@ export function buildDashboardPayload(
           message: `Annual charge of ${formatCurrencyCents(subscription.amountCents, subscription.currency)} is due on ${formatAttentionDate(dueDate)} (${daysUntilDue} day(s)).`,
           dueDate: dueDate.toISOString(),
           subscriptionIds: [subscription.id],
-          estimatedMonthlyImpactCents: subscription.monthlyEquivalentAmountCents,
-          currency: subscription.currency,
+          estimatedMonthlyImpactCents: subscription.preferredMonthlyEquivalentAmountCents,
+          currency: subscription.preferredMonthlyEquivalentAmountCents === null ? null : preferredCurrency,
         };
       }),
     ...duplicateGroups.map((group) => {
       const duplicates = group.subscriptions.slice(1);
       const estimatedMonthlyImpactCents = duplicates.reduce(
-        (total, subscription) => total + (subscription.monthlyEquivalentAmountCents ?? 0),
+        (total, subscription) => total + (subscription.preferredMonthlyEquivalentAmountCents ?? 0),
         0,
       );
       const soonestRenewal = group.subscriptions
@@ -657,23 +814,29 @@ export function buildDashboardPayload(
         type: "potential_duplicate_services" as const,
         severity: "high" as const,
         title: `Potential duplicate services: ${group.displayName}`,
-        message: `${group.subscriptions.length} active subscriptions may overlap. Estimated extra spend is ${formatCurrencyCents(estimatedMonthlyImpactCents, group.currency)} per month.${soonestRenewalText}`,
+        message: `${group.subscriptions.length} active subscriptions may overlap. Estimated extra spend is ${formatCurrencyCents(estimatedMonthlyImpactCents, preferredCurrency)} per month.${soonestRenewalText}`,
         dueDate: soonestRenewal ? soonestRenewal.toISOString() : null,
         subscriptionIds: group.subscriptions.map((subscription) => subscription.id),
         estimatedMonthlyImpactCents,
-        currency: group.currency,
+        currency: preferredCurrency,
       };
     }),
   ].sort(compareAttentionItems);
 
   const topCostDrivers: DashboardTopCostDriver[] = activeSubscriptions
     .filter(
-      (subscription): subscription is NormalizedSubscription & { monthlyEquivalentAmountCents: number; annualProjectionCents: number } =>
-        subscription.monthlyEquivalentAmountCents !== null && subscription.annualProjectionCents !== null,
+      (
+        subscription,
+      ): subscription is NormalizedSubscription & {
+        preferredMonthlyEquivalentAmountCents: number;
+        preferredAnnualProjectionCents: number;
+      } =>
+        subscription.preferredMonthlyEquivalentAmountCents !== null &&
+        subscription.preferredAnnualProjectionCents !== null,
     )
     .sort((first, second) => {
       return (
-        second.monthlyEquivalentAmountCents - first.monthlyEquivalentAmountCents ||
+        second.preferredMonthlyEquivalentAmountCents - first.preferredMonthlyEquivalentAmountCents ||
         first.currency.localeCompare(second.currency) ||
         first.name.localeCompare(second.name) ||
         first.id.localeCompare(second.id)
@@ -683,10 +846,10 @@ export function buildDashboardPayload(
     .map((subscription) => ({
       id: subscription.id,
       name: subscription.name,
-      currency: subscription.currency,
+      currency: preferredCurrency,
       billingInterval: subscription.billingInterval,
-      monthlyEquivalentAmountCents: subscription.monthlyEquivalentAmountCents,
-      annualProjectionCents: subscription.annualProjectionCents,
+      monthlyEquivalentAmountCents: subscription.preferredMonthlyEquivalentAmountCents,
+      annualProjectionCents: subscription.preferredAnnualProjectionCents,
       nextBillingDate: subscription.nextBillingDateDate ? subscription.nextBillingDateDate.toISOString() : null,
     }));
 
@@ -694,7 +857,7 @@ export function buildDashboardPayload(
     .map((group) => {
       const duplicateSubscriptions = group.subscriptions.slice(1);
       const estimatedMonthlySavingsCents = duplicateSubscriptions.reduce(
-        (total, subscription) => total + (subscription.monthlyEquivalentAmountCents ?? 0),
+        (total, subscription) => total + (subscription.preferredMonthlyEquivalentAmountCents ?? 0),
         0,
       );
 
@@ -703,7 +866,7 @@ export function buildDashboardPayload(
         type: "duplicate_overlap" as const,
         title: `Consolidate duplicate ${group.displayName} subscriptions`,
         description: `Cancelling ${duplicateSubscriptions.length} overlapping subscription(s) could reduce recurring spend.`,
-        currency: group.currency,
+        currency: preferredCurrency,
         estimatedMonthlySavingsCents,
         subscriptionIds: duplicateSubscriptions.map((subscription) => subscription.id),
       };
@@ -716,8 +879,8 @@ export function buildDashboardPayload(
 
   const potentiallyUnusedOpportunities: DashboardSavingsOpportunity[] = activeSubscriptions
     .filter(
-      (subscription): subscription is NormalizedSubscription & { monthlyEquivalentAmountCents: number } =>
-        subscription.monthlyEquivalentAmountCents !== null &&
+      (subscription): subscription is NormalizedSubscription & { preferredMonthlyEquivalentAmountCents: number } =>
+        subscription.preferredMonthlyEquivalentAmountCents !== null &&
         isPotentiallyUnusedCandidate(subscription, now) &&
         !subscriptionsInDuplicateGroups.has(subscription.id),
     )
@@ -726,8 +889,8 @@ export function buildDashboardPayload(
       type: "potentially_unused_subscription" as const,
       title: `Review usage for ${subscription.name}`,
       description: "No recent updates detected. Confirm this subscription is still needed before the next renewal.",
-      currency: subscription.currency,
-      estimatedMonthlySavingsCents: subscription.monthlyEquivalentAmountCents,
+      currency: preferredCurrency,
+      estimatedMonthlySavingsCents: subscription.preferredMonthlyEquivalentAmountCents,
       subscriptionIds: [subscription.id],
     }))
     .filter((opportunity) => opportunity.estimatedMonthlySavingsCents > 0);
@@ -773,7 +936,7 @@ export function buildDashboardPayload(
       "Savings estimate includes duplicate-overlap candidates (same canonical service name + currency) and potentially-unused subscriptions.",
       "Potentially-unused candidates require an upcoming renewal within 30 days, account age of at least 120 days, and no updates for 90+ days.",
       "Subscriptions in duplicate groups are excluded from the potentially-unused rule to avoid double counting.",
-      "No FX conversion is applied when currencies differ.",
+      `Combined estimates are converted into ${preferredCurrency} when exchange rates are available.`,
       "Custom billing intervals are excluded from normalized monthly/annual estimates.",
     ],
   };
@@ -808,6 +971,7 @@ export function buildDashboardPayload(
         nextBillingDate: (fallbackNextChargeSource.nextBillingDateDate as Date).toISOString(),
       }
     : null;
+  const hasCrossCurrencyData = activeSubscriptions.some((subscription) => subscription.currency !== preferredCurrency);
 
   return {
     generatedAt: now.toISOString(),
@@ -815,7 +979,13 @@ export function buildDashboardPayload(
       renewalsNextDays: DASHBOARD_RENEWALS_WINDOW_DAYS,
       upcomingRenewalsDays: DASHBOARD_UPCOMING_RENEWALS_WINDOW_DAYS,
     },
-    normalizationPolicy: "single_currency_totals_without_fx_conversion",
+    normalizationPolicy: "preferred_currency_with_fx_conversion",
+    currencyConversion: {
+      targetCurrency: preferredCurrency,
+      generatedAt: options.exchangeRateGeneratedAt ?? null,
+      source: hasCrossCurrencyData ? (options.exchangeRateSource ?? "provided_rates") : "not_required",
+      missingRates: [...missingRates].sort((first, second) => first.localeCompare(second)),
+    },
     kpis,
     spendBreakdownByCategory,
     attentionNeeded,
@@ -827,25 +997,45 @@ export function buildDashboardPayload(
 }
 
 export async function getDashboardPayloadForUser(userId: string, now: Date = new Date()): Promise<DashboardPayload> {
-  const subscriptions = await db.subscription.findMany({
-    where: {
-      userId,
-    },
-    select: {
-      id: true,
-      name: true,
-      amountCents: true,
-      currency: true,
-      billingInterval: true,
-      nextBillingDate: true,
-      isActive: true,
-      paymentMethod: true,
-      signedUpBy: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-    orderBy: [{ isActive: "desc" }, { nextBillingDate: "asc" }, { createdAt: "desc" }],
-  });
+  const [subscriptions, settings] = await Promise.all([
+    db.subscription.findMany({
+      where: {
+        userId,
+      },
+      select: {
+        id: true,
+        name: true,
+        amountCents: true,
+        currency: true,
+        billingInterval: true,
+        nextBillingDate: true,
+        isActive: true,
+        paymentMethod: true,
+        signedUpBy: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: [{ isActive: "desc" }, { nextBillingDate: "asc" }, { createdAt: "desc" }],
+    }),
+    db.userSettings.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        defaultCurrency: true,
+      },
+    }),
+  ]);
+  const preferredCurrency = resolvePreferredCurrency(settings?.defaultCurrency);
+  const activeSourceCurrencies = subscriptions
+    .filter((subscription) => subscription.isActive)
+    .map((subscription) => normalizeCurrency(subscription.currency));
+  const exchangeRates = await fetchExchangeRatesToCurrency(activeSourceCurrencies, preferredCurrency);
 
-  return buildDashboardPayload(subscriptions, now);
+  return buildDashboardPayload(subscriptions, now, {
+    preferredCurrency,
+    exchangeRates: exchangeRates.rates,
+    exchangeRateGeneratedAt: exchangeRates.generatedAt,
+    exchangeRateSource: "frankfurter",
+  });
 }

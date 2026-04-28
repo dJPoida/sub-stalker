@@ -107,7 +107,7 @@ describe("buildDashboardPayload", () => {
     assert.equal(payload.attentionNeeded.some((item) => item.type === "annual_renewal_approaching"), true);
   });
 
-  test("does not merge mixed currencies into a single normalized KPI total", () => {
+  test("converts mixed currencies into preferred-currency KPI totals", () => {
     const now = new Date("2026-03-11T00:00:00.000Z");
 
     const payload = buildDashboardPayload(
@@ -116,12 +116,22 @@ describe("buildDashboardPayload", () => {
         makeSubscription({ id: "aud", name: "Canva", amountCents: 2000, currency: "aud" }),
       ],
       now,
+      {
+        preferredCurrency: "USD",
+        exchangeRates: {
+          AUD: 0.65,
+        },
+        exchangeRateGeneratedAt: "2026-03-10",
+        exchangeRateSource: "provided_rates",
+      },
     );
 
-    assert.equal(payload.kpis.monthlyEquivalentSpend.amountCents, null);
-    assert.equal(payload.kpis.monthlyEquivalentSpend.currency, null);
-    assert.equal(payload.kpis.monthlyEquivalentSpend.totalsByCurrency.length, 2);
-    assert.deepEqual(payload.kpis.monthlyEquivalentSpend.totalsByCurrency.map((entry) => entry.currency), ["AUD", "USD"]);
+    assert.equal(payload.normalizationPolicy, "preferred_currency_with_fx_conversion");
+    assert.equal(payload.currencyConversion.targetCurrency, "USD");
+    assert.deepEqual(payload.currencyConversion.missingRates, []);
+    assert.equal(payload.kpis.monthlyEquivalentSpend.amountCents, 2300);
+    assert.equal(payload.kpis.monthlyEquivalentSpend.currency, "USD");
+    assert.deepEqual(payload.kpis.monthlyEquivalentSpend.totalsByCurrency.map((entry) => entry.currency), ["USD"]);
   });
 
   test("keeps canceled subscriptions in counts while excluding them from active spend and cost drivers", () => {
@@ -155,6 +165,29 @@ describe("buildDashboardPayload", () => {
     );
 
     assert.deepEqual(payload.topCostDrivers.map((driver) => driver.id), ["weekly", "monthly", "yearly"]);
+  });
+
+  test("ranks top cost drivers after preferred-currency conversion", () => {
+    const now = new Date("2026-03-11T00:00:00.000Z");
+
+    const payload = buildDashboardPayload(
+      [
+        makeSubscription({ id: "usd", name: "USD Tool", amountCents: 1500, currency: "usd" }),
+        makeSubscription({ id: "aud", name: "AUD Tool", amountCents: 3000, currency: "aud" }),
+      ],
+      now,
+      {
+        preferredCurrency: "USD",
+        exchangeRates: {
+          AUD: 0.5,
+        },
+      },
+    );
+
+    assert.deepEqual(payload.topCostDrivers.map((driver) => [driver.id, driver.monthlyEquivalentAmountCents, driver.currency]), [
+      ["aud", 1500, "USD"],
+      ["usd", 1500, "USD"],
+    ]);
   });
 
   test("builds duplicate-service alerts and savings opportunities deterministically", () => {
