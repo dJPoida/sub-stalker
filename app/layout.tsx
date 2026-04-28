@@ -6,7 +6,10 @@ import "easymde/dist/easymde.min.css";
 
 import { signOutAction } from "@/app/auth/actions";
 import { PendingSubmitButton } from "@/app/components/PendingFormControls";
+import DashboardCurrencyForm from "@/app/DashboardCurrencyForm";
+import { updateDashboardCurrencyAction } from "@/app/dashboard/actions";
 import { getCurrentUser } from "@/lib/auth";
+import { resolvePreferredCurrency } from "@/lib/currencies";
 import { db } from "@/lib/db";
 
 import "./globals.css";
@@ -40,6 +43,7 @@ export default async function RootLayout({
 }>) {
   const user = await getCurrentUser();
   let displayMode: DisplayMode = "DEVICE";
+  let defaultCurrency = "USD";
 
   if (user) {
     const settings = await db.userSettings.findUnique({
@@ -48,10 +52,12 @@ export default async function RootLayout({
       },
       select: {
         displayMode: true,
+        defaultCurrency: true,
       },
     });
 
     displayMode = settings?.displayMode ?? "DEVICE";
+    defaultCurrency = resolvePreferredCurrency(settings?.defaultCurrency);
   }
 
   const htmlTheme = displayMode === "DEVICE" ? undefined : displayMode.toLowerCase();
@@ -100,6 +106,10 @@ export default async function RootLayout({
               </nav>
               {user ? (
                 <div className="nav-auth">
+                  <DashboardCurrencyForm
+                    defaultCurrency={defaultCurrency}
+                    updateCurrencyAction={updateDashboardCurrencyAction}
+                  />
                   <span className="nav-user">{user.email}</span>
                   <form action={signOutAction}>
                     <PendingSubmitButton

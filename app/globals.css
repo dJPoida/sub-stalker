@@ -373,11 +373,43 @@ a {
 }
 
 .dashboard-currency-form {
-  min-width: 8rem;
+  min-width: 7.25rem;
 }
 
 .dashboard-currency-field {
-  gap: 0.25rem;
+  display: block;
+}
+
+.dashboard-currency-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--input-bg);
+  padding: 0.22rem 0.32rem 0.22rem 0.5rem;
+}
+
+.dashboard-currency-control > span {
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--border);
+  flex: 0 0 auto;
+}
+
+.form-field .dashboard-currency-control select {
+  width: auto;
+  min-width: 4.4rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0.28rem 1.4rem 0.28rem 0.1rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.form-field .dashboard-currency-control select:focus {
+  box-shadow: none;
 }
 
 .dashboard-card-header {
@@ -1881,8 +1913,7 @@ ul {
     width: 100%;
   }
 
-  .dashboard-header-actions .button,
-  .dashboard-currency-form {
+  .dashboard-header-actions .button {
     width: 100%;
   }
 

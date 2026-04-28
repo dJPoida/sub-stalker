@@ -7,6 +7,16 @@ import { requireAuthenticatedUser } from "@/lib/auth";
 import { normalizeCurrencyCode } from "@/lib/currencies";
 import { db } from "@/lib/db";
 
+function resolveReturnPath(value: FormDataEntryValue | null): string {
+  const path = String(value ?? "").trim();
+
+  if (!path.startsWith("/") || path.startsWith("//")) {
+    return "/";
+  }
+
+  return path;
+}
+
 async function isSameOriginRequest(): Promise<boolean> {
   const headerStore = await headers();
   const origin = headerStore.get("origin");
@@ -34,15 +44,16 @@ async function isSameOriginRequest(): Promise<boolean> {
 
 export async function updateDashboardCurrencyAction(formData: FormData): Promise<void> {
   const user = await requireAuthenticatedUser();
+  const returnTo = resolveReturnPath(formData.get("returnTo"));
 
   if (!(await isSameOriginRequest())) {
-    redirect("/?error=invalid_request");
+    redirect(`${returnTo}?error=invalid_request`);
   }
 
   const defaultCurrency = normalizeCurrencyCode(String(formData.get("defaultCurrency") ?? ""));
 
   if (!defaultCurrency) {
-    redirect("/?error=invalid_currency");
+    redirect(`${returnTo}?error=invalid_currency`);
   }
 
   await db.userSettings.upsert({
@@ -58,5 +69,5 @@ export async function updateDashboardCurrencyAction(formData: FormData): Promise
     },
   });
 
-  redirect("/");
+  redirect(returnTo);
 }

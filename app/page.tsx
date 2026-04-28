@@ -1,8 +1,6 @@
 import Link from "next/link";
 
-import DashboardCurrencyForm from "@/app/DashboardCurrencyForm";
 import DashboardDataClient from "@/app/DashboardDataClient";
-import { updateDashboardCurrencyAction } from "@/app/dashboard/actions";
 import { getCurrentUser } from "@/lib/auth";
 import { resolvePreferredCurrency } from "@/lib/currencies";
 import { db } from "@/lib/db";
@@ -73,10 +71,6 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="inline-actions dashboard-header-actions">
-          <DashboardCurrencyForm
-            defaultCurrency={defaultCurrency}
-            updateCurrencyAction={updateDashboardCurrencyAction}
-          />
           <Link className="button" href="/subscriptions">
             Add Subscription
           </Link>
