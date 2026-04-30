@@ -160,10 +160,10 @@ a {
   max-width: 1160px;
   margin: 0 auto;
   padding: 0.9rem 1.5rem;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 1rem;
-  flex-wrap: wrap;
 }
 
 .brand {
@@ -203,6 +203,7 @@ a {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.45rem;
+  min-width: 0;
 }
 
 .nav-link {
@@ -224,15 +225,10 @@ a {
 }
 
 .nav-auth {
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-}
-
-.nav-user {
-  color: var(--text-muted);
-  font-size: 0.85rem;
+  justify-self: end;
 }
 
 .container {
@@ -406,6 +402,11 @@ a {
   color: var(--text);
   font-size: 0.85rem;
   font-weight: 700;
+}
+
+.form-field .dashboard-currency-control select option {
+  background: var(--input-bg);
+  color: var(--text);
 }
 
 .form-field .dashboard-currency-control select:focus {
@@ -1871,12 +1872,14 @@ ul {
 
 @media (max-width: 940px) {
   .main-nav {
-    order: 3;
+    grid-column: 1 / -1;
+    grid-row: 2;
     width: 100%;
   }
 
   .nav-auth {
-    margin-left: 0;
+    grid-column: 3;
+    grid-row: 1;
   }
 }
 

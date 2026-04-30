@@ -110,7 +110,6 @@ export default async function RootLayout({
                     defaultCurrency={defaultCurrency}
                     updateCurrencyAction={updateDashboardCurrencyAction}
                   />
-                  <span className="nav-user">{user.email}</span>
                   <form action={signOutAction}>
                     <PendingSubmitButton
                       className="button button-secondary button-small"
