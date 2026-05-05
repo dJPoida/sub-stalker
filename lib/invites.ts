@@ -2,6 +2,7 @@ import { createHmac, randomBytes } from "node:crypto";
 
 import { InviteStatus } from "@prisma/client";
 
+import { normalizeCurrencyCode } from "./currencies";
 import { db } from "./db";
 import { normalizeEnvValue } from "./env";
 import { isValidInviteEmail, normalizeInviteEmail } from "./invite-email";
@@ -220,16 +221,17 @@ export async function issueInvite(params: {
 
 export async function createUserWithInvite(params: {
   email: string;
-  name: string | null;
   passwordHash: string;
   inviteToken: string;
+  defaultCurrency: string;
 }): Promise<InviteRegistrationResult> {
   const email = normalizeInviteEmail(params.email);
   const inviteToken = params.inviteToken.trim();
+  const defaultCurrency = normalizeCurrencyCode(params.defaultCurrency);
 
-  if (!inviteToken) {
+  if (!inviteToken || !defaultCurrency) {
     logInviteEvent("invite_rejected", {
-      reason: "missing_token",
+      reason: inviteToken ? "invalid_default_currency" : "missing_token",
       email,
     });
 
@@ -360,10 +362,11 @@ export async function createUserWithInvite(params: {
     const user = await tx.user.create({
       data: {
         email,
-        name: params.name,
         passwordHash: params.passwordHash,
         settings: {
-          create: {},
+          create: {
+            defaultCurrency,
+          },
         },
       },
       select: {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signUpAction } from "@/app/auth/actions";
+import CurrencySelectControl from "@/app/components/CurrencySelectControl";
 import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
 import { getCurrentUser } from "@/lib/auth";
 import { isInvitesRequired } from "@/lib/env";
@@ -30,6 +31,10 @@ function getErrorMessage(errorCode: string | undefined, invitesRequired: boolean
 
   if (errorCode === "invalid_request") {
     return "Invalid sign-up request. Please try again.";
+  }
+
+  if (errorCode === "invalid_currency") {
+    return "Choose a valid default currency.";
   }
 
   if (errorCode === "unable_to_create") {
@@ -68,10 +73,6 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
         <form className="mt-md" action={signUpAction}>
           <PendingFieldset className="form-grid form-pending-group">
             <label className="form-field">
-              Name (optional)
-              <input name="name" type="text" autoComplete="name" placeholder="Your name" />
-            </label>
-            <label className="form-field">
               Email
               <input
                 name="email"
@@ -91,6 +92,30 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
                 minLength={8}
                 placeholder="At least 8 characters"
                 required
+              />
+            </label>
+            <label className="form-field signup-currency-field">
+              <span className="field-label-with-help">
+                Default currency
+                <span className="help-tooltip">
+                  <span
+                    aria-label="About default currency"
+                    aria-describedby="signup-default-currency-help"
+                    className="help-tooltip-trigger"
+                    role="img"
+                    tabIndex={0}
+                  >
+                    i
+                  </span>
+                  <span className="help-tooltip-content" id="signup-default-currency-help" role="tooltip">
+                    Used for subscriptions and dashboard totals. You can change it later.
+                  </span>
+                </span>
+              </span>
+              <CurrencySelectControl
+                ariaDescribedBy="signup-default-currency-help"
+                className="dashboard-currency-control signup-currency-control"
+                name="defaultCurrency"
               />
             </label>
             {invitesRequired ? (

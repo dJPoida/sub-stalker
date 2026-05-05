@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 
 type SignInPageProps = {
   searchParams?: {
+    email?: string;
     error?: string;
     retry_after?: string;
   };
@@ -29,6 +30,10 @@ function getErrorMessage(errorCode?: string, retryAfter?: string): string | null
     return "Invalid sign-in request. Please try again.";
   }
 
+  if (errorCode === "account_exists") {
+    return "An account already exists for that email. Sign in instead.";
+  }
+
   if (errorCode === "rate_limited") {
     const seconds = Number(retryAfter ?? "0");
 
@@ -42,6 +47,10 @@ function getErrorMessage(errorCode?: string, retryAfter?: string): string | null
   return "Unable to sign in.";
 }
 
+function normalizeEmail(value: string | undefined): string {
+  return String(value ?? "").trim().toLowerCase();
+}
+
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   const user = await getCurrentUser();
 
@@ -50,6 +59,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   }
 
   const errorMessage = getErrorMessage(searchParams?.error, searchParams?.retry_after);
+  const emailPrefill = normalizeEmail(searchParams?.email);
 
   return (
     <section className="auth-wrap">
@@ -62,7 +72,14 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           <PendingFieldset className="form-grid form-pending-group">
             <label className="form-field">
               Email
-              <input name="email" type="email" autoComplete="email" placeholder="name@example.com" required />
+              <input
+                name="email"
+                type="email"
+                autoComplete="email"
+                defaultValue={emailPrefill}
+                placeholder="name@example.com"
+                required
+              />
             </label>
             <label className="form-field">
               Password
