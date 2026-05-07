@@ -143,9 +143,9 @@ describe("invite flow", () => {
 
       const result = await createUserWithInvite({
         email: mismatchEmail,
-        name: "Mismatch User",
         passwordHash: hashPassword("test-password"),
         inviteToken: issued.inviteToken,
+        defaultCurrency: "USD",
       });
 
       assert.deepEqual(result, {
@@ -198,9 +198,9 @@ describe("invite flow", () => {
 
       const result = await createUserWithInvite({
         email: invitedEmail,
-        name: "Expired Invite",
         passwordHash: hashPassword("test-password"),
         inviteToken: issued.inviteToken,
+        defaultCurrency: "USD",
       });
 
       assert.deepEqual(result, {
@@ -244,16 +244,16 @@ describe("invite flow", () => {
 
       const firstAttempt = createUserWithInvite({
         email: invitedEmail,
-        name: "Parallel One",
         passwordHash: hashPassword("parallel-password"),
         inviteToken: issued.inviteToken,
+        defaultCurrency: "AUD",
       });
 
       const secondAttempt = createUserWithInvite({
         email: invitedEmail,
-        name: "Parallel Two",
         passwordHash: hashPassword("parallel-password"),
         inviteToken: issued.inviteToken,
+        defaultCurrency: "AUD",
       });
 
       const [firstResult, secondResult] = await Promise.all([firstAttempt, secondAttempt]);
@@ -281,10 +281,23 @@ describe("invite flow", () => {
           },
         }),
       ]);
+      const registeredUser = await db.user.findUnique({
+        where: {
+          email: invitedEmail.toLowerCase(),
+        },
+        select: {
+          settings: {
+            select: {
+              defaultCurrency: true,
+            },
+          },
+        },
+      });
 
       assert.equal(usersWithEmail, 1);
       assert.equal(inviteStatus?.status, "CONSUMED");
       assert.ok(inviteStatus?.consumedByUserId);
+      assert.equal(registeredUser?.settings?.defaultCurrency, "AUD");
     });
 
   test("rate limits invite issuance per operator", async () => {

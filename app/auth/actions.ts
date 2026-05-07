@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
+import { normalizeCurrencyCode } from "@/lib/currencies";
 import { isInvitesRequired } from "@/lib/env";
 import { createUserWithInvite } from "@/lib/invites";
 import {
@@ -24,6 +25,10 @@ function normalizeEmail(value: FormDataEntryValue | null): string {
 
 function normalizeText(value: FormDataEntryValue | null): string {
   return String(value ?? "").trim();
+}
+
+function parseDefaultCurrency(value: FormDataEntryValue | null): string | null {
+  return normalizeCurrencyCode(normalizeText(value));
 }
 
 function getClientIp(headerStore: Awaited<ReturnType<typeof headers>>): string | null {
@@ -100,6 +105,36 @@ function buildVerificationRequestedRedirect(params: {
   return `/auth/verify/requested?${searchParams.toString()}`;
 }
 
+async function redirectExistingSignupUser(user: {
+  id: string;
+  email: string;
+  emailVerifiedAt: Date | null;
+}): Promise<never> {
+  if (user.emailVerifiedAt) {
+    const searchParams = new URLSearchParams({
+      email: user.email,
+      error: "account_exists",
+    });
+
+    redirect(`/auth/sign-in?${searchParams.toString()}`);
+  }
+
+  const verification = await issueRegistrationVerificationForUser({
+    userId: user.id,
+    email: user.email,
+    baseUrl: await getRequestBaseUrl(),
+  });
+
+  redirect(
+    buildVerificationRequestedRedirect({
+      email: user.email,
+      source: "signup",
+      delivery: verification.outcome,
+      retryAfterSeconds: verification.retryAfterSeconds,
+    }),
+  );
+}
+
 export async function signUpAction(formData: FormData): Promise<void> {
   if (!(await isSameOriginRequest())) {
     redirect("/auth/sign-up?error=invalid_request");
@@ -107,8 +142,8 @@ export async function signUpAction(formData: FormData): Promise<void> {
 
   const email = normalizeEmail(formData.get("email"));
   const password = normalizeText(formData.get("password"));
-  const name = normalizeText(formData.get("name"));
   const inviteToken = normalizeText(formData.get("inviteToken"));
+  const defaultCurrency = parseDefaultCurrency(formData.get("defaultCurrency"));
 
   if (!email || !password) {
     redirect("/auth/sign-up?error=missing_fields");
@@ -118,15 +153,31 @@ export async function signUpAction(formData: FormData): Promise<void> {
     redirect("/auth/sign-up?error=password_too_short");
   }
 
+  if (!defaultCurrency) {
+    redirect("/auth/sign-up?error=invalid_currency");
+  }
+
   const passwordHash = hashPassword(password);
   const invitesRequired = isInvitesRequired();
+  const existingUser = await db.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      emailVerifiedAt: true,
+    },
+  });
+
+  if (existingUser) {
+    await redirectExistingSignupUser(existingUser);
+  }
 
   if (invitesRequired) {
     const registration = await createUserWithInvite({
       email,
-      name: name || null,
       passwordHash,
       inviteToken,
+      defaultCurrency,
     });
 
     if (!registration.ok) {
@@ -153,22 +204,14 @@ export async function signUpAction(formData: FormData): Promise<void> {
     );
   }
 
-  const existingUser = await db.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
-
-  if (existingUser) {
-    redirect("/auth/sign-up?error=unable_to_create");
-  }
-
   const user = await db.user.create({
     data: {
       email,
-      name: name || null,
       passwordHash,
       settings: {
-        create: {},
+        create: {
+          defaultCurrency,
+        },
       },
     },
     select: {

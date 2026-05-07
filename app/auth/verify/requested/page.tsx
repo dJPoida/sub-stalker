@@ -80,10 +80,23 @@ function getStatusMessage(delivery: string | undefined, retryAfter: string | und
   return null;
 }
 
+function buildSignInHref(email: string): string {
+  if (!email) {
+    return "/auth/sign-in";
+  }
+
+  const searchParams = new URLSearchParams({
+    email,
+  });
+
+  return `/auth/sign-in?${searchParams.toString()}`;
+}
+
 export default function VerificationRequestedPage({ searchParams }: VerificationRequestedPageProps) {
   const email = normalizeEmail(searchParams?.email);
   const heading = getHeading(searchParams?.source);
   const statusMessage = getStatusMessage(searchParams?.delivery, searchParams?.retry_after, email);
+  const signInHref = buildSignInHref(email);
 
   return (
     <section className="auth-wrap">
@@ -109,7 +122,7 @@ export default function VerificationRequestedPage({ searchParams }: Verification
           </PendingFieldset>
         </form>
         <p className="auth-switch">
-          <Link href="/auth/sign-in">Back to sign in</Link>
+          <Link href={signInHref}>Back to sign in</Link>
         </p>
       </article>
     </section>
