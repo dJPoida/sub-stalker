@@ -114,7 +114,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
               </span>
               <CurrencySelectControl
                 ariaDescribedBy="signup-default-currency-help"
-                className="dashboard-currency-control signup-currency-control"
+                className="signup-currency-control"
                 name="defaultCurrency"
               />
             </label>

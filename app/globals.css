@@ -382,23 +382,29 @@ a {
   justify-self: start;
 }
 
-.dashboard-currency-control {
+.currency-select-control {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
+  width: fit-content;
+  max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--input-bg);
   padding: 0.22rem 0.32rem 0.22rem 0.5rem;
 }
 
-.dashboard-currency-control > span {
+.currency-select-control-full {
+  width: 100%;
+}
+
+.currency-select-control > span {
   border-radius: 3px;
   box-shadow: 0 0 0 1px var(--border);
   flex: 0 0 auto;
 }
 
-.form-field .dashboard-currency-control select {
+.form-field .currency-select-control select {
   width: auto;
   min-width: 4.4rem;
   border: 0;
@@ -410,12 +416,17 @@ a {
   font-weight: 700;
 }
 
-.form-field .dashboard-currency-control select option {
+.form-field .currency-select-control-full select {
+  width: 100%;
+  min-width: 0;
+}
+
+.form-field .currency-select-control select option {
   background: var(--input-bg);
   color: var(--text);
 }
 
-.form-field .dashboard-currency-control select:focus {
+.form-field .currency-select-control select:focus {
   box-shadow: none;
 }
 

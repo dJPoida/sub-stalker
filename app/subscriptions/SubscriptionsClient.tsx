@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import CurrencySelectControl from "@/app/components/CurrencySelectControl";
 import SubscriptionDetailsModal from "@/app/components/SubscriptionDetailsModal";
 import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
 import { useSubscriptionDetailsModal } from "@/app/components/useSubscriptionDetailsModal";
@@ -566,7 +567,7 @@ export default function SubscriptionsClient({
                   </label>
                   <label className="form-field">
                     Currency
-                    <input defaultValue="USD" maxLength={3} minLength={3} name="currency" required type="text" />
+                    <CurrencySelectControl name="currency" required />
                   </label>
                 </div>
                 <div className="split-grid">
@@ -689,14 +690,7 @@ export default function SubscriptionsClient({
                   </label>
                   <label className="form-field">
                     Currency
-                    <input
-                      defaultValue={editingSubscription.currency}
-                      maxLength={3}
-                      minLength={3}
-                      name="currency"
-                      required
-                      type="text"
-                    />
+                    <CurrencySelectControl defaultValue={editingSubscription.currency} name="currency" required />
                   </label>
                 </div>
                 <div className="split-grid">
