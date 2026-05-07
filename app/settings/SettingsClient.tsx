@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { DisplayMode } from "@prisma/client";
+import CurrencySelectControl from "@/app/components/CurrencySelectControl";
 import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
-import { CURRENCY_OPTIONS } from "@/lib/currencies";
 
 type ResultMessage = {
   type: "error" | "success";
@@ -52,13 +52,6 @@ export default function SettingsClient({
   const [remindersEnabled, setRemindersEnabled] = useState(initialRemindersEnabled);
   const [reminderDaysBefore, setReminderDaysBefore] = useState(initialReminderDaysBefore);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
-  const currencyOptions = useMemo(() => {
-    if (CURRENCY_OPTIONS.some((currency) => currency === initialDefaultCurrency)) {
-      return CURRENCY_OPTIONS;
-    }
-
-    return [initialDefaultCurrency, ...CURRENCY_OPTIONS];
-  }, [initialDefaultCurrency]);
 
   const setReminderDays = (rawValue: string | number): void => {
     const parsed = Number(rawValue);
@@ -177,20 +170,14 @@ export default function SettingsClient({
             <PendingFieldset className="form-pending-group">
               <label className="form-field setting-field">
                 Currency
-                <select
+                <CurrencySelectControl
                   name="defaultCurrency"
                   onChange={(event) => {
                     setDefaultCurrency(event.target.value);
                     event.currentTarget.form?.requestSubmit();
                   }}
                   value={defaultCurrency}
-                >
-                  {currencyOptions.map((currency) => (
-                    <option key={currency} value={currency}>
-                      {currency}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
             </PendingFieldset>
           </form>
