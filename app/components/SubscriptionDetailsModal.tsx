@@ -222,6 +222,19 @@ function isExternalHref(value: string): boolean {
   return value.startsWith("http://") || value.startsWith("https://");
 }
 
+function formatExternalHrefLabel(value: string | null): string {
+  if (!value) {
+    return "Not captured";
+  }
+
+  try {
+    const url = new URL(value);
+    return url.hostname.replace(/^www\./, "");
+  } catch {
+    return "Invalid URL";
+  }
+}
+
 function pendingActionLabel(actionKey: SubscriptionDetailsMutationAction): string {
   if (actionKey === "mark_cancelled") {
     return "Marking...";
@@ -371,17 +384,37 @@ export default function SubscriptionDetailsModal({
   const reviewState = details?.v2.lifecycle.reviewState ?? null;
   const editAction = details ? getActionByKey(details.v2.actionBar.header, "edit_subscription") : null;
   const markCancelledAction = details ? getActionByKey(details.v2.actionBar.header, "mark_cancelled") : null;
+  const markForReviewAction = details ? getActionByKey(details.v2.actionBar.quickActions, "mark_for_review") : null;
+  const openManagementAction = details ? getActionByKey(details.v2.actionBar.quickActions, "open_management_page") : null;
+  const cancelSoonAction = details ? getActionByKey(details.v2.actionBar.quickActions, "cancel_soon") : null;
   const editActionState = resolveActionState(editAction, "Edit", "Edit controls are unavailable from this view.");
   const markCancelledActionState = resolveActionState(
     markCancelledAction,
     "Mark Cancelled",
     "Cancellation controls are unavailable from this view.",
   );
+  const markForReviewActionState = resolveActionState(
+    markForReviewAction,
+    "Mark for review",
+    "Review controls are unavailable from this view.",
+  );
+  const openManagementActionState = resolveActionState(
+    openManagementAction,
+    "Open management page",
+    "Management page is unavailable for this subscription.",
+  );
+  const cancelSoonActionState = resolveActionState(
+    cancelSoonAction,
+    "Cancel soon",
+    "Provider cancellation flow is unavailable for this subscription.",
+  );
   const editUnavailableReason =
     editActionState.unavailableReason ??
     (onEditSubscription ? null : "Open this subscription from the subscriptions page to edit it.");
   const markCancelledUnavailableReason =
     markCancelledActionState.unavailableReason ?? (onRunMutationAction ? null : "Cancellation controls are unavailable.");
+  const markForReviewUnavailableReason =
+    markForReviewActionState.unavailableReason ?? (onRunMutationAction ? null : "Review controls are unavailable.");
   const lifecycleActionHint = details && !onEditSubscription ? "Open this subscription from the subscriptions page to edit it." : null;
   const isMutationPending = pendingActionKey !== null;
 
@@ -750,8 +783,18 @@ export default function SubscriptionDetailsModal({
             </div>
 
             <div className="details-card-grid">
-              <article className="surface details-section">
-                <h3>Plan and Lifecycle</h3>
+              <article className="surface details-section details-lifecycle-panel">
+                <div className="details-section-heading">
+                  <div className="stack">
+                    <h3>Lifecycle Controls</h3>
+                    <p className="text-muted details-card-caption">
+                      Review billing state, mark follow-up work, or record a completed cancellation.
+                    </p>
+                  </div>
+                  <div className="inline-actions details-tag-list" aria-label="Lifecycle state">
+                    {details.v2.lifecycle.chips.map((chip) => renderHeaderChip(chip))}
+                  </div>
+                </div>
                 <dl className="details-definition-list">
                   <div>
                     <dt>Plan / tier</dt>
@@ -770,22 +813,62 @@ export default function SubscriptionDetailsModal({
                     <dd>{details.autoRenew ? "On" : "Off"}</dd>
                   </div>
                   <div>
+                    <dt>Review state</dt>
+                    <dd>{reviewState?.isMarked ? "Marked for review" : "Not marked for review"}</dd>
+                  </div>
+                  <div>
                     <dt>Cancellation details</dt>
                     <dd>{details.cancellationReason ?? (details.status === "CANCELED" ? "Cancellation recorded" : "None")}</dd>
                   </div>
                 </dl>
+
+                {reviewState && !reviewState.canPersist && reviewState.unavailableReason ? (
+                  <p className="text-muted details-card-caption">{reviewState.unavailableReason}</p>
+                ) : null}
+
+                <div aria-busy={isMutationPending} className="details-lifecycle-actions">
+                  <button
+                    className="button button-secondary button-small"
+                    disabled={markForReviewActionState.disabled || !onRunMutationAction || isMutationPending}
+                    onClick={() => {
+                      if (markForReviewAction) {
+                        void handleActionClick(markForReviewAction);
+                      }
+                    }}
+                    title={markForReviewUnavailableReason ?? undefined}
+                    type="button"
+                  >
+                    {pendingActionKey === "mark_for_review"
+                      ? pendingActionLabel("mark_for_review")
+                      : markForReviewActionState.label}
+                  </button>
+                  <button
+                    className="button-danger button-small"
+                    disabled={markCancelledActionState.disabled || !onRunMutationAction || isMutationPending}
+                    onClick={() => {
+                      if (markCancelledAction) {
+                        void handleActionClick(markCancelledAction);
+                      }
+                    }}
+                    title={markCancelledUnavailableReason ?? undefined}
+                    type="button"
+                  >
+                    {pendingActionKey === "mark_cancelled"
+                      ? pendingActionLabel("mark_cancelled")
+                      : markCancelledActionState.label}
+                  </button>
+                </div>
               </article>
 
-              <article className="surface details-section">
+              <article className="surface details-section details-management-panel">
                 <div className="details-section-heading">
-                  <h3>Account References</h3>
-                  <div className="inline-actions details-tag-list" aria-label="Subscription metadata tags">
-                    {details.metadataTags.map((tag) => (
-                      <span className="pill" key={tag}>
-                        {tag}
-                      </span>
-                    ))}
+                  <div className="stack">
+                    <h3>Management</h3>
+                    <p className="text-muted details-card-caption">
+                      Provider links are shown only when they resolve to a valid http or https URL.
+                    </p>
                   </div>
+                  <span className="pill">{details.v2.management.providerDisplayName}</span>
                 </div>
                 <dl className="details-definition-list">
                   <div>
@@ -798,13 +881,55 @@ export default function SubscriptionDetailsModal({
                   </div>
                   <div>
                     <dt>Billing console URL</dt>
-                    <dd>{details.links.billingConsoleUrl ?? "Not captured"}</dd>
+                    <dd>{formatExternalHrefLabel(details.links.billingConsoleUrl)}</dd>
                   </div>
                   <div>
                     <dt>Cancel URL</dt>
-                    <dd>{details.links.cancelSubscriptionUrl ?? "Not captured"}</dd>
+                    <dd>{formatExternalHrefLabel(details.links.cancelSubscriptionUrl)}</dd>
                   </div>
                 </dl>
+
+                <div className="details-management-actions" role="group" aria-label="Provider management actions">
+                  <button
+                    className="button button-secondary button-small"
+                    disabled={openManagementActionState.disabled}
+                    onClick={() => {
+                      if (openManagementAction) {
+                        void handleActionClick(openManagementAction);
+                      }
+                    }}
+                    title={openManagementActionState.unavailableReason ?? undefined}
+                    type="button"
+                  >
+                    {openManagementActionState.label}
+                  </button>
+                  <button
+                    className="button button-secondary button-small"
+                    disabled={cancelSoonActionState.disabled}
+                    onClick={() => {
+                      if (cancelSoonAction) {
+                        void handleActionClick(cancelSoonAction);
+                      }
+                    }}
+                    title={cancelSoonActionState.unavailableReason ?? undefined}
+                    type="button"
+                  >
+                    {cancelSoonActionState.label}
+                  </button>
+                  <button
+                    className="button button-secondary button-small"
+                    disabled={historyAction?.availability !== "enabled"}
+                    onClick={() => {
+                      if (historyAction) {
+                        void handleActionClick(historyAction);
+                      }
+                    }}
+                    title={historyAction?.availability === "disabled" ? historyAction.unavailableReason ?? undefined : undefined}
+                    type="button"
+                  >
+                    {historyAction?.label ?? "View billing history"}
+                  </button>
+                </div>
               </article>
             </div>
 

@@ -72,6 +72,9 @@ describe("SubscriptionDetailsModal attention panel", () => {
     assert.match(html, /Open management page/);
     assert.match(html, /Change alert/);
     assert.match(html, /Cancel soon/);
+    assert.match(html, /Lifecycle Controls/);
+    assert.match(html, /Management/);
+    assert.match(html, /example\.com/);
   });
 
   test("renders an empty state when no alerts are active", () => {
@@ -86,5 +89,24 @@ describe("SubscriptionDetailsModal attention panel", () => {
     assert.match(html, /Attention Needed/);
     assert.match(html, /Not marked for review/);
     assert.match(html, /No promo or price-change alerts are active for this subscription\./);
+  });
+
+  test("keeps invalid management URLs out of rendered provider actions", () => {
+    const html = renderModalHtml(
+      makeRecord({
+        id: "invalid-management-links",
+        name: "Unsafe Provider",
+        billingConsoleUrl: "javascript:alert(1)",
+        cancelSubscriptionUrl: null,
+        billingHistoryUrl: "ftp://example.com/history",
+        markedForReview: false,
+      }),
+    );
+
+    assert.match(html, /Management/);
+    assert.doesNotMatch(html, /javascript:alert/);
+    assert.doesNotMatch(html, /ftp:\/\/example\.com/);
+    assert.match(html, /Not captured/);
+    assert.match(html, /Management URL must start with http:\/\/ or https:\/\/\./);
   });
 });
