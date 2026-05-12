@@ -482,6 +482,7 @@ export default function SubscriptionsClient({
           detailsModal.closeModal("close_button");
           setEditingSubscriptionId(subscriptionId);
         }}
+        onRetry={detailsModal.retryLoad}
         onRunMutationAction={detailsModal.runMutationAction}
         onViewFullHistoryClick={detailsModal.trackViewFullHistory}
         pendingActionKey={detailsModal.pendingActionKey}

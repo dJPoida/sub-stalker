@@ -1070,6 +1070,7 @@ export default function DashboardSectionsClient({
         isOpen={detailsModal.isOpen}
         loadState={detailsModal.fetchState}
         onClose={detailsModal.closeModal}
+        onRetry={detailsModal.retryLoad}
         onRunMutationAction={detailsModal.runMutationAction}
         onViewFullHistoryClick={detailsModal.trackViewFullHistory}
         pendingActionKey={detailsModal.pendingActionKey}

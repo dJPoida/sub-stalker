@@ -4,6 +4,7 @@ import Link from "next/link";
 import React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { trackTelemetryEvent } from "@/app/components/telemetry";
 import type {
   SubscriptionDetailsActionCapability,
   SubscriptionDetailsAlertItem,
@@ -34,6 +35,7 @@ type SubscriptionDetailsModalProps = {
   actionMessage?: SubscriptionDetailsModalActionMessage | null;
   pendingActionKey?: SubscriptionDetailsMutationAction | null;
   onClose: (reason: SubscriptionModalCloseReason) => void;
+  onRetry?: (() => void) | null;
   onViewFullHistoryClick: () => void;
   onEditSubscription?: ((subscriptionId: string) => void) | null;
   onRunMutationAction?: ((actionKey: SubscriptionDetailsMutationAction) => Promise<boolean>) | null;
@@ -291,6 +293,7 @@ export default function SubscriptionDetailsModal({
   actionMessage = null,
   pendingActionKey = null,
   onClose,
+  onRetry = null,
   onViewFullHistoryClick,
   onEditSubscription = null,
   onRunMutationAction = null,
@@ -418,6 +421,27 @@ export default function SubscriptionDetailsModal({
   const lifecycleActionHint = details && !onEditSubscription ? "Open this subscription from the subscriptions page to edit it." : null;
   const isMutationPending = pendingActionKey !== null;
 
+  function trackDetailsTelemetry(
+    eventName:
+      | "subscription_details_edit_click"
+      | "subscription_details_copy_id"
+      | "subscription_details_quick_action_click"
+      | "subscription_details_cancel_flow_start"
+      | "subscription_details_cancel_flow_complete",
+    action?: string,
+  ): void {
+    if (!details || !source) {
+      return;
+    }
+
+    trackTelemetryEvent({
+      action,
+      eventName,
+      source,
+      subscriptionId: details.id,
+    });
+  }
+
   async function handleCopySubscriptionId(): Promise<void> {
     if (!details) {
       return;
@@ -426,8 +450,10 @@ export default function SubscriptionDetailsModal({
     try {
       await navigator.clipboard.writeText(details.id);
       setCopyMessage("Subscription ID copied.");
+      trackDetailsTelemetry("subscription_details_copy_id", "copy_subscription_id");
     } catch {
       setCopyMessage("Could not copy subscription ID.");
+      trackDetailsTelemetry("subscription_details_copy_id", "copy_subscription_id");
     }
   }
 
@@ -437,12 +463,18 @@ export default function SubscriptionDetailsModal({
     }
 
     if (action.requiresConfirmation) {
+      if (action.key === "cancel_soon") {
+        trackDetailsTelemetry("subscription_details_cancel_flow_start", action.key);
+      }
+
       const confirmed = window.confirm(action.confirmationLabel ?? `Continue with ${action.label.toLowerCase()}?`);
 
       if (!confirmed) {
         return;
       }
     }
+
+    trackDetailsTelemetry("subscription_details_quick_action_click", action.key);
 
     if (action.kind === "mutate") {
       if (!onRunMutationAction || (action.key !== "mark_cancelled" && action.key !== "mark_for_review")) {
@@ -459,6 +491,10 @@ export default function SubscriptionDetailsModal({
       }
 
       if (isExternalHref(action.href)) {
+        if (action.key === "cancel_soon") {
+          trackDetailsTelemetry("subscription_details_cancel_flow_complete", action.key);
+        }
+
         window.open(action.href, "_blank", "noopener,noreferrer");
         return;
       }
@@ -469,6 +505,7 @@ export default function SubscriptionDetailsModal({
     }
 
     if (action.key === "edit_subscription" && onEditSubscription) {
+      trackDetailsTelemetry("subscription_details_edit_click", action.key);
       onEditSubscription(details.id);
     }
   }
@@ -479,6 +516,8 @@ export default function SubscriptionDetailsModal({
 
   return (
     <div
+      aria-describedby="subscription-details-description"
+      aria-labelledby="subscription-details-title"
       aria-modal="true"
       className="modal-backdrop"
       onMouseDown={() => onClose("backdrop")}
@@ -487,7 +526,9 @@ export default function SubscriptionDetailsModal({
       <article className="modal-panel details-modal-panel" onMouseDown={(event) => event.stopPropagation()} ref={panelRef}>
         <header className="modal-header details-modal-header">
           <div className="stack">
-            <p className="eyebrow">{sourceLabel(source)}</p>
+            <p className="eyebrow" id="subscription-details-description">
+              {sourceLabel(source)}
+            </p>
             <h2 id="subscription-details-title">Subscription Details</h2>
           </div>
           <button
@@ -501,7 +542,8 @@ export default function SubscriptionDetailsModal({
         </header>
 
         {loadState === "loading" ? (
-          <div className="details-skeleton" aria-live="polite">
+          <div className="details-skeleton" aria-busy="true" aria-live="polite" role="status">
+            <p className="sr-only">Loading subscription details.</p>
             <div className="details-skeleton-line details-skeleton-line-lg" />
             <div className="details-skeleton-line" />
             <div className="details-skeleton-line" />
@@ -510,9 +552,14 @@ export default function SubscriptionDetailsModal({
         ) : null}
 
         {loadState === "error" ? (
-          <p className="status-error" aria-live="polite">
-            {errorMessage ?? "Could not load subscription details."}
-          </p>
+          <div className="details-status-block" aria-live="polite" role="status">
+            <p className="status-error">{errorMessage ?? "Could not load subscription details."}</p>
+            {onRetry ? (
+              <button className="button button-secondary button-small" onClick={onRetry} type="button">
+                Retry
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
         {loadState === "empty" ? (
@@ -547,6 +594,7 @@ export default function SubscriptionDetailsModal({
                       disabled={editActionState.disabled || !onEditSubscription}
                       onClick={() => {
                         if (onEditSubscription) {
+                          trackDetailsTelemetry("subscription_details_edit_click", "edit_subscription");
                           onEditSubscription(details.id);
                         }
                       }}
@@ -992,7 +1040,11 @@ export default function SubscriptionDetailsModal({
                 Close
               </button>
             </footer>
-            {copyMessage ? <p className="status-help">{copyMessage}</p> : null}
+            {copyMessage ? (
+              <p aria-live="polite" className="status-help" role="status">
+                {copyMessage}
+              </p>
+            ) : null}
           </div>
         ) : null}
       </article>

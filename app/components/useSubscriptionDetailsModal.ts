@@ -84,14 +84,27 @@ export function useSubscriptionDetailsModal() {
 
       if (response.status === 404) {
         setFetchState("empty");
+        trackTelemetryEvent({
+          eventName: "subscription_details_fetch_empty",
+          source: sourceValue,
+          subscriptionId,
+        });
         return;
       }
 
       redirectOnUnauthorized(response);
 
       if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as DetailsResponsePayload;
+
         setFetchState("error");
-        setErrorMessage("Could not load subscription details.");
+        setErrorMessage(payload.error ?? "Could not load subscription details.");
+        trackTelemetryEvent({
+          eventName: "subscription_details_fetch_error",
+          source: sourceValue,
+          subscriptionId,
+          outcome: "failure",
+        });
         return;
       }
 
@@ -99,6 +112,11 @@ export function useSubscriptionDetailsModal() {
 
       if (!payload.data) {
         setFetchState("empty");
+        trackTelemetryEvent({
+          eventName: "subscription_details_fetch_empty",
+          source: sourceValue,
+          subscriptionId,
+        });
         return;
       }
 
@@ -115,6 +133,12 @@ export function useSubscriptionDetailsModal() {
 
       setFetchState("error");
       setErrorMessage(error instanceof Error ? error.message : "Could not load subscription details.");
+      trackTelemetryEvent({
+        eventName: "subscription_details_fetch_error",
+        source: sourceValue,
+        subscriptionId,
+        outcome: "failure",
+      });
     } finally {
       if (abortRef.current === controller) {
         abortRef.current = null;
@@ -144,7 +168,7 @@ export function useSubscriptionDetailsModal() {
 
   const runMutationAction = useCallback(
     async (actionKey: SubscriptionDetailsMutationAction): Promise<boolean> => {
-      if (!selectedSubscriptionId) {
+      if (!selectedSubscriptionId || !source) {
         return false;
       }
 
@@ -176,12 +200,26 @@ export function useSubscriptionDetailsModal() {
             type: "error",
             text: payload.error ?? "Could not update this subscription.",
           });
+          trackTelemetryEvent({
+            action: actionKey,
+            eventName: "subscription_details_mutation_result",
+            outcome: "failure",
+            source,
+            subscriptionId: selectedSubscriptionId,
+          });
           return false;
         }
 
         setActionMessage({
           type: "success",
           text: actionSuccessMessage(actionKey),
+        });
+        trackTelemetryEvent({
+          action: actionKey,
+          eventName: "subscription_details_mutation_result",
+          outcome: "success",
+          source,
+          subscriptionId: selectedSubscriptionId,
         });
         router.refresh();
         return true;
@@ -194,13 +232,31 @@ export function useSubscriptionDetailsModal() {
           type: "error",
           text: error instanceof Error ? error.message : "Could not update this subscription.",
         });
+        trackTelemetryEvent({
+          action: actionKey,
+          eventName: "subscription_details_mutation_result",
+          outcome: "failure",
+          source,
+          subscriptionId: selectedSubscriptionId,
+        });
         return false;
       } finally {
         setPendingActionKey(null);
       }
     },
-    [router, selectedSubscriptionId],
+    [router, selectedSubscriptionId, source],
   );
+
+  const retryLoad = useCallback(() => {
+    if (!selectedSubscriptionId || !source) {
+      return;
+    }
+
+    void openModal({
+      subscriptionId: selectedSubscriptionId,
+      source,
+    });
+  }, [openModal, selectedSubscriptionId, source]);
 
   const trackViewFullHistory = useCallback(() => {
     if (!source || !selectedSubscriptionId) {
@@ -230,6 +286,7 @@ export function useSubscriptionDetailsModal() {
     errorMessage,
     openModal,
     closeModal,
+    retryLoad,
     runMutationAction,
     trackViewFullHistory,
   };
