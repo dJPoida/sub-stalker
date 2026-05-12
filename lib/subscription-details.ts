@@ -404,6 +404,27 @@ function formatDateForCopy(value: Date): string {
   }).format(value);
 }
 
+function normalizeExternalUrl(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function externalUrlUnavailableReason(value: string | null | undefined, label: string): string {
+  return value?.trim()
+    ? `${label} URL must start with http:// or https://.`
+    : `No ${label.toLowerCase()} URL is stored for this subscription.`;
+}
+
 function formatPositiveDeltaForCopy(currentAmountCents: number, projectedAmountCents: number, currency: string): string {
   return formatCurrencyForCopy(Math.max(0, projectedAmountCents - currentAmountCents), currency);
 }
@@ -778,7 +799,7 @@ function buildActionBar(
       placement: "quick_actions",
       kind: "navigate",
       availability: links.billingConsoleUrl ? "enabled" : "disabled",
-      unavailableReason: links.billingConsoleUrl ? null : "No management URL is stored for this subscription.",
+      unavailableReason: links.billingConsoleUrl ? null : externalUrlUnavailableReason(record.billingConsoleUrl, "Management"),
       href: links.billingConsoleUrl,
       permission: "owner_read",
       requiresConfirmation: false,
@@ -840,9 +861,9 @@ function buildActionBar(
       unavailableReason:
         record.isActive && links.cancelSubscriptionUrl
           ? null
-          : record.isActive
-            ? "No cancellation URL is stored for this subscription."
-            : "Inactive subscriptions cannot start a new cancel flow.",
+          : !record.isActive
+            ? "Inactive subscriptions cannot start a new cancel flow."
+            : externalUrlUnavailableReason(record.cancelSubscriptionUrl, "Cancellation"),
       href: record.isActive ? links.cancelSubscriptionUrl : null,
       permission: "owner_write",
       requiresConfirmation: true,
@@ -861,7 +882,7 @@ function buildActionBar(
       placement: "footer",
       kind: "navigate",
       availability: links.billingHistoryUrl ? "enabled" : "disabled",
-      unavailableReason: links.billingHistoryUrl ? null : "No billing-history URL is stored for this subscription.",
+      unavailableReason: links.billingHistoryUrl ? null : externalUrlUnavailableReason(record.billingHistoryUrl, "Billing-history"),
       href: links.billingHistoryUrl,
       permission: "owner_read",
       requiresConfirmation: false,
@@ -901,9 +922,9 @@ export function buildSubscriptionDetails(
   const metadataTags = buildMetadataTags(record, stage);
   const timeline = buildTimeline(record);
   const links = {
-    billingConsoleUrl: record.billingConsoleUrl,
-    cancelSubscriptionUrl: record.cancelSubscriptionUrl,
-    billingHistoryUrl: record.billingHistoryUrl,
+    billingConsoleUrl: normalizeExternalUrl(record.billingConsoleUrl),
+    cancelSubscriptionUrl: normalizeExternalUrl(record.cancelSubscriptionUrl),
+    billingHistoryUrl: normalizeExternalUrl(record.billingHistoryUrl),
   };
   const internalIdentifiers = {
     subscriptionId: record.id,

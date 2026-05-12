@@ -106,6 +106,30 @@ describe("buildSubscriptionDetails", () => {
     assert.equal(details.v2.actionBar.quickActions.find((action) => action.key === "cancel_soon")?.requiresConfirmation, true);
   });
 
+  test("normalizes provider management links to safe external URLs", () => {
+    const details = buildSubscriptionDetails(
+      makeRecord({
+        id: "unsafe-links",
+        name: "Unsafe Provider",
+        billingConsoleUrl: "javascript:alert(1)",
+        cancelSubscriptionUrl: " https://example.com/cancel-now ",
+        billingHistoryUrl: "ftp://example.com/history",
+      }),
+    );
+
+    const openManagementAction = details.v2.actionBar.quickActions.find((action) => action.key === "open_management_page");
+    const cancelSoonAction = details.v2.actionBar.quickActions.find((action) => action.key === "cancel_soon");
+    const historyAction = details.v2.actionBar.footer.find((action) => action.key === "view_billing_history");
+
+    assert.equal(details.links.billingConsoleUrl, null);
+    assert.equal(details.links.cancelSubscriptionUrl, "https://example.com/cancel-now");
+    assert.equal(details.links.billingHistoryUrl, null);
+    assert.equal(openManagementAction?.availability, "disabled");
+    assert.match(openManagementAction?.unavailableReason ?? "", /must start with http/);
+    assert.equal(cancelSoonAction?.availability, "enabled");
+    assert.equal(historyAction?.availability, "disabled");
+  });
+
   test("derives cancel-scheduled lifecycle and disables cancel actions for inactive subscriptions", () => {
     const details = buildSubscriptionDetails(
       makeRecord({

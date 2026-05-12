@@ -1845,6 +1845,22 @@ button:disabled,
   margin: 0;
 }
 
+.details-lifecycle-panel,
+.details-management-panel {
+  align-content: start;
+}
+
+.details-lifecycle-actions,
+.details-management-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.details-management-actions {
+  padding-top: 0.1rem;
+}
+
 .details-definition-list {
   display: grid;
   gap: 0.45rem;
