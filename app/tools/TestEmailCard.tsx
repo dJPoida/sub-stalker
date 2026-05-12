@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { isSessionExpiredRedirectError, redirectOnUnauthorized } from "@/app/components/session-expiry";
+
 type TestEmailCardProps = {
   emailConfigured: boolean;
 };
@@ -33,6 +35,8 @@ export default function TestEmailCard({ emailConfigured }: TestEmailCardProps): 
         ? ((await response.json().catch(() => null)) as SendTestEmailResponse | null)
         : null;
 
+      redirectOnUnauthorized(response);
+
       if (!response.ok || !data?.success) {
         setSendState({
           status: "error",
@@ -47,7 +51,11 @@ export default function TestEmailCard({ emailConfigured }: TestEmailCardProps): 
           ? `Test email queued. Message ID: ${data.messageId}. Check inbox/spam.`
           : "Test email queued. Check inbox/spam.",
       });
-    } catch {
+    } catch (error) {
+      if (isSessionExpiredRedirectError(error)) {
+        return;
+      }
+
       setSendState({
         status: "error",
         message: "Network error while sending test email.",
