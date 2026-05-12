@@ -9,6 +9,7 @@ import {
   INITIAL_DASHBOARD_REQUEST_STATE,
   reduceDashboardRequestState,
 } from "@/lib/dashboard-view-state";
+import { isSessionExpiredRedirectError, redirectOnUnauthorized } from "@/app/components/session-expiry";
 
 type DashboardApiResponse = {
   data?: DashboardPayload;
@@ -38,6 +39,8 @@ async function loadDashboardPayload(signal?: AbortSignal): Promise<DashboardPayl
     parsedResponse = null;
   }
 
+  redirectOnUnauthorized(response);
+
   if (!response.ok) {
     const statusMessage = `Dashboard request failed with status ${response.status}.`;
     throw new Error(parsedResponse?.error || statusMessage);
@@ -66,6 +69,10 @@ export default function DashboardDataClient({ initialCurrency }: DashboardDataCl
       );
     } catch (error) {
       if (signal?.aborted) {
+        return;
+      }
+
+      if (isSessionExpiredRedirectError(error)) {
         return;
       }
 

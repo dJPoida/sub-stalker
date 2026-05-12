@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { signInAction } from "@/app/auth/actions";
 import { PendingFieldset, PendingSubmitButton } from "@/app/components/PendingFormControls";
+import { getSignInErrorMessage } from "@/lib/auth-errors";
 import { getCurrentUser } from "@/lib/auth";
 
 type SignInPageProps = {
@@ -12,40 +13,6 @@ type SignInPageProps = {
     retry_after?: string;
   };
 };
-
-function getErrorMessage(errorCode?: string, retryAfter?: string): string | null {
-  if (!errorCode) {
-    return null;
-  }
-
-  if (errorCode === "missing_fields") {
-    return "Enter both email and password.";
-  }
-
-  if (errorCode === "invalid_credentials") {
-    return "Invalid email or password.";
-  }
-
-  if (errorCode === "invalid_request") {
-    return "Invalid sign-in request. Please try again.";
-  }
-
-  if (errorCode === "account_exists") {
-    return "An account already exists for that email. Sign in instead.";
-  }
-
-  if (errorCode === "rate_limited") {
-    const seconds = Number(retryAfter ?? "0");
-
-    if (!Number.isFinite(seconds) || seconds <= 0) {
-      return "Too many sign-in attempts. Please wait and try again.";
-    }
-
-    return `Too many sign-in attempts. Try again in ${seconds} seconds.`;
-  }
-
-  return "Unable to sign in.";
-}
 
 function normalizeEmail(value: string | undefined): string {
   return String(value ?? "").trim().toLowerCase();
@@ -58,7 +25,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
     redirect("/");
   }
 
-  const errorMessage = getErrorMessage(searchParams?.error, searchParams?.retry_after);
+  const errorMessage = getSignInErrorMessage(searchParams?.error, searchParams?.retry_after);
   const emailPrefill = normalizeEmail(searchParams?.email);
 
   return (

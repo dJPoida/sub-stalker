@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { isSessionExpiredRedirectError, redirectOnUnauthorized } from "@/app/components/session-expiry";
 import { trackTelemetryEvent } from "@/app/components/telemetry";
 import type {
   SubscriptionDetailsActionCapability,
@@ -86,6 +87,8 @@ export function useSubscriptionDetailsModal() {
         return;
       }
 
+      redirectOnUnauthorized(response);
+
       if (!response.ok) {
         setFetchState("error");
         setErrorMessage("Could not load subscription details.");
@@ -103,6 +106,10 @@ export function useSubscriptionDetailsModal() {
       setFetchState("ready");
     } catch (error) {
       if (controller.signal.aborted) {
+        return;
+      }
+
+      if (isSessionExpiredRedirectError(error)) {
         return;
       }
 
@@ -157,6 +164,8 @@ export function useSubscriptionDetailsModal() {
 
         const payload = (await response.json().catch(() => ({}))) as DetailsResponsePayload;
 
+        redirectOnUnauthorized(response);
+
         if (payload.data) {
           setDetails(payload.data);
           setFetchState("ready");
@@ -177,6 +186,10 @@ export function useSubscriptionDetailsModal() {
         router.refresh();
         return true;
       } catch (error) {
+        if (isSessionExpiredRedirectError(error)) {
+          return false;
+        }
+
         setActionMessage({
           type: "error",
           text: error instanceof Error ? error.message : "Could not update this subscription.",
