@@ -17,7 +17,7 @@ When the user asks for a task to be done, follow this sequence:
 3. If the user did not explicitly request execution now, confirm intent before coding:
    - ask whether they want backlog-only issue creation, or
    - immediate implementation.
-4. For implementation requests, create a dedicated branch before making code changes.
+4. For implementation requests, ensure the local codebase is up to date and create a dedicated branch before making code changes.
 5. Implement the fix.
 6. Commit the changes and push/publish the branch to remote.
 7. Check for an outstanding pull request that can reasonably include the request; if one exists, add changes there instead of creating a new PR.

@@ -50,6 +50,29 @@ function renderModalHtml(record: SubscriptionDetailsSourceRecord): string {
   );
 }
 
+function renderModalStateHtml({
+  errorMessage = null,
+  loadState,
+  onRetry = null,
+}: {
+  errorMessage?: string | null;
+  loadState: "loading" | "empty" | "error";
+  onRetry?: (() => void) | null;
+}): string {
+  return renderToStaticMarkup(
+    <SubscriptionDetailsModal
+      details={null}
+      errorMessage={errorMessage}
+      isOpen
+      loadState={loadState}
+      onClose={() => undefined}
+      onRetry={onRetry}
+      onViewFullHistoryClick={() => undefined}
+      source="subscriptions_list"
+    />,
+  );
+}
+
 describe("SubscriptionDetailsModal attention panel", () => {
   test("renders alert items with review-state copy", () => {
     const html = renderModalHtml(
@@ -75,6 +98,8 @@ describe("SubscriptionDetailsModal attention panel", () => {
     assert.match(html, /Lifecycle Controls/);
     assert.match(html, /Management/);
     assert.match(html, /example\.com/);
+    assert.match(html, /aria-labelledby="subscription-details-title"/);
+    assert.match(html, /aria-describedby="subscription-details-description"/);
   });
 
   test("renders an empty state when no alerts are active", () => {
@@ -108,5 +133,22 @@ describe("SubscriptionDetailsModal attention panel", () => {
     assert.doesNotMatch(html, /ftp:\/\/example\.com/);
     assert.match(html, /Not captured/);
     assert.match(html, /Management URL must start with http:\/\/ or https:\/\/\./);
+  });
+
+  test("renders accessible loading, error, and empty states", () => {
+    const loadingHtml = renderModalStateHtml({ loadState: "loading" });
+    const errorHtml = renderModalStateHtml({
+      errorMessage: "Details service is unavailable.",
+      loadState: "error",
+      onRetry: () => undefined,
+    });
+    const emptyHtml = renderModalStateHtml({ loadState: "empty" });
+
+    assert.match(loadingHtml, /role="status"/);
+    assert.match(loadingHtml, /aria-busy="true"/);
+    assert.match(loadingHtml, /Loading subscription details\./);
+    assert.match(errorHtml, /Details service is unavailable\./);
+    assert.match(errorHtml, />Retry</);
+    assert.match(emptyHtml, /Subscription details are unavailable for this record\./);
   });
 });

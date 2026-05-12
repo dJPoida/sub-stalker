@@ -1939,6 +1939,16 @@ button:disabled,
   align-items: center;
 }
 
+.details-status-block {
+  display: grid;
+  justify-items: start;
+  gap: 0.65rem;
+}
+
+.details-status-block p {
+  margin: 0;
+}
+
 .details-skeleton {
   display: grid;
   gap: 0.55rem;
@@ -1961,6 +1971,18 @@ button:disabled,
 ul {
   margin: 0;
   padding-left: 1.1rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @media (max-width: 940px) {
@@ -2062,5 +2084,14 @@ ul {
 
   .details-quick-actions-grid {
     grid-template-columns: 1fr;
+  }
+
+  .details-action-row {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .details-action-row > * {
+    width: 100%;
   }
 }
