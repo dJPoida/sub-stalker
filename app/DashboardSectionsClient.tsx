@@ -84,8 +84,8 @@ type DashboardSectionsClientProps = {
     currency: string;
     monthlyEquivalentSpendCents: number;
   }>;
-  spendBreakdownByCategory: Array<{
-    category: string;
+  spendBreakdown: Array<{
+    label: string;
     subscriptionCount: number;
     totalsByCurrency: Array<{
       currency: string;
@@ -378,7 +378,7 @@ export default function DashboardSectionsClient({
   potentialSavings,
   upcomingCharges,
   monthlySpendTotalsByCurrency,
-  spendBreakdownByCategory,
+  spendBreakdown,
   initialCurrency,
   currencyConversion,
   renderState,
@@ -489,8 +489,8 @@ export default function DashboardSectionsClient({
       return [];
     }
 
-    return mapDashboardSpendBreakdownByCurrency(spendBreakdownByCategory, spendBreakdownCurrency, "");
-  }, [spendBreakdownByCategory, spendBreakdownCurrency]);
+    return mapDashboardSpendBreakdownByCurrency(spendBreakdown, spendBreakdownCurrency, "");
+  }, [spendBreakdown, spendBreakdownCurrency]);
   const spendBreakdownTotalCents = useMemo(() => {
     return spendBreakdownRows.reduce((total, row) => total + row.monthlyEquivalentSpendCents, 0);
   }, [spendBreakdownRows]);
@@ -518,7 +518,7 @@ export default function DashboardSectionsClient({
     return spendBreakdownRows.map((row) => {
       const segmentLength = (row.monthlyEquivalentSpendCents / spendBreakdownTotalCents) * circumference;
       const segment = {
-        category: row.category,
+        label: row.label,
         color: row.color,
         segmentLength,
         dashOffset,
@@ -529,13 +529,13 @@ export default function DashboardSectionsClient({
   }, [spendBreakdownCurrency, spendBreakdownRows, spendBreakdownTotalCents]);
   const spendBreakdownDescription = useMemo(() => {
     if (!spendBreakdownCurrency || spendBreakdownRows.length === 0 || spendBreakdownTotalCents <= 0) {
-      return "No categorized spend data is available for the current controls.";
+      return "No spend by Signed up by data is available for the current controls.";
     }
 
     return spendBreakdownRows
       .map((row) => {
         const percent = Math.round((row.monthlyEquivalentSpendCents / spendBreakdownTotalCents) * 100);
-        return `${row.category}: ${formatMoney(row.monthlyEquivalentSpendCents, spendBreakdownCurrency)} (${percent}%).`;
+        return `${row.label}: ${formatMoney(row.monthlyEquivalentSpendCents, spendBreakdownCurrency)} (${percent}%).`;
       })
       .join(" ");
   }, [spendBreakdownCurrency, spendBreakdownRows, spendBreakdownTotalCents]);
@@ -615,9 +615,9 @@ export default function DashboardSectionsClient({
               <h2>Spend Breakdown</h2>
               <span className="metric-note">
                 {isLoading
-                  ? "Loading categories..."
+                  ? "Loading owners..."
                   : spendBreakdownCurrency
-                    ? `${spendBreakdownRows.length} categories`
+                    ? `${spendBreakdownRows.length} Signed up by ${spendBreakdownRows.length === 1 ? "group" : "groups"}`
                     : `No ${reportingCurrency} data`}
               </span>
             </div>
@@ -643,9 +643,9 @@ export default function DashboardSectionsClient({
                 </ul>
               </div>
             ) : !spendBreakdownCurrency ? (
-              <p className="text-muted">No categorized spend is available in {reportingCurrency}.</p>
+              <p className="text-muted">No spend by Signed up by is available in {reportingCurrency}.</p>
             ) : spendBreakdownRows.length === 0 || spendBreakdownTotalCents <= 0 ? (
-              <p className="text-muted">No categorized spend exists yet.</p>
+              <p className="text-muted">No spend by Signed up by exists yet.</p>
             ) : (
               <div className="spend-breakdown-layout">
                 <figure className="spend-donut-figure">
@@ -657,7 +657,7 @@ export default function DashboardSectionsClient({
                     viewBox="0 0 112 112"
                   >
                     <title id={spendBreakdownTitleId}>
-                      Spend by category in {spendBreakdownCurrency}
+                      Spend by Signed up by in {spendBreakdownCurrency}
                     </title>
                     <desc id={spendBreakdownDescriptionId}>{spendBreakdownDescription}</desc>
                     <circle className="spend-donut-track" cx="56" cy="56" r="44" />
@@ -666,7 +666,7 @@ export default function DashboardSectionsClient({
                         className="spend-donut-segment"
                         cx="56"
                         cy="56"
-                        key={segment.category}
+                        key={segment.label}
                         r="44"
                         stroke={segment.color}
                         strokeDasharray={`${segment.segmentLength} ${spendBreakdownChartCircumference}`}
@@ -679,20 +679,20 @@ export default function DashboardSectionsClient({
                     <strong>{formatMoney(spendBreakdownTotalCents, spendBreakdownCurrency)}</strong>
                   </figcaption>
                 </figure>
-                <ul aria-label={`Spend category legend in ${spendBreakdownCurrency}`} className="spend-legend">
+                <ul aria-label={`Spend by Signed up by legend in ${spendBreakdownCurrency}`} className="spend-legend">
                   {spendBreakdownRows.map((row) => {
                     const percent = Math.round((row.monthlyEquivalentSpendCents / spendBreakdownTotalCents) * 100);
                     const subscriptionLabel = row.subscriptionCount === 1 ? "1 subscription" : `${row.subscriptionCount} subscriptions`;
 
                     return (
-                      <li className="spend-legend-item" key={row.category}>
+                      <li className="spend-legend-item" key={row.label}>
                         <span
                           aria-hidden="true"
                           className="spend-legend-swatch"
                           style={{ backgroundColor: row.color }}
                         />
                         <div className="spend-legend-copy">
-                          <span className="spend-legend-label">{row.category}</span>
+                          <span className="spend-legend-label">{row.label}</span>
                           <span className="spend-legend-value">
                             {formatMoney(row.monthlyEquivalentSpendCents, spendBreakdownCurrency)} - {percent}% -{" "}
                             {subscriptionLabel}
@@ -705,11 +705,11 @@ export default function DashboardSectionsClient({
               </div>
             )}
             {!isLoading && spendBreakdownCurrency && spendBreakdownRows.length === 1 ? (
-              <p className="text-muted">Only one category currently contributes spend.</p>
+              <p className="text-muted">Only one Signed up by group currently contributes spend.</p>
             ) : null}
             {!isLoading && spendBreakdownCurrency && !spendBreakdownReconciled ? (
               <p className="text-muted" role="status">
-                Category totals ({formatMoney(spendBreakdownTotalCents, spendBreakdownCurrency)}) differ from KPI total (
+                Signed up by totals ({formatMoney(spendBreakdownTotalCents, spendBreakdownCurrency)}) differ from KPI total (
                 {formatMoney(spendBreakdownKpiTotalCents ?? 0, spendBreakdownCurrency)}).
               </p>
             ) : null}

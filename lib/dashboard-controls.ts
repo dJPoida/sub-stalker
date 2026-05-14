@@ -1,7 +1,4 @@
-import { normalizeCurrencyCode } from "@/lib/currencies";
-
-
-const DASHBOARD_CATEGORY_COLOR_PALETTE = [
+const DASHBOARD_SPEND_BREAKDOWN_COLOR_PALETTE = [
   "#0EA5E9",
   "#F97316",
   "#22C55E",
@@ -14,8 +11,8 @@ const DASHBOARD_CATEGORY_COLOR_PALETTE = [
   "#84CC16",
 ] as const;
 
-type DashboardSpendBreakdownCategoryRecord = {
-  category: string;
+type DashboardSpendBreakdownRecord = {
+  label: string;
   subscriptionCount: number;
   totalsByCurrency: Array<{
     currency: string;
@@ -24,7 +21,7 @@ type DashboardSpendBreakdownCategoryRecord = {
 };
 
 export type DashboardSpendBreakdownRow = {
-  category: string;
+  label: string;
   monthlyEquivalentSpendCents: number;
   subscriptionCount: number;
   color: string;
@@ -52,18 +49,18 @@ function hashString(value: string): number {
   return hash;
 }
 
-export function getDashboardCategoryColor(category: string): string {
-  const normalized = category.trim().toLowerCase();
+export function getDashboardSpendBreakdownColor(label: string): string {
+  const normalized = label.trim().toLowerCase();
 
   if (!normalized) {
-    return DASHBOARD_CATEGORY_COLOR_PALETTE[0];
+    return DASHBOARD_SPEND_BREAKDOWN_COLOR_PALETTE[0];
   }
 
-  const index = hashString(normalized) % DASHBOARD_CATEGORY_COLOR_PALETTE.length;
-  return DASHBOARD_CATEGORY_COLOR_PALETTE[index];
+  const index = hashString(normalized) % DASHBOARD_SPEND_BREAKDOWN_COLOR_PALETTE.length;
+  return DASHBOARD_SPEND_BREAKDOWN_COLOR_PALETTE[index];
 }
 
-export function mapDashboardSpendBreakdownByCurrency<T extends DashboardSpendBreakdownCategoryRecord>(
+export function mapDashboardSpendBreakdownByCurrency<T extends DashboardSpendBreakdownRecord>(
   records: T[],
   currency: string,
   searchQuery: string,
@@ -81,19 +78,19 @@ export function mapDashboardSpendBreakdownByCurrency<T extends DashboardSpendBre
       }
 
       return {
-        category: record.category,
+        label: record.label,
         monthlyEquivalentSpendCents: amount,
         subscriptionCount: record.subscriptionCount,
-        color: getDashboardCategoryColor(record.category),
+        color: getDashboardSpendBreakdownColor(record.label),
       };
     })
     .filter((record): record is DashboardSpendBreakdownRow => record !== null)
-    .filter((record) => matchesSearchFilter([record.category], normalizedQuery))
+    .filter((record) => matchesSearchFilter([record.label], normalizedQuery))
     .sort((first, second) => {
       return (
         second.monthlyEquivalentSpendCents - first.monthlyEquivalentSpendCents ||
         second.subscriptionCount - first.subscriptionCount ||
-        first.category.localeCompare(second.category)
+        first.label.localeCompare(second.label)
       );
     });
 }

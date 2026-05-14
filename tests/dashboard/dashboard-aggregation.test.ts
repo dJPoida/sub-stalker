@@ -3,6 +3,7 @@ import { describe, test } from "node:test";
 
 import {
   DASHBOARD_RENEWALS_WINDOW_DAYS,
+  DASHBOARD_UNSPECIFIED_SIGNED_UP_BY_LABEL,
   DASHBOARD_UPCOMING_RENEWALS_WINDOW_DAYS,
   type DashboardSubscriptionSourceRecord,
   buildDashboardPayload,
@@ -41,12 +42,40 @@ describe("buildDashboardPayload", () => {
     assert.equal(payload.kpis.renewalsInNext7Days, 0);
     assert.equal(payload.kpis.monthlyEquivalentSpend.amountCents, null);
     assert.equal(payload.kpis.annualProjection.amountCents, null);
-    assert.deepEqual(payload.spendBreakdownByCategory, []);
+    assert.deepEqual(payload.spendBreakdown, []);
     assert.deepEqual(payload.attentionNeeded, []);
     assert.deepEqual(payload.upcomingRenewals, []);
     assert.deepEqual(payload.topCostDrivers, []);
     assert.deepEqual(payload.potentialSavings.opportunities, []);
     assert.equal(payload.nextCharge, null);
+  });
+
+  test("groups spend breakdown by signed-up owner with a fallback label", () => {
+    const now = new Date("2026-03-11T00:00:00.000Z");
+
+    const payload = buildDashboardPayload(
+      [
+        makeSubscription({ id: "alex-streaming", name: "Netflix", amountCents: 1800, signedUpBy: "Alex" }),
+        makeSubscription({ id: "alex-work", name: "GitHub", amountCents: 2200, signedUpBy: " Alex " }),
+        makeSubscription({ id: "jamie", name: "Canva", amountCents: 1500, signedUpBy: "Jamie" }),
+        makeSubscription({ id: "missing-owner", name: "Cloudflare", amountCents: 1200, signedUpBy: null }),
+        makeSubscription({ id: "custom", name: "Custom Billing", billingInterval: "CUSTOM", signedUpBy: "Alex" }),
+      ],
+      now,
+    );
+
+    assert.deepEqual(
+      payload.spendBreakdown.map((group) => [
+        group.label,
+        group.subscriptionCount,
+        group.totalsByCurrency[0]?.monthlyEquivalentSpendCents,
+      ]),
+      [
+        ["Alex", 2, 4000],
+        ["Jamie", 1, 1500],
+        [DASHBOARD_UNSPECIFIED_SIGNED_UP_BY_LABEL, 1, 1200],
+      ],
+    );
   });
 
   test("uses explicit next-7 and next-30-day windows and excludes custom cadence from normalized totals", () => {
