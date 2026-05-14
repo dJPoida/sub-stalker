@@ -222,7 +222,7 @@ export async function createSubscriptionAction(formData: FormData): Promise<void
     },
   });
 
-  redirect("/subscriptions?result=created");
+  redirect(`/subscriptions?result=created&eventId=${Date.now()}`);
 }
 
 export async function updateSubscriptionAction(formData: FormData): Promise<void> {

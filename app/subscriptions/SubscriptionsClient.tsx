@@ -40,6 +40,7 @@ type SubscriptionsClientProps = {
   paymentMethodSuggestions: string[];
   signedUpBySuggestions: string[];
   resultMessage: ActionResultMessage | null;
+  createSuccessToken: string | null;
   updateSuccessToken: string | null;
   createAction: (formData: FormData) => Promise<void>;
   updateAction: (formData: FormData) => Promise<void>;
@@ -116,6 +117,7 @@ export default function SubscriptionsClient({
   paymentMethodSuggestions,
   signedUpBySuggestions,
   resultMessage,
+  createSuccessToken,
   updateSuccessToken,
   createAction,
   updateAction,
@@ -238,6 +240,14 @@ export default function SubscriptionsClient({
 
     setEditingSubscriptionId(null);
   }, [updateSuccessToken]);
+
+  useEffect(() => {
+    if (!createSuccessToken) {
+      return;
+    }
+
+    setIsAddModalOpen(false);
+  }, [createSuccessToken]);
 
   return (
     <section className="page-stack">

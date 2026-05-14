@@ -79,9 +79,19 @@ function getUpdateSuccessToken(searchParams?: SubscriptionsPageProps["searchPara
   return eventId && eventId.length > 0 ? eventId : "updated";
 }
 
+function getCreateSuccessToken(searchParams?: SubscriptionsPageProps["searchParams"]): string | null {
+  if (searchParams?.result !== "created") {
+    return null;
+  }
+
+  const eventId = searchParams.eventId?.trim();
+  return eventId && eventId.length > 0 ? eventId : "created";
+}
+
 export default async function SubscriptionsPage({ searchParams }: SubscriptionsPageProps) {
   const user = await requireAuthenticatedUser();
   const resultMessage = getResultMessage(searchParams);
+  const createSuccessToken = getCreateSuccessToken(searchParams);
   const updateSuccessToken = getUpdateSuccessToken(searchParams);
   const [subscriptions, paymentMethodSuggestions, signedUpBySuggestions] = await Promise.all([
     db.subscription.findMany({
@@ -122,6 +132,7 @@ export default async function SubscriptionsPage({ searchParams }: SubscriptionsP
 
   return (
     <SubscriptionsClient
+      createSuccessToken={createSuccessToken}
       createAction={createSubscriptionAction}
       deactivateAction={deactivateSubscriptionAction}
       resultMessage={resultMessage}
