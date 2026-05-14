@@ -16,6 +16,7 @@ const ATTENTION_UNUSED_MIN_ACCOUNT_AGE_DAYS = 120;
 const ATTENTION_UNUSED_STALE_UPDATED_DAYS = 90;
 const UPCOMING_RENEW_URGENCY_WINDOW_DAYS = 3;
 const UPCOMING_RENEW_TAG_WINDOW_DAYS = 10;
+export const DASHBOARD_UNSPECIFIED_SIGNED_UP_BY_LABEL = "Not specified";
 
 const PROMO_HINT_KEYWORDS = ["trial", "promo", "intro", "discount", "offer", "starter"] as const;
 const WORK_TAG_HINT_KEYWORDS = [
@@ -87,8 +88,8 @@ export type DashboardKpis = {
   };
 };
 
-export type DashboardSpendCategory = {
-  category: string;
+export type DashboardSpendBreakdownGroup = {
+  label: string;
   amountCents: number | null;
   annualProjectionCents: number | null;
   currency: string | null;
@@ -178,7 +179,7 @@ export type DashboardPayload = {
   normalizationPolicy: "preferred_currency_with_fx_conversion";
   currencyConversion: DashboardCurrencyConversion;
   kpis: DashboardKpis;
-  spendBreakdownByCategory: DashboardSpendCategory[];
+  spendBreakdown: DashboardSpendBreakdownGroup[];
   attentionNeeded: DashboardAttentionItem[];
   upcomingRenewals: DashboardUpcomingRenewal[];
   topCostDrivers: DashboardTopCostDriver[];
@@ -645,10 +646,10 @@ export function buildDashboardPayload(
     },
   };
 
-  const categoryGroups = new Map<
+  const spendBreakdownGroups = new Map<
     string,
     {
-      category: string;
+      label: string;
       subscriptionCount: number;
       records: NormalizedSubscription[];
     }
@@ -659,7 +660,9 @@ export function buildDashboardPayload(
       continue;
     }
 
-    const existing = categoryGroups.get(subscription.inferredCategory);
+    const ownerLabel = subscription.signedUpBy?.trim() || DASHBOARD_UNSPECIFIED_SIGNED_UP_BY_LABEL;
+    const ownerKey = ownerLabel.toLowerCase();
+    const existing = spendBreakdownGroups.get(ownerKey);
 
     if (existing) {
       existing.subscriptionCount += 1;
@@ -667,23 +670,23 @@ export function buildDashboardPayload(
       continue;
     }
 
-    categoryGroups.set(subscription.inferredCategory, {
-      category: subscription.inferredCategory,
+    spendBreakdownGroups.set(ownerKey, {
+      label: ownerLabel,
       subscriptionCount: 1,
       records: [subscription],
     });
   }
 
-  const spendBreakdownByCategory: DashboardSpendCategory[] = [...categoryGroups.values()]
+  const spendBreakdown: DashboardSpendBreakdownGroup[] = [...spendBreakdownGroups.values()]
     .map((group) => {
-      const categoryTotals = makeCurrencyTotals(group.records, preferredCurrency);
+      const groupTotals = makeCurrencyTotals(group.records, preferredCurrency);
 
       return {
-        category: group.category,
-        amountCents: categoryTotals.length === 1 ? categoryTotals[0].monthlyEquivalentSpendCents : null,
-        annualProjectionCents: categoryTotals.length === 1 ? categoryTotals[0].annualProjectionCents : null,
-        currency: categoryTotals.length === 1 ? categoryTotals[0].currency : null,
-        totalsByCurrency: categoryTotals,
+        label: group.label,
+        amountCents: groupTotals.length === 1 ? groupTotals[0].monthlyEquivalentSpendCents : null,
+        annualProjectionCents: groupTotals.length === 1 ? groupTotals[0].annualProjectionCents : null,
+        currency: groupTotals.length === 1 ? groupTotals[0].currency : null,
+        totalsByCurrency: groupTotals,
         subscriptionCount: group.subscriptionCount,
       };
     })
@@ -691,7 +694,7 @@ export function buildDashboardPayload(
       const firstSortAmount = Math.max(0, ...first.totalsByCurrency.map((entry) => entry.monthlyEquivalentSpendCents));
       const secondSortAmount = Math.max(0, ...second.totalsByCurrency.map((entry) => entry.monthlyEquivalentSpendCents));
 
-      return secondSortAmount - firstSortAmount || second.subscriptionCount - first.subscriptionCount || first.category.localeCompare(second.category);
+      return secondSortAmount - firstSortAmount || second.subscriptionCount - first.subscriptionCount || first.label.localeCompare(second.label);
     });
 
   const upcomingRenewals: DashboardUpcomingRenewal[] = activeSubscriptions
@@ -987,7 +990,7 @@ export function buildDashboardPayload(
       missingRates: [...missingRates].sort((first, second) => first.localeCompare(second)),
     },
     kpis,
-    spendBreakdownByCategory,
+    spendBreakdown,
     attentionNeeded,
     upcomingRenewals,
     topCostDrivers,

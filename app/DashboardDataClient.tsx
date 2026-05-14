@@ -146,11 +146,11 @@ export default function DashboardDataClient({ initialCurrency }: DashboardDataCl
         assumptions: payload?.potentialSavings.assumptions ?? [],
       }}
       renderState={renderState}
-      spendBreakdownByCategory={
-        payload?.spendBreakdownByCategory.map((category) => ({
-          category: category.category,
-          subscriptionCount: category.subscriptionCount,
-          totalsByCurrency: category.totalsByCurrency.map((total) => ({
+      spendBreakdown={
+        payload?.spendBreakdown.map((group) => ({
+          label: group.label,
+          subscriptionCount: group.subscriptionCount,
+          totalsByCurrency: group.totalsByCurrency.map((total) => ({
             currency: total.currency,
             monthlyEquivalentSpendCents: total.monthlyEquivalentSpendCents,
           })),
